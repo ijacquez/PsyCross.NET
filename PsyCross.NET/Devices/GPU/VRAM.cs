@@ -3,27 +3,27 @@ using System.Runtime.InteropServices;
 
 namespace PsyCross.Devices.GPU {
     public class VRAM {
-        public int[] Bits { get; private set; }
-        public int Height;
-        public int Width;
+        public uint[] Bits { get; private set; }
+        public int Height { get; }
+        public int Width { get; }
 
         protected GCHandle BitsHandle { get; private set; }
 
         public VRAM(int width, int height) {
             Height = height;
             Width = width;
-            Bits = new int[Width * Height];
+            Bits = new uint[Width * Height];
             BitsHandle = GCHandle.Alloc(Bits, GCHandleType.Pinned);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetPixel(int x, int y, int color) {
+        public void SetPixel(int x, int y, uint color) {
             int index = x + (y * Width);
             Bits[index] = color;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetPixelRGB888(int x, int y) {
+        public uint GetPixelRGB888(int x, int y) {
             int index = x + (y * Width);
             return Bits[index];
         }
@@ -31,7 +31,7 @@ namespace PsyCross.Devices.GPU {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ushort GetPixelBGR555(int x, int y) {
             int index = x + (y * Width);
-            int color = Bits[index];
+            uint color = Bits[index];
 
             byte m = (byte)((color & 0xFF000000) >> 24);
             byte r = (byte)((color & 0x00FF0000) >> 16 + 3);

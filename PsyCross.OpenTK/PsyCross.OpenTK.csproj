@@ -16,8 +16,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="JonSkeet.MiscUtil"   Version="0.2.0">
+      <NoWarn>NU1701</NoWarn>
+    </PackageReference>
     <PackageReference Include="ImGui.NET" Version="1.78.0" />
     <PackageReference Include="OpenTK" Version="4.7.2" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
   </ItemGroup>
 
   <ItemGroup>

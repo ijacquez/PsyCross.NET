@@ -1,16 +1,23 @@
-﻿using OpenTK.Graphics.OpenGL;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using PsyCross.Devices.Input;
+﻿using PsyCross.Devices.Input;
+using PsyCross.OpenTK.Types;
+using PsyCross.OpenTK.Utilities;
+using PsyCross.ResourceManagement;
 using System.Collections.Generic;
 using System;
-using OpenTK.Mathematics;
 
 namespace PsyCross.OpenTK {
+    using global::OpenTK.Graphics.OpenGL4;
+    using global::OpenTK.Mathematics;
+    using global::OpenTK.Windowing.Common;
+    using global::OpenTK.Windowing.Desktop;
+    using global::OpenTK.Windowing.GraphicsLibraryFramework;
+
     public class Window {
+        private const string _PositionAttribName = "in_position";
+        private const string _TexcoordAttribName = "in_texcoord";
+
         private PSX _psx;
-        private int[] _displayBuffer;
+        private uint[] _displayBuffer;
         private readonly Dictionary<Keys, GamepadInputsEnum> _gamepadKeyMap;
         // private AudioPlayer audioPlayer = new AudioPlayer();
         private int _vSyncCounter;
@@ -19,6 +26,30 @@ namespace PsyCross.OpenTK {
         private readonly NativeWindowSettings _nativeWindowSettings;
 
         private readonly GameWindow _gameWindow;
+
+        private Shader _shader;
+        private Texture _texture;
+        private int _vaoHandle;
+
+        // VBO structure
+        //   Vertex   Texture
+        //     float    float
+        //   0        3
+        //   -------- -------
+        //   vx vy vz tx ty
+        private int _vboHandle;
+        private int _vboSize;
+        private float[] _vertexTexcoordBuffer = new float[2 * 3 * 5] {
+            -1, -1, 0, 0, 1,
+             1, -1, 0, 1, 1,
+             1,  1, 0, 1, 0,
+
+            -1, -1, 0, 0, 1,
+             1,  1, 0, 1, 0,
+            -1,  1, 0, 0, 0,
+        };
+
+        private IntPtr _vertexTexcoordPtr;
 
         private Window() {
         }
@@ -32,7 +63,7 @@ namespace PsyCross.OpenTK {
             _nativeWindowSettings = new NativeWindowSettings() {
                 API          = ContextAPI.OpenGL,
                 APIVersion   = new Version(4, 5),
-                Profile      = ContextProfile.Compatability,
+                Profile      = ContextProfile.Any,
                 StartVisible = true,
                 Size         = new Vector2i(1024, 512)
             };
@@ -47,62 +78,89 @@ namespace PsyCross.OpenTK {
             _gameWindow.VSync = VSyncMode.On;
 
             _gamepadKeyMap = new Dictionary<Keys, GamepadInputsEnum>() {
-                { Keys.Space, GamepadInputsEnum.Space},
-                { Keys.Z , GamepadInputsEnum.Z },
-                { Keys.C , GamepadInputsEnum.C },
-                { Keys.Enter , GamepadInputsEnum.Enter },
-                { Keys.Up , GamepadInputsEnum.Up },
-                { Keys.Right , GamepadInputsEnum.Right },
-                { Keys.Down , GamepadInputsEnum.Down },
-                { Keys.Left , GamepadInputsEnum.Left },
-                { Keys.F1 , GamepadInputsEnum.D1 },
-                { Keys.F3 , GamepadInputsEnum.D3 },
-                { Keys.Q , GamepadInputsEnum.Q },
-                { Keys.E , GamepadInputsEnum.E },
-                { Keys.W , GamepadInputsEnum.W },
-                { Keys.D , GamepadInputsEnum.D },
-                { Keys.S , GamepadInputsEnum.S },
-                { Keys.A , GamepadInputsEnum.A },
+                { Keys.Space, GamepadInputsEnum.Select },
+                { Keys.Z,     GamepadInputsEnum.L2 },
+                { Keys.C,     GamepadInputsEnum.R2 },
+                { Keys.Enter, GamepadInputsEnum.Start },
+                { Keys.Up,    GamepadInputsEnum.Up },
+                { Keys.Right, GamepadInputsEnum.Right },
+                { Keys.Down,  GamepadInputsEnum.Down },
+                { Keys.Left,  GamepadInputsEnum.Left },
+                { Keys.F1,    GamepadInputsEnum.D1 },
+                { Keys.F3,    GamepadInputsEnum.D3 },
+                { Keys.Q,     GamepadInputsEnum.L1 },
+                { Keys.E,     GamepadInputsEnum.R1 },
+                { Keys.W,     GamepadInputsEnum.Triangle },
+                { Keys.D,     GamepadInputsEnum.Circle },
+                { Keys.S,     GamepadInputsEnum.Cross },
+                { Keys.A,     GamepadInputsEnum.Square },
             };
 
             _gameWindow.MakeCurrent();
         }
 
         private void OnLoad() {
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-            GL.Enable(EnableCap.DepthTest);
-            GL.DepthFunc(DepthFunction.Lequal);
-            GL.Enable(EnableCap.Texture2D);
-            GL.ClearColor(1, 1, 1, 1);
+            var vertexShaderSource = LoadShaderSource(ShaderType.VertexShader, "Shaders/model_view.vert");
+            var fragmentShaderSource = LoadShaderSource(ShaderType.FragmentShader, "Shaders/model_view.frag");
+
+            _shader = new Shader("main", vertexShaderSource, fragmentShaderSource);
+            _texture = new Texture("main_tex", 1024, 512, data: null, srgb: true);
+
+            _vaoHandle = GL.GenVertexArray();
+            GL.BindVertexArray(_vaoHandle);
+
+            _vboSize = _vertexTexcoordBuffer.Length * sizeof(float);
+            _vertexTexcoordPtr = (IntPtr)0;
+
+            _vboHandle = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vboHandle);
+            GL.BufferData(BufferTarget.ArrayBuffer, _vboSize, (IntPtr)0, BufferUsageHint.StaticDraw);
+
+            GL.BufferSubData(BufferTarget.ArrayBuffer,
+                             _vertexTexcoordPtr,
+                             _vertexTexcoordBuffer.Length * sizeof(float),
+                             _vertexTexcoordBuffer);
+
+            int positionLocation = _shader.GetAttribLocation(_PositionAttribName);
+            DebugUtility.CheckGLError("SetShader: PositionAttribName Shader.GetAttribLocation");
+            GL.EnableVertexAttribArray(positionLocation);
+            GL.VertexAttribPointer(positionLocation,
+                                   3,
+                                   VertexAttribPointerType.Float,
+                                   normalized: false,
+                                   stride: 5 * sizeof(float),
+                                   offset: 0);
+            DebugUtility.CheckGLError("SetShader: PositionAttribName GL.VertexAttribPointer");
+
+            int texcoordLocation = _shader.GetAttribLocation(_TexcoordAttribName);
+            GL.EnableVertexAttribArray(texcoordLocation);
+            GL.VertexAttribPointer(texcoordLocation,
+                                   2,
+                                   VertexAttribPointerType.Float,
+                                   normalized: false,
+                                   stride: 5 * sizeof(float),
+                                   offset: 3 * sizeof(float));
+            DebugUtility.CheckGLError("SetShader: TexcoordAttribName GL.VertexAttribPointer");
+
+            GL.ClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         }
 
         private void OnRenderFrame(FrameEventArgs args) {
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            Render();
 
-            int id = GL.GenTexture();
-            GL.BindTexture(TextureTarget.Texture2D, id);
+            _texture.Use(TextureUnit.Texture0);
+            _shader.Bind();
 
-            GL.TexImage2D(TextureTarget.Texture2D, 0,
-                PixelInternalFormat.Rgb,
-                1024, 512, 0,
-                PixelFormat.Bgra,
-                PixelType.UnsignedByte,
-                _displayBuffer);
+            GL.Disable(EnableCap.Blend);
+            GL.Disable(EnableCap.DepthTest);
+            GL.Disable(EnableCap.CullFace);
+            GL.Disable(EnableCap.RasterizerDiscard);
+            GL.Enable(EnableCap.Texture2D);
 
-            GL.TexParameter(TextureTarget.Texture2D,
-                TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D,
-                TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.BindVertexArray(_vaoHandle);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vboHandle);
 
-            GL.Begin(PrimitiveType.Quads);
-            GL.TexCoord2(0, 1); GL.Vertex2(-1, -1);
-            GL.TexCoord2(1, 1); GL.Vertex2(1, -1);
-            GL.TexCoord2(1, 0); GL.Vertex2(1, 1);
-            GL.TexCoord2(0, 0); GL.Vertex2(-1, 1);
-            GL.End();
-
-            GL.DeleteTexture(id);
+            GL.DrawArrays(PrimitiveType.Triangles, first: 0, (_vertexTexcoordBuffer.Length / 5));
 
             _gameWindow.SwapBuffers();
         }
@@ -142,6 +200,15 @@ namespace PsyCross.OpenTK {
         private void Render() {
             _vSyncCounter++;
             _displayBuffer = _psx.VRAM.Bits;
+
+            _texture.Update(_displayBuffer);
+        }
+
+        private static ShaderSource LoadShaderSource(ShaderType shaderType, string filePath) {
+            return new ShaderSource() {
+                Type   = shaderType,
+                Source = ResourceManager.GetTextFile(filePath)
+            };
         }
 
         // public void SetDisplayMode(int horizontalRes, int verticalRes, bool is24BitDepth) {
