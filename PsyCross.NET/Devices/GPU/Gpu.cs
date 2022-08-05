@@ -1,7 +1,7 @@
-﻿using System;
+﻿using PsyCross.Devices.GPU;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using PsyCross.Devices.GPU;
+using System;
 
 namespace ProjectPSX.Devices {
     public class Gpu {
@@ -209,7 +209,7 @@ namespace ProjectPSX.Devices {
             GPUSTAT |= (uint)_dmaDirection << 29;
             GPUSTAT |= (uint)(_isOddLine ? 1 : 0) << 31;
 
-            //Console.WriteLine("[GPU] LOAD GPUSTAT: {0}", GPUSTAT.ToString("x8"));
+            // Console.WriteLine("[GPU] LOAD GPUSTAT: {0}", GPUSTAT.ToString("x8"));
             return GPUSTAT;
         }
 
@@ -435,7 +435,7 @@ namespace ProjectPSX.Devices {
 
         public void GP0_RenderPolygon(Span<uint> buffer) {
             uint command = buffer[_pointer];
-            Console.WriteLine(command.ToString("x8") +  " "  + _commandBuffer.Length + " " + _pointer);
+            // Console.WriteLine(command.ToString("x8") +  " "  + _commandBuffer.Length + " " + _pointer);
 
             bool isQuad = (command & (1 << 27)) != 0;
 
@@ -993,7 +993,7 @@ namespace ProjectPSX.Devices {
             _isTexturedRectangleXFlipped = ((val >> 12) & 0x1) != 0;
             _isTexturedRectangleYFlipped = ((val >> 13) & 0x1) != 0;
 
-            //Console.WriteLine("[GPU] [GP0] DrawMode ");
+            // Console.WriteLine("[GPU] [GP0] DrawMode");
         }
 
         private void GP0_E2_SetTextureWindow(uint val) {
@@ -1022,8 +1022,6 @@ namespace ProjectPSX.Devices {
         private void GP0_E4_SetDrawingAreaBottomRight(uint val) {
             _drawingAreaBottom = (ushort)((val >> 10) & 0x1FF);
             _drawingAreaRight = (ushort)(val & 0x3FF);
-
-            Console.WriteLine($"({_drawingAreaBottom}), ({_drawingAreaRight})");
         }
 
         private void GP0_E5_SetDrawingOffset(uint val) {
@@ -1037,7 +1035,7 @@ namespace ProjectPSX.Devices {
         }
 
         public void WriteGP1(uint value) {
-            Console.WriteLine($"[GPU] GP1 Write Value: {value:x8}");
+            // Console.WriteLine($"[GPU] GP1 Write Value: {value:x8}");
             uint opcode = value >> 24;
             switch (opcode) {
                 case 0x00: GP1_00_ResetGPU(); break;

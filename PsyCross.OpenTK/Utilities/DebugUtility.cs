@@ -8,8 +8,8 @@ namespace PsyCross.OpenTK.Utilities {
         public static void CheckGLError(string title) {
             var error = GL.GetError();
             if (error != ErrorCode.NoError) {
-                // Debug.Print($"{title}: {error}");
-                System.Console.WriteLine($"{title}: {error}");
+                Debug.Print($"{title}: {error}");
+                // System.Console.WriteLine($"{title}: {error}");
                 // throw new System.Exception($"{title}: {error}");
             }
         }
