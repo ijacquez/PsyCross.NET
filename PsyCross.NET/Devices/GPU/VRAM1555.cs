@@ -2,14 +2,14 @@
 using System.Runtime.InteropServices;
 
 namespace PsyCross.Devices.GPU {
-    public class VRAM1555 {
+    public class Vram1555 {
         public ushort[] Bits { get; private set; }
         public int Height;
         public int Width;
 
         protected GCHandle BitsHandle { get; private set; }
 
-        public VRAM1555(int width, int height) {
+        public Vram1555(int width, int height) {
             Height = height;
             Width = width;
             Bits = new ushort[Width * Height];

@@ -199,7 +199,7 @@ namespace PsyCross.OpenTK {
 
         private void Render() {
             _vSyncCounter++;
-            _displayBuffer = _psx.VRAM.Bits;
+            _displayBuffer = _psx.Gpu.Vram.Bits;
 
             _texture.Update(_displayBuffer);
         }

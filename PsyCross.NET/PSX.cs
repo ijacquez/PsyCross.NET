@@ -1,10 +1,9 @@
-﻿using PsyCross.Devices.GPU;
+﻿using ProjectPSX.Devices;
 using PsyCross.Devices.Input;
 
 namespace PsyCross {
     public abstract class PSX {
-        public VRAM VRAM { get; } = new VRAM(1024, 512);
-        public VRAM1555 VRAM1555 { get; } = new VRAM1555(1024, 512);
+        public Gpu Gpu { get; } = new Gpu();
 
         public GamepadInputsEnum GamepadInputs { get; private set; }
 
