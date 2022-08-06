@@ -16,9 +16,8 @@ namespace PsyCross.OpenTK {
         private const string _PositionAttribName = "in_position";
         private const string _TexcoordAttribName = "in_texcoord";
 
-        private PSX _psx;
         private uint[] _displayBuffer;
-        private readonly Dictionary<Keys, GamepadInputsEnum> _gamepadKeyMap;
+        private readonly Dictionary<Keys, JoyPad> _gamepadKeyMap;
         // private AudioPlayer audioPlayer = new AudioPlayer();
         private int _vSyncCounter;
 
@@ -39,7 +38,8 @@ namespace PsyCross.OpenTK {
         //   vx vy vz tx ty
         private int _vboHandle;
         private int _vboSize;
-        private float[] _vertexTexcoordBuffer = new float[2 * 3 * 5] {
+
+        private static readonly float[] _VertexTexcoordBuffer = new float[2 * 3 * 5] {
             -1, -1, 0, 0, 1,
              1, -1, 0, 1, 1,
              1,  1, 0, 1, 0,
@@ -51,12 +51,7 @@ namespace PsyCross.OpenTK {
 
         private IntPtr _vertexTexcoordPtr;
 
-        private Window() {
-        }
-
-        public Window(PSX psx) {
-            _psx = psx;
-
+        public Window() {
             _gameWindowSettings.RenderFrequency = 60;
             _gameWindowSettings.UpdateFrequency = 60;
 
@@ -77,23 +72,23 @@ namespace PsyCross.OpenTK {
 
             _gameWindow.VSync = VSyncMode.On;
 
-            _gamepadKeyMap = new Dictionary<Keys, GamepadInputsEnum>() {
-                { Keys.Space, GamepadInputsEnum.Select },
-                { Keys.Z,     GamepadInputsEnum.L2 },
-                { Keys.C,     GamepadInputsEnum.R2 },
-                { Keys.Enter, GamepadInputsEnum.Start },
-                { Keys.Up,    GamepadInputsEnum.Up },
-                { Keys.Right, GamepadInputsEnum.Right },
-                { Keys.Down,  GamepadInputsEnum.Down },
-                { Keys.Left,  GamepadInputsEnum.Left },
-                { Keys.F1,    GamepadInputsEnum.D1 },
-                { Keys.F3,    GamepadInputsEnum.D3 },
-                { Keys.Q,     GamepadInputsEnum.L1 },
-                { Keys.E,     GamepadInputsEnum.R1 },
-                { Keys.W,     GamepadInputsEnum.Triangle },
-                { Keys.D,     GamepadInputsEnum.Circle },
-                { Keys.S,     GamepadInputsEnum.Cross },
-                { Keys.A,     GamepadInputsEnum.Square },
+            _gamepadKeyMap = new Dictionary<Keys, JoyPad>() {
+                { Keys.Space, JoyPad.Select },
+                { Keys.Z,     JoyPad.L2 },
+                { Keys.C,     JoyPad.R2 },
+                { Keys.Enter, JoyPad.Start },
+                { Keys.Up,    JoyPad.Up },
+                { Keys.Right, JoyPad.Right },
+                { Keys.Down,  JoyPad.Down },
+                { Keys.Left,  JoyPad.Left },
+                { Keys.F1,    JoyPad.D1 },
+                { Keys.F3,    JoyPad.D3 },
+                { Keys.Q,     JoyPad.L1 },
+                { Keys.E,     JoyPad.R1 },
+                { Keys.W,     JoyPad.Triangle },
+                { Keys.D,     JoyPad.Circle },
+                { Keys.S,     JoyPad.Cross },
+                { Keys.A,     JoyPad.Square },
             };
 
             _gameWindow.MakeCurrent();
@@ -109,7 +104,7 @@ namespace PsyCross.OpenTK {
             _vaoHandle = GL.GenVertexArray();
             GL.BindVertexArray(_vaoHandle);
 
-            _vboSize = _vertexTexcoordBuffer.Length * sizeof(float);
+            _vboSize = _VertexTexcoordBuffer.Length * sizeof(float);
             _vertexTexcoordPtr = (IntPtr)0;
 
             _vboHandle = GL.GenBuffer();
@@ -118,8 +113,8 @@ namespace PsyCross.OpenTK {
 
             GL.BufferSubData(BufferTarget.ArrayBuffer,
                              _vertexTexcoordPtr,
-                             _vertexTexcoordBuffer.Length * sizeof(float),
-                             _vertexTexcoordBuffer);
+                             _VertexTexcoordBuffer.Length * sizeof(float),
+                             _VertexTexcoordBuffer);
 
             int positionLocation = _shader.GetAttribLocation(_PositionAttribName);
             DebugUtility.CheckGLError("SetShader: PositionAttribName Shader.GetAttribLocation");
@@ -160,33 +155,33 @@ namespace PsyCross.OpenTK {
             GL.BindVertexArray(_vaoHandle);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vboHandle);
 
-            GL.DrawArrays(PrimitiveType.Triangles, first: 0, (_vertexTexcoordBuffer.Length / 5));
+            GL.DrawArrays(PrimitiveType.Triangles, first: 0, (_VertexTexcoordBuffer.Length / 5));
 
             _gameWindow.SwapBuffers();
         }
 
         private void OnUpdateFrame(FrameEventArgs args) {
-            _psx.UpdateFrame();
+            PSX.OnUpdateFrame();
         }
 
         private void OnKeyDown(KeyboardKeyEventArgs e) {
-            GamepadInputsEnum? button = GetGamepadButton(e.Key);
+            JoyPad? button = GetKeys(e.Key);
 
             if (button != null) {
-                _psx.JoyPadDown(button.Value);
+                PSX.OnJoyPadDown(button.Value);
             }
         }
 
         private void OnKeyUp(KeyboardKeyEventArgs e) {
-            GamepadInputsEnum? button = GetGamepadButton(e.Key);
+            JoyPad? button = GetKeys(e.Key);
 
             if (button != null) {
-                _psx.JoyPadUp(button.Value);
+                PSX.OnJoyPadUp(button.Value);
             }
         }
 
-        private GamepadInputsEnum? GetGamepadButton(Keys keyCode) {
-            if (_gamepadKeyMap.TryGetValue(keyCode, out GamepadInputsEnum gamepadButtonValue)) {
+        private JoyPad? GetKeys(Keys keyCode) {
+            if (_gamepadKeyMap.TryGetValue(keyCode, out JoyPad gamepadButtonValue)) {
                 return gamepadButtonValue;
             }
 
@@ -199,7 +194,7 @@ namespace PsyCross.OpenTK {
 
         private void Render() {
             _vSyncCounter++;
-            _displayBuffer = _psx.Gpu.Vram.Bits;
+            _displayBuffer = PSX.Gpu.Vram.Bits;
 
             _texture.Update(_displayBuffer);
         }

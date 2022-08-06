@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 
-namespace PsyCross.Testing {
+namespace PsyCross {
     public sealed class Primitive {
         public Vector3[] Points { get; } = new Vector3[3];
 

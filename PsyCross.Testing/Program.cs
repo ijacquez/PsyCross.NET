@@ -8,7 +8,11 @@ namespace PsyCross.Testing {
         /// </summary>
         [STAThread]
         static void Main() {
-            Window window = new Window(new TestingPSX());
+            var testing = new Testing();
+
+            PSX.UpdateFrame += testing.Update;
+
+            Window window = new Window();
 
             window.Run();
         }

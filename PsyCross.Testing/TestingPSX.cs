@@ -1,13 +1,35 @@
 using System;
 using System.Numerics;
+using PsyCross.Math;
 
 namespace PsyCross.Testing {
-    public class TestingPSX : PSX {
-        public TestingPSX() {
+    public class Testing {
+        private RenderState[] _renderStates = new RenderState[2] {
+            new RenderState(),
+            new RenderState()
+        };
+
+        private int _renderStateIndex;
+
+        public Testing() {
+            _renderStates[0].DispEnv = new PsyQ.DispEnv(new RectInt(0,             0, _screenWidth, _screenHeight));
+            _renderStates[0].DrawEnv = new PsyQ.DrawEnv(new RectInt(0, _screenHeight, _screenWidth, _screenHeight), new Vector2Int(_screenWidth / 2, _screenHeight + (_screenHeight / 2)));
+
+            _renderStates[1].DispEnv = new PsyQ.DispEnv(new RectInt(0, _screenHeight, _screenWidth, _screenHeight));
+            _renderStates[1].DrawEnv = new PsyQ.DrawEnv(new RectInt(0,             0, _screenWidth, _screenHeight), new Vector2Int(_screenWidth / 2, _screenHeight / 2));
+
+            _renderStateIndex = 0;
+
+            PsyQ.PutDispEnv(_renderStates[0].DispEnv);
+            PsyQ.PutDrawEnv(_renderStates[0].DrawEnv);
+
+            PsyQ.SetDispMask(1);
+
+            PsyQ.DrawSync();
         }
 
-        private const float _screenWidth = 320.0f;
-        private const float _screenHeight = 240.0f;
+        private const int _screenWidth = 320;
+        private const int _screenHeight = 240;
 
         private const float _Deg2Rad = MathF.PI / 180.0f;
         private const float _Rad2Deg = 180.0f / MathF.PI;
@@ -29,40 +51,27 @@ namespace PsyCross.Testing {
             new Vector3( .32f,  .32f, 1f)
         };
 
-        private static readonly Vector2[] _Uv1 = new Vector2[] {
-            new Vector2(0, 8),
-            new Vector2(0, 0),
-            new Vector2(8, 8),
+        private static readonly Texcoord[] _Uv1 = new Texcoord[] {
+            new Texcoord(0, 8),
+            new Texcoord(0, 0),
+            new Texcoord(8, 8),
         };
 
-        private static readonly Vector2[] _Uv2 = new Vector2[] {
-            new Vector2(0, 0),
-            new Vector2(8, 8),
-            new Vector2(8, 0),
+        private static readonly Texcoord[] _Uv2 = new Texcoord[] {
+            new Texcoord(0, 0),
+            new Texcoord(8, 8),
+            new Texcoord(8, 0),
         };
 
         Vector3[] _rot = new Vector3[2];
         Vector3[] _pos = new Vector3[2];
 
-        PrimitiveSort _primitiveSort = new PrimitiveSort();
-        CommandBuffer _commandBuffer = new CommandBuffer(1024);
+        private PrimitiveSort _primitiveSort = new PrimitiveSort();
+        private CommandBuffer _commandBuffer = new CommandBuffer(1024);
 
-        public override void UpdateFrame() {
-            SetupFakeEnv();
-            SetDispMask(1);
-
+        public void Update() {
             _commandBuffer.Reset();
-
-            FillRectVram(0x555555, 0, 0, 319, 239);
-            // FillRectVram(0xFFFFFF, 0, 0, 64, 64);
-            // CopyVramToVram(0, 0, 100, 100, 64, 64);
-
-            // uint[] data = new uint[] {
-            //     0xFFFF_FFFF, 0xFFFF_FFFF,
-            //     0xFFFF_FFFF, 0xFFFF_FFFF,
-            //     0xFFFF_FFFF, 0xFFFF_FFFF,
-            //     0xFFFF_FFFF, 0x801F_83C1,
-            // };
+            PsyQ.FillRectVram(_commandBuffer, 0x555555, PsyQ.ActiveDrawEnv.ClipRect);
 
             uint[] data1 = new uint[] {
                 0x5555_5555, 0x5555_5555, 0x5555_5555, 0x5555_5555,
@@ -98,7 +107,7 @@ namespace PsyCross.Testing {
                 0x0134_5678,
             };
 
-            ushort tPageId = LoadTPage(320, 0, 8, 8, BitDepth.Bpp15, data1);
+            ushort tPageId = PsyQ.LoadTPage(_commandBuffer, new RectInt(320, 0, 8, 8), PsyQ.BitDepth.Bpp15, data1);
 
             _primitiveSort.Clear();
 
@@ -108,14 +117,14 @@ namespace PsyCross.Testing {
             float a;
 
             _pos[0].Z = 1;
-            // a = ((_rot[0].Y * _Rad2Deg) + 0.5f) % 360.0f; _rot[0].Y = a * _Deg2Rad;
+            a = ((_rot[0].Y * _Rad2Deg) + 0.5f) % 360.0f; _rot[0].Y = a * _Deg2Rad;
             objectMat[0] = CreateMatrix(_pos[0], _rot[0]);
             TransformToClip(clipPoints, objectMat[0], _Tri1);
             _primitiveSort.Add(clipPoints, PrimitiveSortPoint.Center, _Uv1);
 
-            _pos[0].Z = 1;
-            // a = ((_rot[1].Y * _Rad2Deg) + 0.5f) % 360.0f; _rot[1].Y = a * _Deg2Rad;
-            // objectMat[1] = CreateMatrix(_pos[1], _rot[1]);
+            _pos[1].Z = 1;
+            a = ((_rot[1].Y * _Rad2Deg) + 0.5f) % 360.0f; _rot[1].Y = a * _Deg2Rad;
+            objectMat[1] = CreateMatrix(_pos[1], _rot[1]);
             TransformToClip(clipPoints, objectMat[0], _Tri2);
             _primitiveSort.Add(clipPoints, PrimitiveSortPoint.Center, _Uv2);
 
@@ -128,40 +137,48 @@ namespace PsyCross.Testing {
 
                 TransformToNdc(ndcPoints, primitive.Points);
 
-                (int x1, int y1) = TransformToScreen(ndcPoints[0]);
-                (int x2, int y2) = TransformToScreen(ndcPoints[1]);
-                (int x3, int y3) = TransformToScreen(ndcPoints[2]);
+                Vector2Int p1 = TransformToScreen(ndcPoints[0]);
+                Vector2Int p2 = TransformToScreen(ndcPoints[1]);
+                Vector2Int p3 = TransformToScreen(ndcPoints[2]);
 
                 Console.WriteLine(_ViewDistance);
                 Console.WriteLine($"  Clip: {primitive.Points[0]} - {primitive.Points[1]} - {primitive.Points[2]}");
                 Console.WriteLine($"   NDC: {ndcPoints[0]} - {ndcPoints[1]} - {ndcPoints[2]}");
-                Console.WriteLine($"Screen:({x1},{y1}) ({x2},{y2}) ({x3},{y3})");
+                Console.WriteLine($"Screen:({p1.X},{p1.Y}) ({p2.X},{p2.Y}) ({p3.X},{p3.Y})");
                 Console.WriteLine();
 
-                var tex = (Vector2[])primitive.Attributes;
+                var tex = (Texcoord[])primitive.Attributes;
 
-                uint u1 = (uint)tex[0].X;
-                uint v1 = (uint)tex[0].Y;
+                var poly = _commandBuffer.AllocatePolyGt3();
 
-                uint u2 = (uint)tex[1].X;
-                uint v2 = (uint)tex[1].Y;
+                poly[0].C0.R = 0xFF;
+                poly[0].C0.G = 0xFF;
+                poly[0].C0.B = 0xFF;
+                poly[0].C1.R = 0x66;
+                poly[0].C1.G = 0x00;
+                poly[0].C1.B = 0x55;
 
-                uint u3 = (uint)tex[2].X;
-                uint v3 = (uint)tex[2].Y;
+                poly[0].C2.R = 0x22;
+                poly[0].C2.G = 0x33;
+                poly[0].C2.B = 0x00;
 
-                TexTriRaw((uint)x1, (uint)y1,
-                          (uint)x2, (uint)y2,
-                          (uint)x3, (uint)y3,
-                          u1, v1,
-                          u2, v2,
-                          u3, v3,
-                          tPageId,
-                          0);
-
-                // FillTri((uint)primitive.Attributes, (uint)x1, (uint)y1, (uint)x2, (uint)y2, (uint)x3, (uint)y3);
+                poly[0].P0 = p1;
+                poly[0].P1 = p2;
+                poly[0].P2 = p3;
+                poly[0].T0 = tex[0];
+                poly[0].T1 = tex[1];
+                poly[0].T2 = tex[2];
+                poly[0].TPageId = tPageId;
             }
 
-            Gpu.Process(_commandBuffer.Bits);
+            PsyQ.DrawPrim(_commandBuffer);
+            PsyQ.DrawSync();
+
+            // Swap buffer
+            _renderStateIndex ^= 1;
+
+            PsyQ.PutDispEnv(_renderStates[_renderStateIndex].DispEnv);
+            PsyQ.PutDrawEnv(_renderStates[_renderStateIndex].DrawEnv);
         }
 
         private static Matrix4x4 CreateMatrix(Vector3 pos, Vector3 rot) {
@@ -190,148 +207,8 @@ namespace PsyCross.Testing {
             }
         }
 
-        private static (int x, int y) TransformToScreen(Vector3 ndcPoint) {
-            return ((int)( _screenWidth * 0.5f) + (int)ndcPoint.X,
-                    (int)(_screenHeight * 0.5f) - (int)(_ratio * ndcPoint.Y));
-        }
-
-        // GPU Memory Transfer Commands (GP0): $02 - Fill Rectangle In VRAM
-        private void FillRectVram(uint color, uint x, uint y, uint width, uint height) {
-            var command = _commandBuffer.AllocateCommand(3);
-
-            command[0] = ((0x02 << 24) | (color & 0xFF_FF_FF));
-            command[1] = ((y << 16) + (x & 0xFFFF));
-            command[2] = ((height << 16) + (width & 0xFFFF));
-        }
-
-        // GPU Memory Transfer Commands (GP0): $80 - Copy Rectangle (VRAM To VRAM)
-        private void CopyVramToVram(uint x1, uint y1, uint x2, uint y2, uint width, uint height) {
-            var command = _commandBuffer.AllocateCommand(4);
-
-            command[0] = ((uint)0x80 << 24);
-            command[1] = ((y1 << 16) + (x1 & 0xFFFF));
-            command[2] = ((y2 << 16) + (x2 & 0xFFFF));
-            command[3] = ((height << 16) + (width & 0xFFFF));
-        }
-
-        public enum BitDepth {
-            Bpp4,
-            Bpp8,
-            Bpp15
-        }
-
-        private void LoadImage(uint x, uint y, uint width, uint height, BitDepth bitDepth, uint[] data) {
-            uint shortWordWidth = 0;
-            uint shortWordHeight = 0;
-
-            switch (bitDepth) {
-                case BitDepth.Bpp4:
-                    shortWordWidth = ((width >= 0) ? width : (width + 3)) >> 2;
-                    shortWordHeight = height;
-                    break;
-                case BitDepth.Bpp8:
-                    shortWordWidth = (width + (width >> 31)) >> 1;
-                    break;
-                case BitDepth.Bpp15:
-                    shortWordWidth = width;
-                    shortWordHeight = height;
-                    break;
-            }
-
-            CopyCpuToVram(x, y, shortWordWidth, shortWordHeight, data);
-        }
-
-        private ushort LoadTPage(uint x, uint y, uint width, uint height, BitDepth bitDepth, uint[] data) {
-            LoadImage(x, y, width, height, bitDepth, data);
-
-            return GetTPage(bitDepth, x, y);
-        }
-
-        // Calculates the TPage attributes
-        private static ushort GetTPage(BitDepth bitDepth, uint x, uint y) {
-            uint abr = 0; // Semi Transparency (0=B/2+F/2, 1=B+F, 2=B-F, 3=B+F/4)
-
-            return (ushort)(((uint)bitDepth << 7) |
-                            ((abr & 0x3) << 5) |
-                            ((y & 0x100) >> 4) |
-                            ((x & 0x3FF) >> 6) |
-                            ((y & 0x200) << 2));
-        }
-
-        // GPU Memory Transfer Commands (GP0): $A0 - Copy Rectangle (CPU To VRAM)
-        private void CopyCpuToVram(uint x, uint y, uint shortWordWidth, uint shortWordHeight, uint[] data) {
-            Console.WriteLine($"{shortWordWidth}+{shortWordHeight}");
-
-            uint dataWordCount =  (uint)data.Length;
-            uint dataRoundedWordCount = dataWordCount + (dataWordCount & 1);
-            var command = _commandBuffer.AllocateCommand(3 + dataRoundedWordCount);
-
-            Console.WriteLine($"{command.Count}");
-
-            command[0] = ((uint)0xA0 << 24);
-            command[1] = ((y << 16) + (x & 0xFFFF));
-            command[2] = ((shortWordHeight << 16) + (shortWordWidth & 0xFFFF));
-
-            Console.WriteLine($"-> {data.Length}");
-            for (int i = 0; i < data.Length; i++) {
-                command[3 + i] = data[i];
-            }
-
-            for (int i = 0; i < command.Count; i++) {
-                Console.WriteLine($"{i:D02} {command[i]:X08}");
-            }
-        }
-
-        private void FillTri(uint color, uint x1, uint y1, uint x2, uint y2, uint x3, uint y3) {
-            var command = _commandBuffer.AllocateCommand(4);
-
-            command[0] = (0x20 << 24) | (color & 0xFF_FF_FF);
-            command[1] = (y1 << 16) + (x1 & 0xFFFF);
-            command[2] = (y2 << 16) + (x2 & 0xFFFF);
-            command[3] = (y3 << 16) + (x3 & 0xFFFF);
-        }
-
-        private void FillTriAlpha(uint color, uint x1, uint y1, uint x2, uint y2, uint x3, uint y3) {
-            var command = _commandBuffer.AllocateCommand(4);
-
-            command[0] = ((0x22 << 24) | (color & 0xFF_FF_FF));
-            command[1] = ((y1 << 16) + (x1 & 0xFFFF));
-            command[2] = ((y2 << 16) + (x2 & 0xFFFF));
-            command[3] = ((y3 << 16) + (x3 & 0xFFFF));
-        }
-
-        private void TexTriRaw(uint x1, uint y1,
-                               uint x2, uint y2,
-                               uint x3, uint y3,
-                               uint u1, uint v1,
-                               uint u2, uint v2,
-                               uint u3, uint v3,
-                               uint tPageId,
-                               uint clutId) {
-            var command = _commandBuffer.AllocateCommand(7);
-
-            command[0] = (0x25 << 24);
-            command[1] = (y1 << 16) + (x1 & 0xFFFF);
-            command[2] = (clutId << 16) + ((v1 & 0xFF) << 8) + (u1 & 0xFF);
-            command[3] = (y2 << 16) + (x2 & 0xFFFF);
-            command[4] = (tPageId << 16) + ((v2 & 0xFF) << 8) + (u2 & 0xFF);
-            command[5] = (y3 << 16) + (x3 & 0xFFFF);
-            command[6] = ((v3 & 0xFF) << 8) + (u3 & 0xFF);
-        }
-
-        private void SetupFakeEnv() {
-            Gpu.WriteGP0(0xE1_000600); // Set Draw Mode (Global TPage Attributes)
-            Gpu.WriteGP0(0xE3_000000); // Set Drawing Area Top Left X1=0, Y1=0
-            Gpu.WriteGP0(0xE4_03BD3F); // Set Drawing Area Bottom Right X2=319, Y2=239
-            Gpu.WriteGP0(0xE5_000000);
-        }
-
-        private void ResetGpu() { // What is the name of the PsyQ function?
-            Gpu.WriteGP1(0x00000000);
-        }
-
-        private void SetDispMask(uint v) {
-            Gpu.WriteGP1(0x03000001 - (v & 0x1));
+        private static Vector2Int TransformToScreen(Vector3 ndcPoint) {
+            return new Vector2(ndcPoint.X, _ratio * -ndcPoint.Y);
         }
     }
 }

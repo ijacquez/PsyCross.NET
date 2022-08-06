@@ -123,7 +123,7 @@ namespace PsyCross.OpenTK.Types {
         public void SetAnisotropy(float level) {
             const TextureParameterName TextureMaxAnisotropy = (TextureParameterName)0x84FE;
 
-            GL.TextureParameter(Handle, TextureMaxAnisotropy, Math.Clamp(level, 1, MaxAniso));
+            GL.TextureParameter(Handle, TextureMaxAnisotropy, System.Math.Clamp(level, 1, MaxAniso));
         }
 
         public void SetLod(int @base, int min, int max) {

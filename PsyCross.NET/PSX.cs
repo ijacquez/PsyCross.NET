@@ -1,20 +1,25 @@
-﻿using ProjectPSX.Devices;
+﻿using System;
+using ProjectPSX.Devices;
 using PsyCross.Devices.Input;
 
 namespace PsyCross {
-    public abstract class PSX {
-        public Gpu Gpu { get; } = new Gpu();
+    public static class PSX {
+        public static Gpu Gpu { get; } = new Gpu();
 
-        public GamepadInputsEnum GamepadInputs { get; private set; }
+        public static JoyPad Input { get; private set; }
 
-        public abstract void UpdateFrame();
+        public static Action UpdateFrame;
 
-        public void JoyPadUp(GamepadInputsEnum gamepadInputs) {
-            GamepadInputs = gamepadInputs;
+        public static void OnUpdateFrame() {
+            UpdateFrame?.Invoke();
         }
 
-        public void JoyPadDown(GamepadInputsEnum gamepadInputs) {
-            GamepadInputs = gamepadInputs;
+        public static void OnJoyPadUp(JoyPad input) {
+            Input = input;
+        }
+
+        public static void OnJoyPadDown(JoyPad input) {
+            Input = input;
         }
     }
 }

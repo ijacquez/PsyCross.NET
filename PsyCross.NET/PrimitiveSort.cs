@@ -1,12 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace PsyCross.Testing {
+namespace PsyCross {
     public class PrimitiveSort {
         private class PrimitiveComparer : IComparer<Primitive> {
             public int Compare(Primitive x, Primitive y) {
-                return Math.Sign(x.Z - y.Z);
+                return System.Math.Sign(x.Z - y.Z);
             }
         }
 
