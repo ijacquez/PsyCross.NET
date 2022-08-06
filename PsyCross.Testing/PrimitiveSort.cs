@@ -6,12 +6,6 @@ namespace PsyCross.Testing {
     public class PrimitiveSort {
         private class PrimitiveComparer : IComparer<Primitive> {
             public int Compare(Primitive x, Primitive y) {
-                Console.WriteLine($"{x.Z} ? {y.Z}");
-
-                // if (x.Z < y.Z) { return -1; }
-                // if (x.Z > y.Z) { return 1; }
-                // return 0;
-
                 return Math.Sign(x.Z - y.Z);
             }
         }
