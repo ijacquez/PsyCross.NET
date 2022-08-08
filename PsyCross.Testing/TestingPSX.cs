@@ -71,7 +71,7 @@ namespace PsyCross.Testing {
 
         public void Update() {
             _commandBuffer.Reset();
-            PsyQ.FillRectVram(_commandBuffer, 0x555555, PsyQ.ActiveDrawEnv.ClipRect);
+            PsyQ.ClearImage(PsyQ.ActiveDrawEnv.ClipRect, new Rgb888(0x55, 0x55, 0x55));
 
             uint[] data1 = new uint[] {
                 0x5555_5555, 0x5555_5555, 0x5555_5555, 0x5555_5555,
@@ -107,7 +107,7 @@ namespace PsyCross.Testing {
                 0x0134_5678,
             };
 
-            ushort tPageId = PsyQ.LoadTPage(_commandBuffer, new RectInt(320, 0, 8, 8), PsyQ.BitDepth.Bpp15, data1);
+            ushort tPageId = PsyQ.LoadTPage(new RectInt(320, 0, 8, 8), PsyQ.BitDepth.Bpp15, data1);
 
             _primitiveSort.Clear();
 

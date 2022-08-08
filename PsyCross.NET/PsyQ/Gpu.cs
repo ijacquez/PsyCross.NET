@@ -1,3 +1,5 @@
+using System;
+using System.Runtime.InteropServices;
 using PsyCross.Math;
 
 namespace PsyCross {
@@ -12,7 +14,7 @@ namespace PsyCross {
         private static CommandBuffer _drawCommandBuffer;
 
         public static void SetDispMask(uint v) {
-            PSX.Gpu.WriteGP1(0x03000001 - (v & 0x1));
+            PSX.Gpu.WriteGP1(0x03_0000_01 - (v & 0x1));
         }
 
         public static void PutDispEnv(DispEnv dispEnv) {
@@ -67,86 +69,51 @@ namespace PsyCross {
                             ((y & 0x200) << 2));
         }
 
-        // public static void ClearImage() {
-        // }
+        public static void ClearImage(RectInt rect, Rgb888 color) {
+            Span<FillRectVram> commandSpan = stackalloc FillRectVram[1];
 
-        public static void LoadImage(CommandBuffer commandBuffer, RectInt rect, BitDepth bitDepth, uint[] data) {
-            uint shortWordWidth = 0;
-            uint shortWordHeight = 0;
+            commandSpan[0].SetCommand();
+            commandSpan[0].Color = color;
+            commandSpan[0].P = new Point2d((short)rect.X, (short)rect.Y);
+            commandSpan[0].Width = (ushort)rect.Width;
+            commandSpan[0].Height = (ushort)rect.Height;
 
-            switch (bitDepth) {
-                case BitDepth.Bpp4:
-                    shortWordWidth = (uint)(((rect.Width >= 0) ? rect.Width : (rect.Width + 3)) >> 2);
-                    shortWordHeight = (uint)rect.Height;
-                    break;
-                case BitDepth.Bpp8:
-                    shortWordWidth = (uint)((rect.Width + (rect.Width >> 31)) >> 1);
-                    break;
-                case BitDepth.Bpp15:
-                    shortWordWidth = (uint)rect.Width;
-                    shortWordHeight = (uint)rect.Height;
-                    break;
+            foreach (var value in AsWords(commandSpan)) {
+                PSX.Gpu.WriteGP0(value);
             }
-
-            CopyCpuToVram(commandBuffer, (uint)rect.X, (uint)rect.Y, shortWordWidth, shortWordHeight, data);
         }
 
-        public static ushort LoadTPage(CommandBuffer commandBuffer, RectInt rect, BitDepth bitDepth, uint[] data) {
-            LoadImage(commandBuffer, rect, bitDepth, data);
+        public static void LoadImage(RectInt rect, BitDepth bitDepth, uint[] data) {
+            Span<CopyCpuToVram> commandSpan = stackalloc CopyCpuToVram[1];
+
+            commandSpan[0].SetCommand();
+            commandSpan[0].P = new Point2d((short)rect.X, (short)rect.Y);
+            commandSpan[0].CalculateShortWordDim(rect.Width, rect.Height, bitDepth);
+
+            foreach (var value in AsWords(commandSpan)) {
+                PSX.Gpu.WriteGP0(value);
+            }
+
+            PSX.Gpu.Process(data.AsSpan<uint>());
+        }
+
+        public static ushort LoadTPage(RectInt rect, BitDepth bitDepth, uint[] data) {
+            LoadImage(rect, bitDepth, data);
 
             return GetTPage(bitDepth, (uint)rect.X, (uint)rect.Y);
         }
 
-        // GPU Memory Transfer Commands (GP0): $02 - Fill Rectangle In VRAM
-        public static void FillRectVram(CommandBuffer commandBuffer, uint color, RectInt rect) {
-            var command = commandBuffer.AllocateCommand(3);
-
-            command[0] = 0x02_000000 | (color & 0xFF_FF_FF);
-            command[1] = (uint)((rect.Y << 16) + (rect.X & 0xFFFF));
-            command[2] = (uint)((rect.Height << 16) + (rect.Width & 0xFFFF));
-        }
-
-        // GPU Memory Transfer Commands (GP0): $80 - Copy Rectangle (VRAM To VRAM)
-        private static void CopyVramToVram(CommandBuffer commandBuffer, RectInt srcRect, Vector2Int dstPoint) {
-            var command = commandBuffer.AllocateCommand(4);
-
-            command[0] = 0x80_000000;
-            command[1] = (uint)((srcRect.Y << 16) + (srcRect.X & 0xFFFF));
-            command[2] = (uint)((dstPoint.Y << 16) + (dstPoint.X & 0xFFFF));
-            command[3] = (uint)((srcRect.Height << 16) + (srcRect.Width & 0xFFFF));
-        }
-
-        // GPU Memory Transfer Commands (GP0): $A0 - Copy Rectangle (CPU To VRAM)
-        private static void CopyCpuToVram(CommandBuffer commandBuffer, uint x, uint y, uint shortWordWidth, uint shortWordHeight, uint[] data) {
-            int dataWordCount =  data.Length;
-            int dataRoundedWordCount = dataWordCount + (dataWordCount & 1);
-            var command = commandBuffer.AllocateCommand(3 + dataRoundedWordCount);
-
-            command[0] = 0xA0_000000;
-            command[1] = ((y << 16) + (x & 0xFFFF));
-            command[2] = ((shortWordHeight << 16) + (shortWordWidth & 0xFFFF));
-
-            for (int i = 0; i < data.Length; i++) {
-                command[3 + i] = data[i];
-            }
-        }
-
-        // private void FillTri(uint color, uint x1, uint y1, uint x2, uint y2, uint x3, uint y3) {
-        //     var command = _commandBuffer.AllocateCommand(4);
+        // // GPU Memory Transfer Commands (GP0): $80 - Copy Rectangle (VRAM To VRAM)
+        // private static void CopyVramToVram(CommandBuffer commandBuffer, RectInt srcRect, Vector2Int dstPoint) {
+        //     var command = commandBuffer.AllocateCommand(4);
         //
-        //     command[0] = (0x20 << 24) | (color & 0xFF_FF_FF);
-        //     command[1] = (y1 << 16) + (x1 & 0xFFFF);
-        //     command[2] = (y2 << 16) + (x2 & 0xFFFF);
-        //     command[3] = (y3 << 16) + (x3 & 0xFFFF);
+        //     command[0] = 0x80_000000;
+        //     command[1] = (uint)((srcRect.Y << 16) + (srcRect.X & 0xFFFF));
+        //     command[2] = (uint)((dstPoint.Y << 16) + (dstPoint.X & 0xFFFF));
+        //     command[3] = (uint)((srcRect.Height << 16) + (srcRect.Width & 0xFFFF));
         // }
 
-        // private void FillTriAlpha(uint color, uint x1, uint y1, uint x2, uint y2, uint x3, uint y3) {
-        //     var command = _commandBuffer.AllocateCommand(4);
-        //
-        //     command[0] = ((0x22 << 24) | (color & 0xFF_FF_FF));
-        //     command[1] = ((y1 << 16) + (x1 & 0xFFFF));
-        //     command[2] = ((y2 << 16) + (x2 & 0xFFFF));
-        //     command[3] = ((y3 << 16) + (x3 & 0xFFFF));
-        // }
+        private static Span<uint> AsWords<T>(Span<T> commandSpan) where T : struct, ICommand =>
+            MemoryMarshal.Cast<T, uint>(commandSpan);
     }
 }
