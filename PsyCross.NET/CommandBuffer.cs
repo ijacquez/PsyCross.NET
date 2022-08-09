@@ -23,14 +23,15 @@ namespace PsyCross {
             _pointer = 0;
         }
 
-        public void AllocateLoadImage(RectInt rect, PsyQ.BitDepth bitDepth, byte[] data) {
+        public void AllocateLoadImage(RectInt rect, PsyQ.BitDepth bitDepth, Span<byte> data) {
             var commandSpan = AllocateCommandAs<PsyQ.CopyCpuToVram>();
 
             commandSpan[0].P = new Point2d((short)rect.X, (short)rect.Y);
-            commandSpan[0].CalculateShortWordDim(rect.Width, rect.Height, bitDepth);
+            commandSpan[0].SetShortWordDim(rect.Width, rect.Height, bitDepth);
 
-            var dataSpan = AllocateAs<byte>(RoundToNearestWordSize(data.Length));
-            data.AsSpan().CopyTo(dataSpan);
+            var dataSpan = AllocateAs<byte>(_WordSize * RoundToNearestEvenWordCount(data.Length));
+
+            data.CopyTo(dataSpan);
         }
 
         public Span<PsyQ.PolyFt3> AllocatePolyFt3() => AllocateCommandAs<PsyQ.PolyFt3>();
@@ -42,7 +43,8 @@ namespace PsyCross {
         public Span<uint> AllocateCommand(int wordCount) => AllocateAs<uint>(wordCount);
 
         private Span<T> AllocateCommandAs<T>() where T : struct, ICommand {
-            var commandSpan = AllocateAs<T>((default(T)).GetWordSize());
+            int wordCount = RoundToNearestEvenWordCount(Marshal.SizeOf<T>());
+            var commandSpan = AllocateAs<T>(wordCount);
 
             commandSpan[0].SetCommand();
 
@@ -58,13 +60,7 @@ namespace PsyCross {
             return span;
         }
 
-        private static int RoundToNearestWordSize(int byteSize) =>
-            (_WordSize * ((byteSize / _WordSize) + (_WordSize - 1)) / _WordSize);
-
-        // private static unsafe T ByteArrayToStructure<T>(byte[] bytes, int offset) where T : struct {
-        //     fixed (byte* ptr = &bytes[offset]) {
-        //         return (T)Marshal.PtrToStructure((IntPtr)ptr, typeof(T));
-        //     }
-        // }
+        private static int RoundToNearestEvenWordCount(int byteSize) =>
+            ((byteSize + (_WordSize - 1)) / _WordSize);
     }
 }

@@ -18,6 +18,9 @@ namespace PsyCross.Testing {
             _renderStates[1].DispEnv = new PsyQ.DispEnv(new RectInt(0, _screenHeight, _screenWidth, _screenHeight));
             _renderStates[1].DrawEnv = new PsyQ.DrawEnv(new RectInt(0,             0, _screenWidth, _screenHeight), new Vector2Int(_screenWidth / 2, _screenHeight / 2));
 
+            _renderStates[0].DrawEnv.IsClear = true;
+            _renderStates[1].DrawEnv.IsClear = true;
+
             _renderStateIndex = 0;
 
             PsyQ.PutDispEnv(_renderStates[0].DispEnv);
@@ -28,16 +31,16 @@ namespace PsyCross.Testing {
             PsyQ.DrawSync();
         }
 
-        private const int _screenWidth = 320;
+        private const int _screenWidth  = 320;
         private const int _screenHeight = 240;
 
         private const float _Deg2Rad = MathF.PI / 180.0f;
         private const float _Rad2Deg = 180.0f / MathF.PI;
 
-        private const float _fov = 90.0f;
-        private const float _fovAngle = _fov * _Deg2Rad * 0.5f;
-        private const float _ratio = _screenWidth / _screenHeight;
-        private static readonly float _ViewDistance = 0.5f * ((_screenWidth - 1.0f) * MathF.Tan(_fovAngle));
+        private const float _Fov      = 90.0f;
+        private const float _FovAngle = _Fov * _Deg2Rad * 0.5f;
+        private const float _Ratio    = _screenWidth / _screenHeight;
+        private static readonly float _ViewDistance = 0.5f * ((_screenWidth - 1.0f) * MathF.Tan(_FovAngle));
 
         private static readonly Vector3[] _Tri1 = new Vector3[] {
             new Vector3(-.32f, -.32f, 1f),
@@ -71,7 +74,6 @@ namespace PsyCross.Testing {
 
         public void Update() {
             _commandBuffer.Reset();
-            PsyQ.ClearImage(PsyQ.ActiveDrawEnv.ClipRect, new Rgb888(0x55, 0x55, 0x55));
 
             uint[] data1 = new uint[] {
                 0x5555_5555, 0x5555_5555, 0x5555_5555, 0x5555_5555,
@@ -141,12 +143,6 @@ namespace PsyCross.Testing {
                 Vector2Int p2 = TransformToScreen(ndcPoints[1]);
                 Vector2Int p3 = TransformToScreen(ndcPoints[2]);
 
-                Console.WriteLine(_ViewDistance);
-                Console.WriteLine($"  Clip: {primitive.Points[0]} - {primitive.Points[1]} - {primitive.Points[2]}");
-                Console.WriteLine($"   NDC: {ndcPoints[0]} - {ndcPoints[1]} - {ndcPoints[2]}");
-                Console.WriteLine($"Screen:({p1.X},{p1.Y}) ({p2.X},{p2.Y}) ({p3.X},{p3.Y})");
-                Console.WriteLine();
-
                 var tex = (Texcoord[])primitive.Attributes;
 
                 var poly = _commandBuffer.AllocatePolyGt3();
@@ -169,7 +165,18 @@ namespace PsyCross.Testing {
                 poly[0].T1 = tex[1];
                 poly[0].T2 = tex[2];
                 poly[0].TPageId = tPageId;
+
+                var v = System.Runtime.InteropServices.MemoryMarshal.Cast<PsyQ.PolyGt3, uint>(poly);
+
+                for (int j = 0; j < v.Length; j++) {
+                    Console.WriteLine($"{j:X08}: ${v[j]:X08}");
+                }
+                Console.WriteLine("End");
             }
+
+            // for (int i = 0; i < _commandBuffer.Bits.Length; i++) {
+            //     Console.WriteLine($"{i:X08}: ${_commandBuffer.Bits[i]:X08}");
+            // }
 
             PsyQ.DrawPrim(_commandBuffer);
             PsyQ.DrawSync();
@@ -208,7 +215,7 @@ namespace PsyCross.Testing {
         }
 
         private static Vector2Int TransformToScreen(Vector3 ndcPoint) {
-            return new Vector2(ndcPoint.X, _ratio * -ndcPoint.Y);
+            return new Vector2(ndcPoint.X, _Ratio * -ndcPoint.Y);
         }
     }
 }

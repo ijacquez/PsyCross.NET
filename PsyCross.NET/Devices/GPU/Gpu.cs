@@ -335,11 +335,11 @@ namespace ProjectPSX.Devices {
             if (_commandPointer == 0) {
                 _command = value >> 24;
                 _commandSize = _CommandSizeTable[(int)_command];
-                // Console.WriteLine("[GPU] Direct GP0 COMMAND: {0} size: {1}", value.ToString("x8"), commandSize);
+                // Console.WriteLine("[GPU] Direct GP0 COMMAND: {0} size: {1}", value.ToString("x8"), _commandSize);
             }
 
             _commandFifo[_commandPointer++] = value;
-            //Console.WriteLine("[GPU] Direct GP0: {0} buffer: {1}", value.ToString("x8"), pointer);
+            // Console.WriteLine("[GPU] Direct GP0: {0} buffer: {1}", value.ToString("x8"), _commandPointer);
 
             if ((_commandPointer == _commandSize) || (_commandSize == 16) && ((value & 0xF000_F000) == 0x5000_5000)) {
                 _commandPointer = 0;
@@ -351,23 +351,20 @@ namespace ProjectPSX.Devices {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeGP0Command(ReadOnlySpan<uint> buffer) {
-            // Console.WriteLine(commandBuffer.Length);
-
             while (_commandPointer < buffer.Length) {
                 if (_mode == Mode.Command) {
                     _command = buffer[_commandPointer] >> 24;
-                    //if (debug) Console.WriteLine("Buffer Executing " + command.ToString("x2") + " pointer " + pointer);
+                    // Console.WriteLine("Buffer Executing " + _command.ToString("x2") + " pointer " + _commandPointer);
                     ExecuteGP0(_command, buffer);
                 } else {
                     WriteToVRAM(buffer[_commandPointer++]);
                 }
             }
             _commandPointer = 0;
-            //Console.WriteLine("fin");
         }
 
         private void ExecuteGP0(uint opcode, ReadOnlySpan<uint> buffer) {
-            //Console.WriteLine("GP0 Command: " + opcode.ToString("x2"));
+            // Console.WriteLine("GP0 Command: " + opcode.ToString("x2"));
             switch (opcode) {
                 case 0x00: GP0_00_NOP(); break;
                 case 0x01: GP0_01_MemClearCache(); break;

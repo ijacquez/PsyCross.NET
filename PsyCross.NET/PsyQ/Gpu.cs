@@ -51,6 +51,10 @@ namespace PsyCross {
 
             PSX.Gpu.WriteGP1(0x05_000000 | ((dy1 & 0x1FF) << 10) | (dx1 & 0x3FF)); // Start of Display area (in VRAM)
 
+            if (PsyQ.ActiveDrawEnv.IsClear) {
+                PsyQ.ClearImage(PsyQ.ActiveDrawEnv.ClipRect, new Rgb888(0x55, 0x55, 0x55));
+            }
+
             if (_drawCommandBuffer != null) {
                 PSX.Gpu.Process(_drawCommandBuffer.Bits);
             }
@@ -88,7 +92,7 @@ namespace PsyCross {
 
             commandSpan[0].SetCommand();
             commandSpan[0].P = new Point2d((short)rect.X, (short)rect.Y);
-            commandSpan[0].CalculateShortWordDim(rect.Width, rect.Height, bitDepth);
+            commandSpan[0].SetShortWordDim(rect.Width, rect.Height, bitDepth);
 
             foreach (var value in AsWords(commandSpan)) {
                 PSX.Gpu.WriteGP0(value);
