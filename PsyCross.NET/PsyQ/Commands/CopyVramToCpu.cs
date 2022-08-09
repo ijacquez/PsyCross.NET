@@ -4,8 +4,8 @@ using PsyCross.Math;
 namespace PsyCross {
     public static partial class PsyQ {
         [StructLayout(LayoutKind.Explicit)]
-        public struct CopyCpuToVram : ICommand {
-            private const byte _CommandValue = 0xA0;
+        public struct CopyVramToCpu : ICommand {
+            private const byte _CommandValue = 0xC0;
 
             [FieldOffset( 3)] internal byte Command;
             [FieldOffset( 4)] public Vector2Short Point;

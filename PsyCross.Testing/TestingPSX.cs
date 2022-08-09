@@ -166,17 +166,13 @@ namespace PsyCross.Testing {
                 poly[0].T2 = tex[2];
                 poly[0].TPageId = tPageId;
 
-                var v = System.Runtime.InteropServices.MemoryMarshal.Cast<PsyQ.PolyGt3, uint>(poly);
-
-                for (int j = 0; j < v.Length; j++) {
-                    Console.WriteLine($"{j:X08}: ${v[j]:X08}");
-                }
-                Console.WriteLine("End");
+                // var v = System.Runtime.InteropServices.MemoryMarshal.Cast<PsyQ.PolyGt3, uint>(poly);
+                //
+                // for (int j = 0; j < v.Length; j++) {
+                //     Console.WriteLine($"{j:X08}: ${v[j]:X08}");
+                // }
+                // Console.WriteLine("End");
             }
-
-            // for (int i = 0; i < _commandBuffer.Bits.Length; i++) {
-            //     Console.WriteLine($"{i:X08}: ${_commandBuffer.Bits[i]:X08}");
-            // }
 
             PsyQ.DrawPrim(_commandBuffer);
             PsyQ.DrawSync();

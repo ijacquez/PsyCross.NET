@@ -221,7 +221,7 @@ namespace ProjectPSX.Devices {
         }
 
         public uint LoadGpuRead() {
-            //TODO check if correct and refact
+            // TODO: check if correct and refactor
             uint value;
             if (_vramTransfer.halfWords > 0) {
                 value = ReadFromVRAM();

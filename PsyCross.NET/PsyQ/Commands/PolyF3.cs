@@ -9,9 +9,9 @@ namespace PsyCross {
 
             [FieldOffset( 0)] public Rgb888 Color;
             [FieldOffset( 3)] internal byte Command;
-            [FieldOffset( 4)] public Point2d P0;
-            [FieldOffset( 8)] public Point2d P1;
-            [FieldOffset(12)] public Point2d P2;
+            [FieldOffset( 4)] public Vector2Short P0;
+            [FieldOffset( 8)] public Vector2Short P1;
+            [FieldOffset(12)] public Vector2Short P2;
 
             public void SetCommand() =>
                 PsyQ.Command.SetCommand(ref Command, _CommandValue);

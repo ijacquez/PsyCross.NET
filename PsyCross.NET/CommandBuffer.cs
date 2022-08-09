@@ -26,7 +26,7 @@ namespace PsyCross {
         public void AllocateLoadImage(RectInt rect, PsyQ.BitDepth bitDepth, Span<byte> data) {
             var commandSpan = AllocateCommandAs<PsyQ.CopyCpuToVram>();
 
-            commandSpan[0].P = new Point2d((short)rect.X, (short)rect.Y);
+            commandSpan[0].Point = new Vector2Short((short)rect.X, (short)rect.Y);
             commandSpan[0].SetShortWordDim(rect.Width, rect.Height, bitDepth);
 
             var dataSpan = AllocateAs<byte>(_WordSize * RoundToNearestEvenWordCount(data.Length));
