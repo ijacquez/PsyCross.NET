@@ -7,6 +7,8 @@ namespace PsyCross {
 
             public Vector2Int Offset { get; set; }
 
+            public Rgb888 Color { get; set; }
+
             public bool IsDithered { get; set; }
 
             public bool IsDraw { get; set; }

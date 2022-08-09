@@ -1,6 +1,6 @@
 namespace PsyCross {
     public static partial class PsyQ {
-        internal interface ICommand {
+        public interface ICommand {
             void SetCommand();
         }
     }

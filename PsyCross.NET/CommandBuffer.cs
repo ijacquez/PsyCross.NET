@@ -1,9 +1,9 @@
 using System;
 using System.Runtime.InteropServices;
-using PsyCross.Math;
-using static PsyCross.PsyQ;
 
 namespace PsyCross {
+    using static PsyCross.PsyQ;
+
     public sealed class CommandBuffer {
         private const int _WordSize = sizeof(UInt32);
 
@@ -23,44 +23,58 @@ namespace PsyCross {
             _pointer = 0;
         }
 
-        public void AllocateLoadImage(RectInt rect, PsyQ.BitDepth bitDepth, Span<byte> data) {
-            var commandSpan = AllocateCommandAs<PsyQ.CopyCpuToVram>();
+        public CommandHandle AllocatePolyF3() => AllocateCommand<PsyQ.PolyF3>();
 
-            commandSpan[0].Point = new Vector2Short((short)rect.X, (short)rect.Y);
-            commandSpan[0].SetShortWordDim(rect.Width, rect.Height, bitDepth);
+        public CommandHandle AllocatePolyF4() => AllocateCommand<PsyQ.PolyF4>();
 
-            var dataSpan = AllocateAs<byte>(_WordSize * RoundToNearestEvenWordCount(data.Length));
+        public CommandHandle AllocatePolyFt3() => AllocateCommand<PsyQ.PolyFt3>();
 
-            data.CopyTo(dataSpan);
+        public CommandHandle AllocatePolyFt4() => AllocateCommand<PsyQ.PolyFt4>();
+
+        public CommandHandle AllocatePolyG3() => AllocateCommand<PsyQ.PolyG3>();
+
+        public CommandHandle AllocatePolyG4() => AllocateCommand<PsyQ.PolyG4>();
+
+        public CommandHandle AllocatePolyGt3() => AllocateCommand<PsyQ.PolyGt3>();
+
+        public CommandHandle AllocatePolyGt4() => AllocateCommand<PsyQ.PolyGt4>();
+
+        public Span<PsyQ.PolyF3> GetPolyF3(CommandHandle handle) => GetCommand<PsyQ.PolyF3>(handle);
+
+        public Span<PsyQ.PolyF4> GetPolyF4(CommandHandle handle) => GetCommand<PsyQ.PolyF4>(handle);
+
+        public Span<PsyQ.PolyFt3> GetPolyFt3(CommandHandle handle) => GetCommand<PsyQ.PolyFt3>(handle);
+
+        public Span<PsyQ.PolyFt4> GetPolyFt4(CommandHandle handle) => GetCommand<PsyQ.PolyFt4>(handle);
+
+        public Span<PsyQ.PolyG3> GetPolyG3(CommandHandle handle) => GetCommand<PsyQ.PolyG3>(handle);
+
+        public Span<PsyQ.PolyG4> GetPolyG4(CommandHandle handle) => GetCommand<PsyQ.PolyG4>(handle);
+
+        public Span<PsyQ.PolyGt3> GetPolyGt3(CommandHandle handle) => GetCommand<PsyQ.PolyGt3>(handle);
+
+        public Span<PsyQ.PolyGt4> GetPolyGt4(CommandHandle handle) => GetCommand<PsyQ.PolyGt4>(handle);
+
+        public Span<T> GetCommand<T>(CommandHandle handle) where T : struct, ICommand =>
+            MemoryMarshal.Cast<byte, T>(_commandBuffer.AsSpan<byte>(handle.Offset, handle.Size));
+
+        public Span<uint> GetCommandAsWords(CommandHandle handle) =>
+            MemoryMarshal.Cast<byte, uint>(_commandBuffer.AsSpan<byte>(handle.Offset, handle.Size));
+
+        public static Span<uint> GetCommandAsWords<T>(Span<T> spanCommand) where T : struct, ICommand =>
+            MemoryMarshal.Cast<T, uint>(spanCommand);
+
+        private CommandHandle AllocateCommand<T>() where T : struct, ICommand {
+            int wordCount = Command.GetWordCount<T>();
+            int size = wordCount * _WordSize;
+            int prevPointer = _pointer;
+
+            _pointer += size;
+
+            return new CommandHandle() {
+                Offset = prevPointer,
+                Size   = size
+            };
         }
-
-        public Span<PsyQ.PolyFt3> AllocatePolyFt3() => AllocateCommandAs<PsyQ.PolyFt3>();
-
-        public Span<PsyQ.PolyG3> AllocatePolyG3() => AllocateCommandAs<PsyQ.PolyG3>();
-
-        public Span<PsyQ.PolyGt3> AllocatePolyGt3() => AllocateCommandAs<PsyQ.PolyGt3>();
-
-        public Span<uint> AllocateCommand(int wordCount) => AllocateAs<uint>(wordCount);
-
-        private Span<T> AllocateCommandAs<T>() where T : struct, ICommand {
-            int wordCount = RoundToNearestEvenWordCount(Marshal.SizeOf<T>());
-            var commandSpan = AllocateAs<T>(wordCount);
-
-            commandSpan[0].SetCommand();
-
-            return commandSpan;
-        }
-
-        private Span<T> AllocateAs<T>(int wordCount) where T : struct {
-            int roundedCommandSize = wordCount * _WordSize;
-            var span = MemoryMarshal.Cast<byte, T>(_commandBuffer.AsSpan<byte>(_pointer, roundedCommandSize));
-
-            _pointer += roundedCommandSize;
-
-            return span;
-        }
-
-        private static int RoundToNearestEvenWordCount(int byteSize) =>
-            ((byteSize + (_WordSize - 1)) / _WordSize);
     }
 }

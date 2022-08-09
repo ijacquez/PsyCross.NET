@@ -11,7 +11,8 @@ namespace PsyCross {
 
         public static DrawEnv ActiveDrawEnv { get; private set; }
 
-        private static CommandBuffer _drawCommandBuffer;
+        private static PrimitiveSort _PrimitiveSort;
+        private static CommandBuffer _CommandBuffer;
 
         public static void SetDispMask(uint v) {
             PSX.Gpu.WriteGP1(0x03_0000_01 - (v & 0x1));
@@ -25,8 +26,9 @@ namespace PsyCross {
             ActiveDrawEnv = dispEnv;
         }
 
-        public static void DrawPrim(CommandBuffer commandBuffer) {
-            _drawCommandBuffer = commandBuffer;
+        public static void DrawPrim(PrimitiveSort primitiveSort, CommandBuffer commandBuffer) {
+            _PrimitiveSort = primitiveSort;
+            _CommandBuffer = commandBuffer;
         }
 
         public static void DrawSync() {
@@ -52,14 +54,19 @@ namespace PsyCross {
             PSX.Gpu.WriteGP1(0x05_000000 | ((dy1 & 0x1FF) << 10) | (dx1 & 0x3FF)); // Start of Display area (in VRAM)
 
             if (PsyQ.ActiveDrawEnv.IsClear) {
-                PsyQ.ClearImage(PsyQ.ActiveDrawEnv.ClipRect, new Rgb888(0x55, 0x55, 0x55));
+                PsyQ.ClearImage(PsyQ.ActiveDrawEnv.ClipRect, PsyQ.ActiveDrawEnv.Color);
             }
 
-            if (_drawCommandBuffer != null) {
-                PSX.Gpu.Process(_drawCommandBuffer.Bits);
+            if (_CommandBuffer != null) {
+                for (int i = _PrimitiveSort.Primitives.Length - 1; i >= 0; i--) {
+                    var primitive = _PrimitiveSort.Primitives[i];
+
+                    var commandSpan = _CommandBuffer.GetCommandAsWords(primitive.CommandHandle);
+                    PSX.Gpu.Process(commandSpan);
+                }
             }
 
-            _drawCommandBuffer = null;
+            _CommandBuffer = null;
         }
 
         public static ushort GetTPage(BitDepth bitDepth, uint x, uint y) {
@@ -78,8 +85,6 @@ namespace PsyCross {
         public static ushort LoadClut(Rgb1555[] clut, uint x, uint y) {
             // Clamp number of colors to [1..256]
             int width = System.Math.Min(256, System.Math.Max(clut.Length, 1));
-
-            Console.WriteLine(width);
 
             LoadImage(new RectInt((int)x, (int)y, width, 1), BitDepth.Bpp15, AsWords(clut));
 
@@ -127,9 +132,6 @@ namespace PsyCross {
 
             int shortWordCount = commandSpan[0].ShortWordWidth * commandSpan[0].ShortWordHeight;
             int wordCount = System.Math.Max(1, shortWordCount / sizeof(UInt32));
-
-            Console.WriteLine(shortWordCount);
-            Console.WriteLine(wordCount);
 
             Span<uint> dataWords = AsWords(data);
 

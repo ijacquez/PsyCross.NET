@@ -1,31 +1,23 @@
-using System;
 using System.Numerics;
 
 namespace PsyCross {
     public sealed class Primitive {
-        public Vector3[] Points { get; } = new Vector3[3];
+        public CommandHandle CommandHandle { get; set; }
 
-        public PrimitiveSortPoint SortPoint { get; }
+        public float Z { get; internal set; }
 
-        public object Attributes { get; set; }
+        internal Primitive() {
+        }
 
-        public float Z { get; }
-
-        public Primitive(Vector3[] points, PrimitiveSortPoint sortPoint, object attributes) {
-            Array.Copy(points, Points, Points.Length);
-            SortPoint = sortPoint;
-            Attributes = attributes;
-
+        internal static float CalculateZ(PrimitiveSortPoint sortPoint, Vector3[] points) {
             switch (sortPoint) {
-                case PrimitiveSortPoint.Center:
-                    Z = (Points[0].Z + Points[1].Z + Points[2].Z) / 3.0f;
-                    break;
                 case PrimitiveSortPoint.Min:
-                    throw new NotImplementedException();
-                    // break;
+                    return System.Math.Min(points[0].Z, System.Math.Min(points[1].Z, points[2].Z));
                 case PrimitiveSortPoint.Max:
-                    throw new NotImplementedException();
-                    // break;
+                    return System.Math.Max(points[0].Z, System.Math.Max(points[1].Z, points[2].Z));
+                default:
+                case PrimitiveSortPoint.Center:
+                    return (points[0].Z + points[1].Z + points[2].Z) / 3.0f;
             }
         }
     }

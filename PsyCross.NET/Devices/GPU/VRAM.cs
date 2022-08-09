@@ -23,13 +23,13 @@ namespace PsyCross.Devices.GPU {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint GetPixelRGB888(int x, int y) {
+        public uint GetPixelRgb888(int x, int y) {
             int index = x + (y * Width);
             return Bits[index];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ushort GetPixelBGR555(int x, int y) {
+        public ushort GetPixelBgr555(int x, int y) {
             int index = x + (y * Width);
             uint color = Bits[index];
 
@@ -38,7 +38,7 @@ namespace PsyCross.Devices.GPU {
             byte g = (byte)((color & 0x0000FF00) >> 8 + 3);
             byte b = (byte)((color & 0x000000FF) >> 3);
 
-            return (ushort)(m << 15 | b << 10 | g << 5 | r);
+            return (ushort)((m << 15) | (b << 10) | (g << 5) | r);
         }
 
     }
