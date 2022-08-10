@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using PsyCross.Math;
+using PsyCross.ResourceManagement;
 
 namespace PsyCross.Testing {
     public class Testing {
@@ -29,9 +30,23 @@ namespace PsyCross.Testing {
             PsyQ.PutDispEnv(_renderStates[0].DispEnv);
             PsyQ.PutDrawEnv(_renderStates[0].DrawEnv);
 
-            PsyQ.SetDispMask(1);
+            PsyQ.SetDispMask(true);
 
             PsyQ.DrawSync();
+
+            var data = ResourceManager.GetTimFile("TIM16.TIM");
+
+            if (PsyQ.TryReadTim(data, out PsyQ.Tim tim)) {
+                PsyQ.LoadImage(tim.ImageHeader.Rect, tim.Header.Flags.BitDepth, tim.Image);
+
+                _tPageId = PsyQ.GetTPage(tim.Header.Flags.BitDepth,
+                                         (ushort)tim.ImageHeader.Rect.X,
+                                         (ushort)tim.ImageHeader.Rect.Y);
+
+                if (tim.Header.Flags.HasClut) {
+                    _clutId = PsyQ.LoadClut(tim.Cluts[0].Clut, 0, 480);
+                }
+            }
         }
 
         private const int _screenWidth  = 320;
@@ -45,66 +60,40 @@ namespace PsyCross.Testing {
         private const float _Ratio    = _screenWidth / _screenHeight;
         private static readonly float _ViewDistance = 0.5f * ((_screenWidth - 1.0f) * MathF.Tan(_FovAngle));
 
+        private const float _SW = 1.0f;
+        private const float _SH = 1.0f;
+
         private static readonly Vector3[] _Tri1 = new Vector3[] {
-            new Vector3(-.32f, -.32f, 1f),
-            new Vector3(-.32f,  .32f, 1f),
-            new Vector3( .32f, -.32f, 1f)
+            new Vector3(-_SW, -_SH, 1f),
+            new Vector3(-_SW,  _SH, 1f),
+            new Vector3( _SW, -_SH, 1f)
         };
 
         private static readonly Vector3[] _Tri2 = new Vector3[] {
-            new Vector3(-.32f,  .32f, 1f),
-            new Vector3( .32f, -.32f, 1f),
-            new Vector3( .32f,  .32f, 1f)
+            new Vector3(-_SW,  _SH, 1f),
+            new Vector3( _SW, -_SH, 1f),
+            new Vector3( _SW,  _SH, 1f)
         };
 
+        private const byte _TW = 128;
+        private const byte _TH = 64;
+
         private static readonly Texcoord[] _Uv1 = new Texcoord[] {
-            new Texcoord(0, 8),
+            new Texcoord(0, _TH),
             new Texcoord(0, 0),
-            new Texcoord(8, 8),
+            new Texcoord(_TW, _TH),
         };
 
         private static readonly Texcoord[] _Uv2 = new Texcoord[] {
             new Texcoord(0, 0),
-            new Texcoord(8, 8),
-            new Texcoord(8, 0),
-        };
-
-        private static uint[] data1 = new uint[] {
-            0x5555_5555, 0x5555_5555, 0x5555_5555, 0x5555_5555,
-            0x5555_4444, 0x3333_2222, 0x1111_2222, 0x3333_5555,
-            0x5555_4444, 0x3333_2222, 0x1111_2222, 0x3333_5555,
-            0x5555_4444, 0x3333_2222, 0x1111_2222, 0x3333_5555,
-            0x5555_4444, 0x3333_2222, 0x1111_2222, 0x3333_5555,
-            0x5555_4444, 0x3333_2222, 0x1111_2222, 0x3333_5555,
-            0x5555_4444, 0x3333_2222, 0x1111_2222, 0x3333_5555,
-            0x5555_5555, 0x5555_5555, 0x5555_5555, 0x5555_5555,
-        };
-
-        private static uint[] data2 = new uint[] {
-            0x0001_0203, 0x0405_0607,
-            0x0809_0A0B, 0x0C0D_0E0F,
-            0x1011_1213, 0x1415_1617,
-            0x1819_1A1B, 0x1C1D_1E1F,
-            0x2021_2223, 0x2425_2627,
-            0x2829_2A2B, 0x2C2D_2E2F,
-            0x3031_3233, 0x3435_3637,
-            0x3839_3A3B, 0x3C3D_3E3F,
-        };
-
-        private static uint[] data3 = new uint[] {
-            0x0134_5678,
-            0x0134_5678,
-            0x0134_5678,
-            0x0134_5678,
-
-            0x0134_5678,
-            0x0134_5678,
-            0x0134_5678,
-            0x0134_5678,
+            new Texcoord(_TW, _TH),
+            new Texcoord(_TW, 0),
         };
 
         Vector3[] _rot = new Vector3[2];
         Vector3[] _pos = new Vector3[2];
+        ushort _clutId;
+        ushort _tPageId;
 
         private PrimitiveSort _primitiveSort = new PrimitiveSort(1024);
         private CommandBuffer _commandBuffer = new CommandBuffer(1024);
@@ -119,18 +108,16 @@ namespace PsyCross.Testing {
             _commandBuffer.Reset();
             _primitiveSort.Reset();
 
-            ushort tPageId = PsyQ.LoadTPage(new RectInt(320, 0, 8, 8), PsyQ.BitDepth.Bpp15, data1);
-
             Matrix4x4[] objectMat = new Matrix4x4[2];
             float a;
             _pos[0].Z = 1;
             a = ((_rot[0].Y * _Rad2Deg) + 0.5f) % 360.0f;
-            _rot[0].Y = a * _Deg2Rad;
+            // _rot[0].Y = a * _Deg2Rad;
             objectMat[0] = CreateMatrix(_pos[0], _rot[0]);
 
             _pos[1].Z = 1;
             a = ((_rot[1].Y * _Rad2Deg) + 0.5f) % 360.0f;
-            _rot[1].Y = a * _Deg2Rad;
+            // _rot[1].Y = a * _Deg2Rad;
             objectMat[1] = CreateMatrix(_pos[1], _rot[1]);
 
             Vector3[] clipPoints = new Vector3[3];
@@ -138,38 +125,34 @@ namespace PsyCross.Testing {
 
             TransformToClip(clipPoints, objectMat[0], _Tri1);
             TransformToNdc(ndcPoints, clipPoints);
-            var handle1 = _commandBuffer.AllocatePolyGt3();
-            var poly1 = _commandBuffer.GetPolyGt3(handle1);
+            var handle1 = _commandBuffer.AllocatePolyFt3();
+            var poly1 = _commandBuffer.GetPolyFt3(handle1);
             poly1[0].SetCommand();
-            poly1[0].C0.R = 0xFF; poly1[0].C0.G = 0xFF; poly1[0].C0.B = 0xFF;
-            poly1[0].C1.R = 0x66; poly1[0].C1.G = 0x00; poly1[0].C1.B = 0x55;
-            poly1[0].C2.R = 0x22; poly1[0].C2.G = 0x33; poly1[0].C2.B = 0x00;
+            poly1[0].Color = new Rgb888(128, 128, 128);
             poly1[0].P0 = TransformToScreen(ndcPoints[0]);
             poly1[0].P1 = TransformToScreen(ndcPoints[1]);
             poly1[0].P2 = TransformToScreen(ndcPoints[2]);
             poly1[0].T0 = _Uv1[0];
             poly1[0].T1 = _Uv1[1];
             poly1[0].T2 = _Uv1[2];
-            poly1[0].TPageId = tPageId;
-            // PrintCommand(CommandBuffer.GetCommandAsWords(poly1));
+            poly1[0].TPageId = _tPageId;
+            poly1[0].ClutId = _clutId;
             _primitiveSort.Add(clipPoints, PrimitiveSortPoint.Center, handle1);
 
             TransformToClip(clipPoints, objectMat[1], _Tri2);
             TransformToNdc(ndcPoints, clipPoints);
-            var handle2 = _commandBuffer.AllocatePolyGt3();
-            var poly2 = _commandBuffer.GetPolyGt3(handle2);
+            var handle2 = _commandBuffer.AllocatePolyFt3();
+            var poly2 = _commandBuffer.GetPolyFt3(handle2);
             poly2[0].SetCommand();
-            poly2[0].C0.R = 0xFF; poly2[0].C0.G = 0xFF; poly2[0].C0.B = 0xFF;
-            poly2[0].C1.R = 0x66; poly2[0].C1.G = 0x00; poly2[0].C1.B = 0x55;
-            poly2[0].C2.R = 0x22; poly2[0].C2.G = 0x33; poly2[0].C2.B = 0x00;
+            poly2[0].Color = new Rgb888(128, 128, 128);
             poly2[0].P0 = TransformToScreen(ndcPoints[0]);
             poly2[0].P1 = TransformToScreen(ndcPoints[1]);
             poly2[0].P2 = TransformToScreen(ndcPoints[2]);
             poly2[0].T0 = _Uv2[0];
             poly2[0].T1 = _Uv2[1];
             poly2[0].T2 = _Uv2[2];
-            poly2[0].TPageId = tPageId;
-            // PrintCommand(CommandBuffer.GetCommandAsWords(poly2));
+            poly2[0].TPageId = _tPageId;
+            poly2[0].ClutId = _clutId;
             _primitiveSort.Add(clipPoints, PrimitiveSortPoint.Center, handle2);
 
             _primitiveSort.Sort();

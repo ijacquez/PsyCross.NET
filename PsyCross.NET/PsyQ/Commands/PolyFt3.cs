@@ -16,7 +16,7 @@ namespace PsyCross {
             [FieldOffset(16)] public Texcoord T1;
             [FieldOffset(18)] public ushort TPageId;
             [FieldOffset(20)] public Vector2Short P2;
-            [FieldOffset(24)] public Texcoord T2; 
+            [FieldOffset(24)] public Texcoord T2;
 
             public void SetCommand() =>
                 PsyQ.Command.SetCommand(ref Command, _CommandValue);

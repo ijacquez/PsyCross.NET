@@ -19,5 +19,8 @@ namespace PsyCross.Math {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator RectShort(RectInt v) => new RectShort((short)v.X, (short)v.Y, (ushort)v.Width, (ushort)v.Height);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator RectInt(RectShort v) => new RectInt(v.X, v.Y, v.Width, v.Height);
     }
 }

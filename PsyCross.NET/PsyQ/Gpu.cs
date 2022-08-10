@@ -14,8 +14,8 @@ namespace PsyCross {
         private static PrimitiveSort _PrimitiveSort;
         private static CommandBuffer _CommandBuffer;
 
-        public static void SetDispMask(uint v) {
-            PSX.Gpu.WriteGP1(0x03_0000_01 - (v & 0x1));
+        public static void SetDispMask(bool active) {
+            PSX.Gpu.WriteGP1(0x03_0000_01 - (uint)((active) ? 1 : 0));
         }
 
         public static void PutDispEnv(DispEnv dispEnv) {
@@ -61,7 +61,7 @@ namespace PsyCross {
                 for (int i = _PrimitiveSort.Primitives.Length - 1; i >= 0; i--) {
                     var primitive = _PrimitiveSort.Primitives[i];
 
-                    var commandSpan = _CommandBuffer.GetCommandAsWords(primitive.CommandHandle);
+                    var commandSpan = CommandBuffer.GetCommandAsWords(primitive.CommandHandle);
                     PSX.Gpu.Process(commandSpan);
                 }
             }
@@ -69,7 +69,7 @@ namespace PsyCross {
             _CommandBuffer = null;
         }
 
-        public static ushort GetTPage(BitDepth bitDepth, uint x, uint y) {
+        public static ushort GetTPage(BitDepth bitDepth, ushort x, ushort y) {
             uint abr = 0; // Semi Transparency (0=B/2+F/2, 1=B+F, 2=B-F, 3=B+F/4)
 
             return (ushort)(((uint)bitDepth << 7) |
@@ -119,12 +119,16 @@ namespace PsyCross {
             }
         }
 
-        public static void StoreImage(RectShort rect, BitDepth bitDepth, byte[] data) {
+        public static void StoreImage(RectShort rect, BitDepth bitDepth, Memory<byte> data) =>
+            StoreImage(rect, bitDepth, data.Span);
+
+        public static void StoreImage(RectShort rect, BitDepth bitDepth, Span<byte> data) {
             Span<CopyVramToCpu> commandSpan = stackalloc CopyVramToCpu[1];
 
             commandSpan[0].SetCommand();
             commandSpan[0].Point = new Vector2Short((short)rect.X, (short)rect.Y);
-            commandSpan[0].SetShortWordDim(rect.Width, rect.Height, bitDepth);
+            commandSpan[0].ShortWordWidth = (ushort)rect.Width;
+            commandSpan[0].ShortWordHeight = (ushort)rect.Height;
 
             foreach (var value in AsWords(commandSpan)) {
                 PSX.Gpu.WriteGP0(value);
@@ -140,12 +144,16 @@ namespace PsyCross {
             }
         }
 
-        public static void LoadImage(RectInt rect, BitDepth bitDepth, Span<uint> data) {
+        public static void LoadImage(RectInt rect, BitDepth bitDepth, ReadOnlyMemory<byte> data) =>
+            LoadImage(rect, bitDepth, MemoryMarshal.Cast<byte, uint>(data.Span));
+
+        public static void LoadImage(RectInt rect, BitDepth bitDepth, ReadOnlySpan<uint> data) {
             Span<CopyCpuToVram> commandSpan = stackalloc CopyCpuToVram[1];
 
             commandSpan[0].SetCommand();
             commandSpan[0].Point = new Vector2Short((short)rect.X, (short)rect.Y);
-            commandSpan[0].SetShortWordDim(rect.Width, rect.Height, bitDepth);
+            commandSpan[0].ShortWordWidth = (ushort)rect.Width;
+            commandSpan[0].ShortWordHeight = (ushort)rect.Height;
 
             foreach (var value in AsWords(commandSpan)) {
                 PSX.Gpu.WriteGP0(value);
@@ -154,19 +162,41 @@ namespace PsyCross {
             PSX.Gpu.Process(data);
         }
 
-        public static ushort LoadTPage(RectInt rect, BitDepth bitDepth, uint[] data) {
+        public static ushort LoadTPage(RectInt rect, BitDepth bitDepth, ReadOnlyMemory<byte> data) =>
+            LoadTPage(rect, bitDepth, MemoryMarshal.Cast<byte, uint>(data.Span));
+
+        public static ushort LoadTPage(RectInt rect, BitDepth bitDepth, ReadOnlySpan<uint> data) {
+            SetShortWordDimensions(bitDepth, ref rect);
+
             LoadImage(rect, bitDepth, data);
 
-            return GetTPage(bitDepth, (uint)rect.X, (uint)rect.Y);
+            return GetTPage(bitDepth, (ushort)rect.X, (ushort)rect.Y);
+        }
+
+        private static void SetShortWordDimensions(BitDepth bitDepth, ref RectInt inRect) {
+            switch (bitDepth) {
+                case BitDepth.Bpp4:
+                    inRect.Width = (ushort)(((inRect.Width >= 0) ? inRect.Width : (inRect.Width + 3)) >> 2);
+                    break;
+                case BitDepth.Bpp8:
+                    inRect.Width = (ushort)((inRect.Width + (inRect.Width >> 31)) >> 1);
+                    break;
+                case BitDepth.Bpp15:
+                default:
+                    inRect.Width = (ushort)inRect.Width;
+                    break;
+            }
+
+            inRect.Height = (ushort)inRect.Height;
         }
 
         private static Span<byte> AsBytes<T>(T[] clut) where T : struct =>
             MemoryMarshal.Cast<T, byte>(clut);
 
-        private static Span<uint> AsWords<T>(T[] data) where T : struct =>
+        private static Span<uint> AsWords<T>(Span<T> data) where T : struct =>
             MemoryMarshal.Cast<T, uint>(data);
 
-        private static Span<uint> AsWords<T>(Span<T> commandSpan) where T : struct, ICommand =>
-            MemoryMarshal.Cast<T, uint>(commandSpan);
+        private static Span<uint> AsWords<T>(T[] data) where T : struct =>
+            MemoryMarshal.Cast<T, uint>(data);
     }
 }

@@ -3,7 +3,8 @@ namespace PsyCross {
         public enum BitDepth {
             Bpp4,
             Bpp8,
-            Bpp15
+            Bpp15,
+            Bpp24
         }
     }
 }

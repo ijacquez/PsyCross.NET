@@ -360,6 +360,7 @@ namespace ProjectPSX.Devices {
                     WriteToVRAM(buffer[_commandPointer++]);
                 }
             }
+
             _commandPointer = 0;
         }
 
@@ -989,7 +990,7 @@ namespace ProjectPSX.Devices {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint Get8bppTexel(int x, int y, Point2D clut, Point2D textureBase) {
             ushort index = Vram1555.GetPixel(x / 2 + textureBase.X, y + textureBase.Y);
-            int p = (index >> (x & 1) * 8) & 0xFF;
+            int p = (index >> ((x & 1) * 8)) & 0xFF;
             return Vram.GetPixelRgb888(clut.X + p, clut.Y);
         }
 

@@ -7,20 +7,20 @@ namespace PsyCross {
     public sealed class CommandBuffer {
         private const int _WordSize = sizeof(UInt32);
 
-        private readonly byte[] _commandBuffer;
-        private int _pointer;
+        private readonly uint[] _commandBuffer;
+        private int _commandPointer;
 
-        public ReadOnlySpan<uint> Bits => MemoryMarshal.Cast<byte, uint>(_commandBuffer);
+        public ReadOnlySpan<uint> Bits => _commandBuffer.AsSpan();
 
         private CommandBuffer() {
         }
 
         public CommandBuffer(int wordCount) {
-            _commandBuffer = new byte[wordCount * _WordSize];
+            _commandBuffer = new uint[wordCount];
         }
 
         public void Reset() {
-            _pointer = 0;
+            _commandPointer = 0;
         }
 
         public CommandHandle AllocatePolyF3() => AllocateCommand<PsyQ.PolyF3>();
@@ -55,26 +55,21 @@ namespace PsyCross {
 
         public Span<PsyQ.PolyGt4> GetPolyGt4(CommandHandle handle) => GetCommand<PsyQ.PolyGt4>(handle);
 
-        public Span<T> GetCommand<T>(CommandHandle handle) where T : struct, ICommand =>
-            MemoryMarshal.Cast<byte, T>(_commandBuffer.AsSpan<byte>(handle.Offset, handle.Size));
+        public static Span<T> GetCommand<T>(CommandHandle handle) where T : struct, ICommand =>
+            MemoryMarshal.Cast<uint, T>(handle.Command);
 
-        public Span<uint> GetCommandAsWords(CommandHandle handle) =>
-            MemoryMarshal.Cast<byte, uint>(_commandBuffer.AsSpan<byte>(handle.Offset, handle.Size));
+        public static Span<uint> GetCommandAsWords(CommandHandle handle) => handle.Command;
 
         public static Span<uint> GetCommandAsWords<T>(Span<T> spanCommand) where T : struct, ICommand =>
             MemoryMarshal.Cast<T, uint>(spanCommand);
 
         private CommandHandle AllocateCommand<T>() where T : struct, ICommand {
             int wordCount = Command.GetWordCount<T>();
-            int size = wordCount * _WordSize;
-            int prevPointer = _pointer;
+            int prevPointer = _commandPointer;
 
-            _pointer += size;
+            _commandPointer += wordCount;
 
-            return new CommandHandle() {
-                Offset = prevPointer,
-                Size   = size
-            };
+            return new CommandHandle(_commandBuffer, prevPointer, wordCount);
         }
     }
 }

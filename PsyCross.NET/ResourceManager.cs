@@ -15,8 +15,15 @@ namespace PsyCross.ResourceManagement {
         /// <summary>
         ///
         /// </summary>
-        public static string GetTimFile(string filePath) {
-            return string.Empty;
+        public static byte[] GetTimFile(string filePath) {
+            using (FileStream fileStream = GetFile(filePath)) {
+                Span<byte> buffer = new byte[fileStream.Length];
+
+                // XXX: What if the entire file is not read?
+                fileStream.Read(buffer);
+
+                return buffer.ToArray();
+            }
         }
 
         /// <summary>

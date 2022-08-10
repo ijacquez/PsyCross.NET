@@ -14,9 +14,6 @@ namespace PsyCross {
 
             public void SetCommand() =>
                 PsyQ.Command.SetCommand(ref Command, _CommandValue);
-
-            public void SetShortWordDim(int width, int height, BitDepth bitDepth) =>
-                PsyQ.Command.SetShortWordDim(bitDepth, width, height, ref ShortWordWidth, ref ShortWordHeight);
         }
     }
 }
