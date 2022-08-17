@@ -15,7 +15,7 @@ namespace PsyCross.ResourceManagement {
         /// <summary>
         ///
         /// </summary>
-        public static byte[] GetTimFile(string filePath) {
+        public static byte[] GetBinaryFile(string filePath) {
             using (FileStream fileStream = GetFile(filePath)) {
                 Span<byte> buffer = new byte[fileStream.Length];
 

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using PsyCross.Math;
 
@@ -14,18 +15,22 @@ namespace PsyCross {
         private static PrimitiveSort _PrimitiveSort;
         private static CommandBuffer _CommandBuffer;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetDispMask(bool active) {
             PSX.Gpu.WriteGP1(0x03_0000_01 - (uint)((active) ? 1 : 0));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void PutDispEnv(DispEnv dispEnv) {
             ActiveDispEnv = dispEnv;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void PutDrawEnv(DrawEnv dispEnv) {
             ActiveDrawEnv = dispEnv;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DrawPrim(PrimitiveSort primitiveSort, CommandBuffer commandBuffer) {
             _PrimitiveSort = primitiveSort;
             _CommandBuffer = commandBuffer;
@@ -69,6 +74,7 @@ namespace PsyCross {
             _CommandBuffer = null;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort GetTPage(BitDepth bitDepth, ushort x, ushort y) {
             uint abr = 0; // Semi Transparency (0=B/2+F/2, 1=B+F, 2=B-F, 3=B+F/4)
 
@@ -79,14 +85,15 @@ namespace PsyCross {
                             ((y & 0x200) << 2));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort GetClut(uint x, uint y) =>
             (ushort)((y << 6) | ((x >> 4) & 0x3F));
 
         public static ushort LoadClut(Rgb1555[] clut, uint x, uint y) {
             // Clamp number of colors to [1..256]
-            int width = System.Math.Min(256, System.Math.Max(clut.Length, 1));
+            ushort width = (ushort)System.Math.Min(256, System.Math.Max(clut.Length, 1));
 
-            LoadImage(new RectInt((int)x, (int)y, width, 1), BitDepth.Bpp15, AsWords(clut));
+            LoadImage(new RectShort((short)x, (short)y, width, 1), BitDepth.Bpp15, AsWords(clut));
 
             return GetClut(x, y);
         }
