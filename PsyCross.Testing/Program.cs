@@ -10,7 +10,7 @@ namespace PsyCross.Testing {
         static void Main() {
             var testing = new Testing();
 
-            PSX.UpdateFrame += testing.Update;
+            Psx.UpdateFrame += testing.Update;
 
             Window window = new Window();
 

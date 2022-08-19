@@ -17,7 +17,7 @@ namespace PsyCross {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetDispMask(bool active) {
-            PSX.Gpu.WriteGP1(0x03_0000_01 - (uint)((active) ? 1 : 0));
+            Psx.Gpu.WriteGP1(0x03_0000_01 - (uint)((active) ? 1 : 0));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -26,8 +26,8 @@ namespace PsyCross {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void PutDrawEnv(DrawEnv dispEnv) {
-            ActiveDrawEnv = dispEnv;
+        public static void PutDrawEnv(DrawEnv drawEnv) {
+            ActiveDrawEnv = drawEnv;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -48,15 +48,32 @@ namespace PsyCross {
             uint ditherBit = (PsyQ.ActiveDrawEnv.IsDithered) ? 1U << 9 : 0U;
             uint drawBit = (PsyQ.ActiveDrawEnv.IsDraw) ? 1U << 10 : 0;
 
-            PSX.Gpu.WriteGP0(0xE1_000000 | ditherBit | drawBit);
-            PSX.Gpu.WriteGP0(0xE3_000000 | ((y1 & 0x1FF) << 10) | (x1 & 0x3FF)); // Set Drawing Area top left (X1,Y1)
-            PSX.Gpu.WriteGP0(0xE4_000000 | ((y2 & 0x1FF) << 10) | (x2 & 0x3FF)); // Set Drawing Area bottom right (X2,Y2)
-            PSX.Gpu.WriteGP0(0xE5_000000 | (uint)(((offsetY & 0x7FF) << 11) | (offsetX & 0x7FF))); // Must allow -1024...+1023
+            uint horizontalRes1 = 4;
+
+            if (PsyQ.ActiveDispEnv.Rect.Width <= 640) {
+                horizontalRes1--;
+            }
+            if (PsyQ.ActiveDispEnv.Rect.Width <= 512) {
+                horizontalRes1--;
+            }
+            if (PsyQ.ActiveDispEnv.Rect.Width <= 320) {
+                horizontalRes1--;
+            }
+            if (PsyQ.ActiveDispEnv.Rect.Width <= 256) {
+                horizontalRes1--;
+            }
+
+            Psx.Gpu.WriteGP0(0xE1_000000 | ditherBit | drawBit);
+            Psx.Gpu.WriteGP0(0xE3_000000 | ((y1 & 0x1FF) << 10) | (x1 & 0x3FF)); // Set Drawing Area top left (X1,Y1)
+            Psx.Gpu.WriteGP0(0xE4_000000 | ((y2 & 0x1FF) << 10) | (x2 & 0x3FF)); // Set Drawing Area bottom right (X2,Y2)
+            Psx.Gpu.WriteGP0(0xE5_000000 | (uint)(((offsetY & 0x7FF) << 11) | (offsetX & 0x7FF))); // Must allow -1024...+1023
+
+            Psx.Gpu.WriteGP1(0x08_000000 | horizontalRes1);
 
             uint dx1 = (uint)PsyQ.ActiveDispEnv.Rect.X;
             uint dy1 = (uint)PsyQ.ActiveDispEnv.Rect.Y;
 
-            PSX.Gpu.WriteGP1(0x05_000000 | ((dy1 & 0x1FF) << 10) | (dx1 & 0x3FF)); // Start of Display area (in VRAM)
+            Psx.Gpu.WriteGP1(0x05_000000 | ((dy1 & 0x1FF) << 10) | (dx1 & 0x3FF)); // Start of Display area (in VRAM)
 
             if (PsyQ.ActiveDrawEnv.IsClear) {
                 PsyQ.ClearImage(PsyQ.ActiveDrawEnv.ClipRect, PsyQ.ActiveDrawEnv.Color);
@@ -67,7 +84,8 @@ namespace PsyCross {
                     var primitive = _PrimitiveSort.Primitives[i];
 
                     var commandSpan = CommandBuffer.GetCommandAsWords(primitive.CommandHandle);
-                    PSX.Gpu.Process(commandSpan);
+
+                    Psx.Gpu.Process(commandSpan);
                 }
             }
 
@@ -104,11 +122,11 @@ namespace PsyCross {
             commandSpan[0].SetCommand();
             commandSpan[0].Color = color;
             commandSpan[0].Point = new Vector2Short((short)rect.X, (short)rect.Y);
-            commandSpan[0].Width = (ushort)rect.Width;
-            commandSpan[0].Height = (ushort)rect.Height;
+            commandSpan[0].Width = (ushort)System.Math.Min(rect.Width, 1023);
+            commandSpan[0].Height = (ushort)System.Math.Min(rect.Height, 511);
 
             foreach (var value in AsWords(commandSpan)) {
-                PSX.Gpu.WriteGP0(value);
+                Psx.Gpu.WriteGP0(value);
             }
         }
 
@@ -122,7 +140,7 @@ namespace PsyCross {
             commandSpan[0].Height = (ushort)dstRect.Height;
 
             foreach (var value in AsWords(commandSpan)) {
-                PSX.Gpu.WriteGP0(value);
+                Psx.Gpu.WriteGP0(value);
             }
         }
 
@@ -138,7 +156,7 @@ namespace PsyCross {
             commandSpan[0].ShortWordHeight = (ushort)rect.Height;
 
             foreach (var value in AsWords(commandSpan)) {
-                PSX.Gpu.WriteGP0(value);
+                Psx.Gpu.WriteGP0(value);
             }
 
             int shortWordCount = commandSpan[0].ShortWordWidth * commandSpan[0].ShortWordHeight;
@@ -147,7 +165,7 @@ namespace PsyCross {
             Span<uint> dataWords = AsWords(data);
 
             for (int i = 0; i < System.Math.Min(dataWords.Length, wordCount); i++) {
-                dataWords[i] = PSX.Gpu.LoadGpuRead();
+                dataWords[i] = Psx.Gpu.LoadGpuRead();
             }
         }
 
@@ -163,10 +181,10 @@ namespace PsyCross {
             commandSpan[0].ShortWordHeight = (ushort)rect.Height;
 
             foreach (var value in AsWords(commandSpan)) {
-                PSX.Gpu.WriteGP0(value);
+                Psx.Gpu.WriteGP0(value);
             }
 
-            PSX.Gpu.Process(data);
+            Psx.Gpu.Process(data);
         }
 
         public static ushort LoadTPage(RectInt rect, BitDepth bitDepth, ReadOnlyMemory<byte> data) =>

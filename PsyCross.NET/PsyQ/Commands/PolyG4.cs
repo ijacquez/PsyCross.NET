@@ -14,8 +14,8 @@ namespace PsyCross {
             [FieldOffset(12)] public Vector2Short P1;
             [FieldOffset(16)] public Rgb888 C2;
             [FieldOffset(20)] public Vector2Short P2;
-            [FieldOffset(16)] public Rgb888 C3;
-            [FieldOffset(20)] public Vector2Short P3;
+            [FieldOffset(24)] public Rgb888 C3;
+            [FieldOffset(28)] public Vector2Short P3;
 
             public void SetCommand() =>
                 PsyQ.Command.SetCommand(ref Command, _CommandValue);

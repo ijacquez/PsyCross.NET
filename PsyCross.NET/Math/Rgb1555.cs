@@ -5,6 +5,17 @@ namespace PsyCross.Math {
     public struct Rgb1555 {
         [FieldOffset(0)] public ushort Value;
 
+        public Rgb1555(byte r, byte g, byte b, bool msb) {
+            Value = 0;
+            R = r;
+            G = g;
+            B = b;
+            Msb = msb;
+        }
+
+        public Rgb1555(byte r, byte g, byte b) : this(r, g, b, true) {
+        }
+
         public ushort R {
             get => (ushort)(Value & 0x1F);
             set => Value = (ushort)((Value & 0xFFE0) | (value & 0x1F));
@@ -23,17 +34,6 @@ namespace PsyCross.Math {
         public bool Msb {
             get => (Value & 0x8000) != 0x8000;
             set => Value = (ushort)((Value & 0x7FFF) | ((value) ? 0x8000 : 0x0000));
-        }
-
-        public Rgb1555(byte r, byte g, byte b, bool msb) {
-            Value = 0;
-            R = r;
-            G = g;
-            B = b;
-            Msb = msb;
-        }
-
-        public Rgb1555(byte r, byte g, byte b) : this(r, g, b, true) {
         }
     }
 }

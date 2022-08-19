@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace PsyCross.Devices.GPU {
     public class Vram1555 {
-        public ushort[] Bits { get; private set; }
-        public int Height;
-        public int Width;
+        public ushort[] Bits { get; }
+        public int Height { get; }
+        public int Width { get; }
 
         protected GCHandle BitsHandle { get; private set; }
 

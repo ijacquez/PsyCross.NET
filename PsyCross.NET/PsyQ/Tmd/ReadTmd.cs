@@ -5,6 +5,9 @@ using System.Runtime.InteropServices;
 
 namespace PsyCross {
     public static partial class PsyQ {
+        // XXX: Move
+        private const float _Float2Fixed = 1.0f / 4096.0f;
+
         public static bool TryReadTmd(byte[] data, out Tmd tmd) {
             const uint TmdMagic = 0x00000041;
 
@@ -71,7 +74,7 @@ namespace PsyCross {
                                                   tmdVertices[vertexIndex].Y,
                                                   tmdVertices[vertexIndex].Z);
 
-                tmdObject.Vertices[vertexIndex] = fixedVertex / 4096.0f; // XXX: Magic number
+                tmdObject.Vertices[vertexIndex] = fixedVertex * _Float2Fixed;
             }
         }
 
@@ -87,7 +90,7 @@ namespace PsyCross {
                                                   tmdNormals[normalIndex].Y,
                                                   tmdNormals[normalIndex].Z);
 
-                tmdObject.Normals[normalIndex] = fixedNormal / 4096.0f; // XXX: Magic number
+                tmdObject.Normals[normalIndex] = fixedNormal * _Float2Fixed;
             }
         }
 
@@ -162,6 +165,9 @@ namespace PsyCross {
 
                     case TmdPrimitiveMode.CodeSprite:
                         throw new NotImplementedException();
+
+                    default:
+                        throw new NotImplementedException();
                 }
             }
         }
@@ -169,6 +175,7 @@ namespace PsyCross {
         private static void TmdReadPrimitivePacket<T>(TmdPrimitiveType primitiveType,
                                                       BinaryReader binaryReader,
                                                       TmdPacket tmdPacket) where T : struct, ITmdPrimitive {
+            // Console.WriteLine($"primitiveType: {primitiveType}");
             tmdPacket.PrimitiveType = primitiveType;
             tmdPacket.Primitive = binaryReader.ReadStruct<T>()[0];
         }

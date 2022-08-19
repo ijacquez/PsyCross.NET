@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace PsyCross.Devices.GPU {
     public class Vram {
-        public uint[] Bits { get; private set; }
+        public uint[] Bits { get; }
         public int Height { get; }
         public int Width { get; }
 
@@ -19,12 +19,14 @@ namespace PsyCross.Devices.GPU {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetPixel(int x, int y, uint color) {
             int index = x + (y * Width);
+
             Bits[index] = color;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint GetPixelRgb888(int x, int y) {
             int index = x + (y * Width);
+
             return Bits[index];
         }
 
@@ -40,6 +42,5 @@ namespace PsyCross.Devices.GPU {
 
             return (ushort)((m << 15) | (b << 10) | (g << 5) | r);
         }
-
     }
 }

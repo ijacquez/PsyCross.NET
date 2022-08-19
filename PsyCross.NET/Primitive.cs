@@ -17,7 +17,7 @@ namespace PsyCross {
                     return System.Math.Max(points[0].Z, System.Math.Max(points[1].Z, points[2].Z));
                 default:
                 case PrimitiveSortPoint.Center:
-                    return (points[0].Z + points[1].Z + points[2].Z) / 3.0f;
+                    return (points[0].Z + points[1].Z + points[2].Z) / (float)points.Length;
             }
         }
     }

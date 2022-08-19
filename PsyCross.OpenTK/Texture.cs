@@ -52,10 +52,6 @@ namespace PsyCross.OpenTK.Types {
             GL.TextureParameter(Handle, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             DebugUtility.CheckGLError("WrapT");
 
-            GL.TextureParameter(Handle, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
-            GL.TextureParameter(Handle, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            DebugUtility.CheckGLError("Filtering");
-
             GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, 0);
         }
 
@@ -90,10 +86,6 @@ namespace PsyCross.OpenTK.Types {
             GL.TextureParameter(Handle, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             DebugUtility.CheckGLError("WrapT");
 
-            GL.TextureParameter(Handle, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
-            GL.TextureParameter(Handle, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            DebugUtility.CheckGLError("Filtering");
-
             GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, 0);
         }
 
@@ -114,10 +106,12 @@ namespace PsyCross.OpenTK.Types {
 
         public void SetMinFilter(TextureMinFilter filter) {
             GL.TextureParameter(Handle, TextureParameterName.TextureMinFilter, (int)filter);
+            DebugUtility.CheckGLError("Filtering");
         }
 
         public void SetMagFilter(TextureMagFilter filter) {
             GL.TextureParameter(Handle, TextureParameterName.TextureMagFilter, (int)filter);
+            DebugUtility.CheckGLError("Filtering");
         }
 
         public void SetAnisotropy(float level) {

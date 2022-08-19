@@ -3,7 +3,7 @@ using ProjectPSX.Devices;
 using PsyCross.Devices.Input;
 
 namespace PsyCross {
-    public static class PSX {
+    public static class Psx {
         public static Gpu Gpu { get; } = new Gpu();
 
         public static JoyPad Input { get; private set; }

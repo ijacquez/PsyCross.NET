@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using PsyCross.Math;
 using PsyCross.ResourceManagement;
@@ -14,16 +13,16 @@ namespace PsyCross.Testing {
         private int _renderStateIndex;
 
         public Testing() {
-            _renderStates[0].DispEnv = new PsyQ.DispEnv(new RectInt(0,             0, _screenWidth, _screenHeight));
-            _renderStates[0].DrawEnv = new PsyQ.DrawEnv(new RectInt(0, _screenHeight, _screenWidth, _screenHeight), new Vector2Int(_screenWidth / 2, _screenHeight + (_screenHeight / 2)));
+            _renderStates[0].DispEnv = new PsyQ.DispEnv(new RectInt(0,             0, _ScreenWidth, _ScreenHeight));
+            _renderStates[0].DrawEnv = new PsyQ.DrawEnv(new RectInt(0, _ScreenHeight, _ScreenWidth, _ScreenHeight), new Vector2Int(_ScreenWidth / 2, _ScreenHeight + (_ScreenHeight / 2)));
 
-            _renderStates[1].DispEnv = new PsyQ.DispEnv(new RectInt(0, _screenHeight, _screenWidth, _screenHeight));
-            _renderStates[1].DrawEnv = new PsyQ.DrawEnv(new RectInt(0,             0, _screenWidth, _screenHeight), new Vector2Int(_screenWidth / 2, _screenHeight / 2));
+            _renderStates[1].DispEnv = new PsyQ.DispEnv(new RectInt(0, _ScreenHeight, _ScreenWidth, _ScreenHeight));
+            _renderStates[1].DrawEnv = new PsyQ.DrawEnv(new RectInt(0,             0, _ScreenWidth, _ScreenHeight), new Vector2Int(_ScreenWidth / 2, _ScreenHeight / 2));
 
-            _renderStates[0].DrawEnv.Color = new Rgb888(0x00, 0x60, 0x00);
+            _renderStates[0].DrawEnv.Color = new Rgb888(0x60, 0x60, 0x60);
             _renderStates[0].DrawEnv.IsClear = true;
 
-            _renderStates[1].DrawEnv.Color = new Rgb888(0x00, 0x60, 0x00);
+            _renderStates[1].DrawEnv.Color = new Rgb888(0x60, 0x60, 0x60);
             _renderStates[1].DrawEnv.IsClear = true;
 
             _renderStateIndex = 0;
@@ -37,39 +36,42 @@ namespace PsyCross.Testing {
 
             var timData = ResourceManager.GetBinaryFile("PAT4T.TIM");
 
-            if (PsyQ.TryReadTim(timData, out PsyQ.Tim tim)) {
-                PsyQ.LoadImage(tim.ImageHeader.Rect, tim.Header.Flags.BitDepth, tim.Image);
-
-                int _tPageId = PsyQ.GetTPage(tim.Header.Flags.BitDepth,
-                                             (ushort)tim.ImageHeader.Rect.X,
-                                             (ushort)tim.ImageHeader.Rect.Y);
-
-                if (tim.Header.Flags.HasClut) {
-                    int _clutId = PsyQ.LoadClut(tim.Cluts[0].Clut, 0, 480);
-                }
-            }
+            // if (PsyQ.TryReadTim(timData, out PsyQ.Tim tim)) {
+            //     PsyQ.LoadImage(tim.ImageHeader.Rect, tim.Header.Flags.BitDepth, tim.Image);
+            //
+            //     int _tPageId = PsyQ.GetTPage(tim.Header.Flags.BitDepth,
+            //                                  (ushort)tim.ImageHeader.Rect.X,
+            //                                  (ushort)tim.ImageHeader.Rect.Y);
+            //
+            //     if (tim.Header.Flags.HasClut) {
+            //         int _clutId = PsyQ.LoadClut(tim.Cluts[0].Clut, 0, 480);
+            //     }
+            // }
 
             // var tmdData = ResourceManager.GetBinaryFile("VENUS3G.TMD");
-            var tmdData = ResourceManager.GetBinaryFile("SHUTTLE1.TMD");
-            // var tmdData = ResourceManager.GetBinaryFile("CUBE3.TMD");
+            // var tmdData = ResourceManager.GetBinaryFile("SHUTTLE1.TMD");
+            var tmdData = ResourceManager.GetBinaryFile("CUBE3.TMD");
+            // var tmdData = ResourceManager.GetBinaryFile("CUBE3G.TMD");
+            // var tmdData = ResourceManager.GetBinaryFile("CUBE3GT.TMD");
             if (PsyQ.TryReadTmd(tmdData, out _tmd)) {
                 Console.WriteLine("Success reading TMD");
             }
+            PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), new Rgb888(255, 255, 255));
         }
 
-        private const int _screenWidth  = 320;
-        private const int _screenHeight = 240;
+        private const int _ScreenWidth  = 320;
+        private const int _ScreenHeight = 240;
 
         private const float _Deg2Rad = MathF.PI / 180.0f;
         private const float _Rad2Deg = 180.0f / MathF.PI;
 
         private const float _Fov      = 90.0f;
         private const float _FovAngle = _Fov * _Deg2Rad * 0.5f;
-        private const float _Ratio    = _screenWidth / _screenHeight;
-        private static readonly float _ViewDistance = 0.5f * ((_screenWidth - 1.0f) * MathF.Tan(_FovAngle));
+        private const float _Ratio    = _ScreenWidth / (float)_ScreenHeight;
+        private static readonly float _ViewDistance = 0.5f * ((_ScreenWidth - 1.0f) * MathF.Tan(_FovAngle));
 
-        private PrimitiveSort _primitiveSort = new PrimitiveSort(16384);
-        private CommandBuffer _commandBuffer = new CommandBuffer(16384);
+        private PrimitiveSort _primitiveSort = new PrimitiveSort(65536);
+        private CommandBuffer _commandBuffer = new CommandBuffer(65536);
 
         private PsyQ.Tmd _tmd;
         private Vector3[] _pos = new Vector3[2];
@@ -88,10 +90,16 @@ namespace PsyCross.Testing {
             objectMat[0] = CreateMatrix(_pos[0], _rot[0]);
 
             DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
+            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
+            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
+            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
+            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
+            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
 
             _primitiveSort.Sort();
 
             PsyQ.DrawPrim(_primitiveSort, _commandBuffer);
+            Console.WriteLine($"_commandBuffer.AllocatedCount: {_commandBuffer.AllocatedCount}");
             PsyQ.DrawSync();
 
             // Swap buffer
@@ -113,6 +121,7 @@ namespace PsyCross.Testing {
         private static Vector3[] _clipPoints = new Vector3[4];
         private static Vector3[] _ndcPoints = new Vector3[4];
         private static Vector3[] _polygonVertices = new Vector3[4];
+        private static Vector3[] _polygonNormals = new Vector3[4];
 
         private static void DrawTmd(PsyQ.TmdObject tmdObject, Matrix4x4 matrix, CommandBuffer commandBuffer, PrimitiveSort primitiveSort) {
             foreach (var tmdPacket in tmdObject.Packets) {
@@ -127,7 +136,25 @@ namespace PsyCross.Testing {
                     }
                 }
 
+                _polygonNormals[0] = tmdObject.Normals[tmdPacket.Primitive.IndexN0];
+
+                if (tmdPacket.Primitive.NormalCount >= 3) {
+                    _polygonNormals[1] = tmdObject.Normals[tmdPacket.Primitive.IndexN1];
+                    _polygonNormals[2] = tmdObject.Normals[tmdPacket.Primitive.IndexN2];
+                }
+
+                if (tmdPacket.Primitive.NormalCount == 4) {
+                    _polygonNormals[3] = tmdObject.Normals[tmdPacket.Primitive.IndexN3];
+                }
+
                 TransformToClip(tmdPacket.Primitive.VertexCount, _clipPoints, matrix, _polygonVertices);
+
+                Vector3 transformedNormal = Vector3.TransformNormal(_polygonNormals[0], matrix);
+                float t = Vector3.Dot(_clipPoints[0], transformedNormal);
+                if (t >= 0.0f) {
+                    Console.WriteLine($"transformedNormal: {transformedNormal}, {t}");
+                    continue;
+                }
                 TransformToNdc(tmdPacket.Primitive.VertexCount, _ndcPoints, _clipPoints);
 
                 switch (tmdPacket.PrimitiveType) {
@@ -143,6 +170,8 @@ namespace PsyCross.Testing {
                     case PsyQ.TmdPrimitiveType.Gt3:
                         DrawTmdPrimitiveGt3(tmdPacket, commandBuffer, primitiveSort);
                         break;
+                    default:
+                        throw new NotImplementedException();
                 }
             }
         }
@@ -169,11 +198,12 @@ namespace PsyCross.Testing {
             var poly = commandBuffer.GetPolyFt3(handle);
 
             poly[0].SetCommand();
-            // XXX: Bad color
-            poly[0].Color = new Rgb888(128, 128, 128);
+            poly[0].Color = Rgb888.White;
             poly[0].T0 = primitive.T0;
             poly[0].T1 = primitive.T1;
             poly[0].T2 = primitive.T2;
+            poly[0].TPageId = primitive.Tsb.Value;
+            poly[0].ClutId = primitive.Cba.Value;
             poly[0].P0 = TransformToScreen(_ndcPoints[0]);
             poly[0].P1 = TransformToScreen(_ndcPoints[1]);
             poly[0].P2 = TransformToScreen(_ndcPoints[2]);
@@ -189,9 +219,9 @@ namespace PsyCross.Testing {
 
             poly[0].SetCommand();
             // XXX: Bad gouraud colors
-            poly[0].C0 = primitive.Color;
-            poly[0].C1 = primitive.Color;
-            poly[0].C2 = primitive.Color;
+            poly[0].C0 = new Rgb888(255,   0,   0);
+            poly[0].C1 = new Rgb888(  0, 255,   0);
+            poly[0].C2 = new Rgb888(  0,   0, 255);
             poly[0].P0 = TransformToScreen(_ndcPoints[0]);
             poly[0].P1 = TransformToScreen(_ndcPoints[1]);
             poly[0].P2 = TransformToScreen(_ndcPoints[2]);
@@ -207,12 +237,14 @@ namespace PsyCross.Testing {
 
             poly[0].SetCommand();
             // XXX: Bad gouraud colors
-            poly[0].C0 = new Rgb888(128, 128, 128);
-            poly[0].C1 = new Rgb888(128, 128, 128);
-            poly[0].C2 = new Rgb888(128, 128, 128);
+            poly[0].C0 = new Rgb888(255,   0,   0);
+            poly[0].C1 = new Rgb888(  0, 255,   0);
+            poly[0].C2 = new Rgb888(  0,   0, 255);
             poly[0].T0 = primitive.T0;
             poly[0].T1 = primitive.T1;
             poly[0].T2 = primitive.T2;
+            poly[0].TPageId = primitive.Tsb.Value;
+            poly[0].ClutId = primitive.Cba.Value;
             poly[0].P0 = TransformToScreen(_ndcPoints[0]);
             poly[0].P1 = TransformToScreen(_ndcPoints[1]);
             poly[0].P2 = TransformToScreen(_ndcPoints[2]);

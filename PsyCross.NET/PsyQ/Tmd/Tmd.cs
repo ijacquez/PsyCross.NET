@@ -108,27 +108,22 @@ namespace PsyCross {
             CodeMask         = CodePolygon | CodeStraightLine | CodeSprite
         }
 
-        public interface ITmdPrimitive {
-            int IndexV0 { get; }
-            int IndexV1 { get; }
-            int IndexV2 { get; }
-            int IndexV3 { get; }
-
-            int VertexCount { get; }
+        [StructLayout(LayoutKind.Explicit, Size = 2)]
+        public struct TmdCba {
+            [FieldOffset( 0)] public ushort Value;
+            [FieldOffset( 0)] public Vector2Short Point;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 2)]
         public struct TmdTsb {
-            [FieldOffset( 0)] public byte TpageNumber;
-            [FieldOffset( 0)] public byte Abe;
-            [FieldOffset( 0)] public BitDepth ColorMode;
+            [FieldOffset( 0)] public ushort Value;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
         public struct TmdPrimitiveF3 : ITmdPrimitive {
             [FieldOffset( 0)] public Rgb888 Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
-            [FieldOffset( 4)] public ushort IndexNormal;
+            [FieldOffset( 4)] private ushort _IndexNormal;
             [FieldOffset( 6)] private ushort _IndexV0;
             [FieldOffset( 8)] private ushort _IndexV1;
             [FieldOffset(10)] private ushort _IndexV2;
@@ -138,7 +133,14 @@ namespace PsyCross {
             public int IndexV2 => _IndexV2;
             public int IndexV3 => -1;
 
+            public int IndexN0 => _IndexNormal;
+            public int IndexN1 => -1;
+            public int IndexN2 => -1;
+            public int IndexN3 => -1;
+
             public int VertexCount => 3;
+
+            public int NormalCount => 1;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -157,7 +159,14 @@ namespace PsyCross {
             public int IndexV2 => _IndexV2;
             public int IndexV3 => -1;
 
+            public int IndexN0 => _IndexN0;
+            public int IndexN1 => _IndexN1;
+            public int IndexN2 => _IndexN2;
+            public int IndexN3 => -1;
+
             public int VertexCount => 3;
+
+            public int NormalCount => 3;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
@@ -176,7 +185,14 @@ namespace PsyCross {
             public int IndexV2 => _IndexV2;
             public int IndexV3 => -1;
 
+            public int IndexN0 => _IndexNormal;
+            public int IndexN1 => -1;
+            public int IndexN2 => -1;
+            public int IndexN3 => -1;
+
             public int VertexCount => 3;
+
+            public int NormalCount => 1;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
@@ -197,13 +213,20 @@ namespace PsyCross {
             public int IndexV2 => _IndexV2;
             public int IndexV3 => -1;
 
+            public int IndexN0 => _IndexN0;
+            public int IndexN1 => _IndexN1;
+            public int IndexN2 => _IndexN2;
+            public int IndexN3 => -1;
+
             public int VertexCount => 3;
+
+            public int NormalCount => 3;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
         public struct TmdPrimitiveFt3 : ITmdPrimitive {
             [FieldOffset( 0)] public Texcoord T0;
-            [FieldOffset( 2)] public Vector2Short Cba;
+            [FieldOffset( 2)] public TmdCba Cba;
             [FieldOffset( 4)] public Texcoord T1;
             [FieldOffset( 6)] public TmdTsb Tsb;
             [FieldOffset( 8)] public Texcoord T2;
@@ -217,13 +240,20 @@ namespace PsyCross {
             public int IndexV2 => _IndexV2;
             public int IndexV3 => -1;
 
+            public int IndexN0 => _IndexNormal;
+            public int IndexN1 => -1;
+            public int IndexN2 => -1;
+            public int IndexN3 => -1;
+
             public int VertexCount => 3;
+
+            public int NormalCount => 1;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
         public struct TmdPrimitiveGt3 : ITmdPrimitive {
             [FieldOffset( 0)] public Texcoord T0;
-            [FieldOffset( 2)] public Vector2Short Cba;
+            [FieldOffset( 2)] public TmdCba Cba;
             [FieldOffset( 4)] public Texcoord T1;
             [FieldOffset( 6)] public TmdTsb Tsb;
             [FieldOffset( 8)] public Texcoord T2;
@@ -239,7 +269,14 @@ namespace PsyCross {
             public int IndexV2 => _IndexV2;
             public int IndexV3 => -1;
 
+            public int IndexN0 => _IndexN0;
+            public int IndexN1 => _IndexN1;
+            public int IndexN2 => _IndexN2;
+            public int IndexN3 => -1;
+
             public int VertexCount => 3;
+
+            public int NormalCount => 3;
         }
     }
 }

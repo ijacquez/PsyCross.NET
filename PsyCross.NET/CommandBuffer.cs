@@ -9,8 +9,7 @@ namespace PsyCross {
 
         private readonly uint[] _commandBuffer;
         private int _commandPointer;
-
-        public ReadOnlySpan<uint> Bits => _commandBuffer.AsSpan();
+        private int _commandCount;
 
         private CommandBuffer() {
         }
@@ -19,8 +18,13 @@ namespace PsyCross {
             _commandBuffer = new uint[wordCount];
         }
 
+        public ReadOnlySpan<uint> Bits => _commandBuffer.AsSpan();
+
+        public int AllocatedCount => _commandCount;
+
         public void Reset() {
             _commandPointer = 0;
+            _commandCount = 0;
         }
 
         public CommandHandle AllocatePolyF3() => AllocateCommand<PsyQ.PolyF3>();
@@ -68,6 +72,7 @@ namespace PsyCross {
             int prevPointer = _commandPointer;
 
             _commandPointer += wordCount;
+            _commandCount++;
 
             return new CommandHandle(_commandBuffer, prevPointer, wordCount);
         }

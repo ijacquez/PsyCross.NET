@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System;
+using PsyCross.Math;
 
 namespace ProjectPSX.Devices {
     public class Gpu {
@@ -14,13 +15,8 @@ namespace ProjectPSX.Devices {
 
         private int _scanLine = 0;
 
-        private static readonly int[] _resolutions = { 256, 320, 512, 640, 368 }; // GPUSTAT res index
-        private static readonly int[] _dotClockDiv = { 10, 8, 5, 4, 7 };
-
-        public Vram Vram { get; } = new Vram(1024, 512); // VRAM is 8888 and we transform everything to it
-        public Vram1555 Vram1555 { get; } = new Vram1555(1024, 512); // An un transformed 1555 to 8888 vram so we can fetch clut indexes without reverting to 1555
-
-        public bool Debug { get; set; }
+        private static readonly int[] _Resolutions = { 256, 320, 512, 640, 368 }; // GPUSTAT res index
+        private static readonly int[] _DotClockDiv = { 10, 8, 5, 4, 7 };
 
         private enum Mode {
             Command,
@@ -33,7 +29,7 @@ namespace ProjectPSX.Devices {
             public bool IsShaded { get; set; }
             public bool IsTextured { get; set; }
             public bool IsSemiTransparent { get; set; }
-            public bool IsRawTextured { get; set; }//if not: blended
+            public bool IsRawTextured { get; set; } // If not: blended
             public int Depth { get; set; }
             public int SemiTransparencyMode { get; set; }
             public Point2D Clut { get; set; }
@@ -68,20 +64,21 @@ namespace ProjectPSX.Devices {
 
         [StructLayout(LayoutKind.Explicit)]
         private struct TextureData {
-            [FieldOffset(0)] public ushort val;
+            [FieldOffset(0)] public ushort Value;
             [FieldOffset(0)] public byte X;
             [FieldOffset(1)] public byte Y;
         }
 
         private TextureData _textureData = new TextureData();
 
+        // XXX: Change this to Rgb888?
         [StructLayout(LayoutKind.Explicit)]
         private struct Color {
-            [FieldOffset(0)] public uint val;
-            [FieldOffset(0)] public byte r;
-            [FieldOffset(1)] public byte g;
-            [FieldOffset(2)] public byte b;
-            [FieldOffset(3)] public byte m;
+            [FieldOffset(0)] public uint Value;
+            [FieldOffset(0)] public byte R;
+            [FieldOffset(1)] public byte G;
+            [FieldOffset(2)] public byte B;
+            [FieldOffset(3)] public byte Msb;
         }
 
         private Color _color0;
@@ -113,8 +110,8 @@ namespace ProjectPSX.Devices {
         private bool _isDmaRequest;
 
         private bool _isReadyToReceiveCommand = true;
-        private bool _isReadyToSendVRAMToCPU;
-        private bool _isReadyToReceiveDMABlock = true;
+        private bool _isReadyToSendVramToCpu;
+        private bool _isReadyToReceiveDmaBlock = true;
 
         private byte _dmaDirection;
         private bool _isOddLine;
@@ -135,55 +132,35 @@ namespace ProjectPSX.Devices {
         private short _drawingXOffset;
         private short _drawingYOffset;
 
-        private ushort _displayVRAMXStart;
-        private ushort _displayVRAMYStart;
+        private ushort _displayVramXStart;
+        private ushort _displayVramYStart;
         private ushort _displayX1;
         private ushort _displayX2;
         private ushort _displayY1;
         private ushort _displayY2;
+        private int _displayHorizontalRes;
+        private int _displayVerticalRes;
 
-        private int _videoCycles;
         private int _horizontalTiming = 3413;
         private int _verticalTiming   = 263;
 
         public Gpu() {
             _mode = Mode.Command;
-            GP1_00_ResetGPU();
+            GP1_00_ResetGpu();
         }
 
-        public bool Tick(int cycles) {
-            //Video clock is the cpu clock multiplied by 11/7.
-            _videoCycles += cycles * 11 / 7;
+        public Vram Vram { get; } = new Vram(1024, 512); // VRAM is 8888 and we transform everything to it
 
-            if (_videoCycles >= _horizontalTiming) {
-                _videoCycles -= _horizontalTiming;
-                _scanLine++;
+        public Vram1555 Vram1555 { get; } = new Vram1555(1024, 512); // An un transformed 1555 to 8888 vram so we can fetch clut indexes without reverting to 1555
 
-                if (!_isVerticalResolution480) {
-                    _isOddLine = (_scanLine & 0x1) != 0;
-                }
+        public Vector2Int DisplayVramStart =>
+            new Vector2Int(_displayVramXStart, _displayVramYStart);
 
-                if (_scanLine >= _verticalTiming) {
-                    _scanLine = 0;
+        public int DisplayHorizontalRes => _displayHorizontalRes;
 
-                    if (_isVerticalInterlace && _isVerticalResolution480) {
-                        _isOddLine = !_isOddLine;
-                    }
+        public int DisplayVerticalRes => _displayVerticalRes;
 
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public (int dot, bool hblank, bool bBlank) GetBlanksAndDot() { // Test
-            int dot = _dotClockDiv[_horizontalResolution2 << 2 | _horizontalResolution1];
-            bool hBlank = _videoCycles < _displayX1 || _videoCycles > _displayX2;
-            bool vBlank = _scanLine < _displayY1 || _scanLine > _displayY2;
-
-            return (dot, hBlank, vBlank);
-        }
+        public bool Debug { get; set; }
 
         public uint LoadGpuStat() {
             uint GpuStat = 0;
@@ -210,8 +187,8 @@ namespace ProjectPSX.Devices {
             GpuStat |= (uint)(_isDmaRequest ? 1 : 0) << 25;
 
             GpuStat |= (uint)(_isReadyToReceiveCommand ? 1 : 0) << 26;
-            GpuStat |= (uint)(_isReadyToSendVRAMToCPU ? 1 : 0) << 27;
-            GpuStat |= (uint)(_isReadyToReceiveDMABlock ? 1 : 0) << 28;
+            GpuStat |= (uint)(_isReadyToSendVramToCpu ? 1 : 0) << 27;
+            GpuStat |= (uint)(_isReadyToReceiveDmaBlock ? 1 : 0) << 28;
 
             GpuStat |= (uint)_dmaDirection << 29;
             GpuStat |= (uint)(_isOddLine ? 1 : 0) << 31;
@@ -224,7 +201,7 @@ namespace ProjectPSX.Devices {
             // TODO: check if correct and refactor
             uint value;
             if (_vramTransfer.halfWords > 0) {
-                value = ReadFromVRAM();
+                value = ReadFromVram();
             } else {
                 value = _gpuRead;
             }
@@ -248,9 +225,10 @@ namespace ProjectPSX.Devices {
             // Console.WriteLine("Direct " + value.ToString("x8"));
             // Console.WriteLine(mode);
             if (_mode == Mode.Command) {
+                // Console.WriteLine($"[GPU] GP0 Write Value: {value:X8}");
                 DecodeGP0CommandFromFifo(value);
             } else {
-                WriteToVRAM(value);
+                WriteToVram(value);
             }
         }
 
@@ -260,20 +238,20 @@ namespace ProjectPSX.Devices {
                 DecodeGP0Command(buffer);
             } else {
                 for (int i = 0; i < buffer.Length; i++) {
-                    WriteToVRAM(buffer[i]);
+                    WriteToVram(buffer[i]);
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteToVRAM(uint value) {
+        private void WriteToVram(uint value) {
             ushort pixel1 = (ushort)(value >> 16);
             ushort pixel0 = (ushort)(value & 0xFFFF);
 
             pixel0 |= (ushort)(_maskWhileDrawing << 15);
             pixel1 |= (ushort)(_maskWhileDrawing << 15);
 
-            DrawVRAMPixel(pixel0);
+            DrawVramPixel(pixel0);
 
             //Force exit if we arrived to the end pixel (fixes weird artifacts on textures on Metal Gear Solid)
             if (--_vramTransfer.halfWords == 0) {
@@ -281,7 +259,7 @@ namespace ProjectPSX.Devices {
                 return;
             }
 
-            DrawVRAMPixel(pixel1);
+            DrawVramPixel(pixel1);
 
             if (--_vramTransfer.halfWords == 0) {
                 _mode = Mode.Command;
@@ -289,7 +267,7 @@ namespace ProjectPSX.Devices {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint ReadFromVRAM() {
+        private uint ReadFromVram() {
             ushort pixel0 = Vram.GetPixelBgr555(_vramTransfer.X++ & 0x3FF, _vramTransfer.Y & 0x1FF);
             ushort pixel1 = Vram.GetPixelBgr555(_vramTransfer.X++ & 0x3FF, _vramTransfer.Y & 0x1FF);
 
@@ -300,16 +278,16 @@ namespace ProjectPSX.Devices {
 
             _vramTransfer.halfWords -= 2;
 
-            if(_vramTransfer.halfWords == 0) {
-                _isReadyToSendVRAMToCPU = false;
-                _isReadyToReceiveDMABlock = true;
+            if (_vramTransfer.halfWords == 0) {
+                _isReadyToSendVramToCpu = false;
+                _isReadyToReceiveDmaBlock = true;
             }
 
             return (uint)(pixel1 << 16 | pixel0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DrawVRAMPixel(ushort val) {
+        private void DrawVramPixel(ushort val) {
             if (_checkMaskBeforeDraw) {
                 uint bg = Vram.GetPixelRgb888(_vramTransfer.X, _vramTransfer.Y);
 
@@ -357,7 +335,7 @@ namespace ProjectPSX.Devices {
                     // Console.WriteLine("Buffer Executing " + _command.ToString("x2") + " pointer " + _commandPointer);
                     ExecuteGP0(_command, buffer);
                 } else {
-                    WriteToVRAM(buffer[_commandPointer++]);
+                    WriteToVram(buffer[_commandPointer++]);
                 }
             }
 
@@ -369,7 +347,7 @@ namespace ProjectPSX.Devices {
             switch (opcode) {
                 case 0x00: GP0_00_NOP(); break;
                 case 0x01: GP0_01_MemClearCache(); break;
-                case 0x02: GP0_02_FillRectVRAM(buffer); break;
+                case 0x02: GP0_02_FillRectVram(buffer); break;
                 case 0x1F: GP0_1F_InterruptRequest(); break;
 
                 case 0xE1: GP0_E1_SetDrawMode(buffer[_commandPointer++]); break;
@@ -386,11 +364,11 @@ namespace ProjectPSX.Devices {
                 case uint _ when opcode >= 0x60 && opcode <= 0x7F:
                     GP0_RenderRectangle(buffer); break;
                 case uint _ when opcode >= 0x80 && opcode <= 0x9F:
-                    GP0_MemCopyRectVRAMtoVRAM(buffer); break;
+                    GP0_MemCopyRectVramtoVram(buffer); break;
                 case uint _ when opcode >= 0xA0 && opcode <= 0xBF:
-                    GP0_MemCopyRectCPUtoVRAM(buffer); break;
+                    GP0_MemCopyRectCputoVram(buffer); break;
                 case uint _ when opcode >= 0xC0 && opcode <= 0xDF:
-                    GP0_MemCopyRectVRAMtoCPU(buffer); break;
+                    GP0_MemCopyRectVramtoCpu(buffer); break;
                 case uint _ when (opcode >= 0x3 && opcode <= 0x1E) || opcode == 0xE0 || opcode >= 0xE7 && opcode <= 0xEF:
                     GP0_00_NOP(); break;
 
@@ -409,8 +387,8 @@ namespace ProjectPSX.Devices {
         private void GP0_01_MemClearCache() => _commandPointer++;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void GP0_02_FillRectVRAM(ReadOnlySpan<uint> buffer) {
-            _color0.val = buffer[_commandPointer++];
+        private void GP0_02_FillRectVram(ReadOnlySpan<uint> buffer) {
+            _color0.Value = buffer[_commandPointer++];
             uint yx = buffer[_commandPointer++];
             uint hw = buffer[_commandPointer++];
 
@@ -418,18 +396,18 @@ namespace ProjectPSX.Devices {
             ushort y = (ushort)((yx >> 16) & 0x1FF);
 
             ushort w = (ushort)(((hw & 0x3FF) + 0xF) & ~0xF);
-            ushort h = (ushort)((hw >> 16) & 0x1FF);
+            ushort h = (ushort)((((hw >> 16) & 0x1FF) + 0xF) & ~0xF);
 
-            uint color = (uint)(_color0.r << 16 | _color0.g << 8 | _color0.b);
+            uint color = (uint)(_color0.R << 16 | _color0.G << 8 | _color0.B);
 
-            if(x + w <= 0x3FF && y + h <= 0x1FF) {
+            if (((x + w) <= 0x400) && ((y + h) <= 0x200)) {
                 var vramSpan = new Span<uint>(Vram.Bits);
-                for (int yPos = y; yPos < h + y; yPos++) {
+                for (int yPos = y; yPos < (h + y); yPos++) {
                     vramSpan.Slice(x + (yPos * 1024), w).Fill(color);
                 }
             } else {
                 for (int yPos = y; yPos < h + y; yPos++) {
-                    for (int xPos = x; xPos < w + x; xPos++) {
+                    for (int xPos = x; xPos < (w + x); xPos++) {
                         Vram.SetPixel(xPos & 0x3FF, yPos & 0x1FF, color);
                     }
                 }
@@ -466,14 +444,16 @@ namespace ProjectPSX.Devices {
 
             if (!isShaded) {
                 uint color = buffer[_commandPointer++];
-                c[0] = color; //triangle 1 opaque color
-                c[1] = color; //triangle 2 opaque color
+                c[0] = color; // Triangle 1 opaque color
+                c[1] = color; // Triangle 2 opaque color
             }
 
             primitive.SemiTransparencyMode = _transparencyMode;
 
             for (int i = 0; i < vertexN; i++) {
-                if (isShaded) c[i] = buffer[_commandPointer++];
+                if (isShaded) {
+                    c[i] = buffer[_commandPointer++];
+                }
 
                 uint xy = buffer[_commandPointer++];
                 v[i].X = (short)(Signed11bit(xy & 0xFFFF) + _drawingXOffset);
@@ -481,7 +461,7 @@ namespace ProjectPSX.Devices {
 
                 if (isTextured) {
                     uint textureData = buffer[_commandPointer++];
-                    t[i].val = (ushort)textureData;
+                    t[i].Value = (ushort)textureData;
                     if (i == 0) {
                         uint palette = textureData >> 16;
 
@@ -490,7 +470,7 @@ namespace ProjectPSX.Devices {
                     } else if (i == 1) {
                         uint texpage = textureData >> 16;
 
-                        //SET GLOBAL GPU E1
+                        // Set Global GPU E1
                         _textureXBase = (byte)(texpage & 0xF);
                         _textureYBase = (byte)((texpage >> 4) & 0x1);
                         _transparencyMode = (byte)((texpage >> 5) & 0x3);
@@ -527,7 +507,7 @@ namespace ProjectPSX.Devices {
                 area = -area;
             }
 
-            /*boundingBox*/
+            // Bounding box
             int minX = Math.Min(v0.X, Math.Min(v1.X, v2.X));
             int minY = Math.Min(v0.Y, Math.Min(v1.Y, v2.Y));
             int maxX = Math.Max(v0.X, Math.Max(v1.X, v2.X));
@@ -553,18 +533,18 @@ namespace ProjectPSX.Devices {
             int bias1 = IsTopLeft(v2, v0) ? 0 : -1;
             int bias2 = IsTopLeft(v0, v1) ? 0 : -1;
 
-            int w0_row = Orient2d(v1, v2, _min) + bias0;
-            int w1_row = Orient2d(v2, v0, _min) + bias1;
-            int w2_row = Orient2d(v0, v1, _min) + bias2;
+            int w0Row = Orient2d(v1, v2, _min) + bias0;
+            int w1Row = Orient2d(v2, v0, _min) + bias1;
+            int w2Row = Orient2d(v0, v1, _min) + bias2;
 
             uint baseColor = GetRgbColor(c0);
 
             // Rasterize
             for (int y = _min.Y; y < _max.Y; y++) {
                 // Barycentric coordinates at start of row
-                int w0 = w0_row;
-                int w1 = w1_row;
-                int w2 = w2_row;
+                int w0 = w0Row;
+                int w1 = w1Row;
+                int w2 = w2Row;
 
                 for (int x = _min.X; x < _max.X; x++) {
                     // If p is on or inside all edges, render pixel
@@ -577,8 +557,8 @@ namespace ProjectPSX.Devices {
 
                         // Check background mask
                         if (_checkMaskBeforeDraw) {
-                            _color0.val = (uint)Vram.GetPixelRgb888(x, y); // Back
-                            if (_color0.m != 0) {
+                            _color0.Value = (uint)Vram.GetPixelRgb888(x, y); // Back
+                            if (_color0.Msb != 0) {
                                 w0 += A12;
                                 w1 += A20;
                                 w2 += A01;
@@ -590,13 +570,13 @@ namespace ProjectPSX.Devices {
                         uint color = baseColor;
 
                         if (primitive.IsShaded) {
-                            _color0.val = c0;
-                            _color1.val = c1;
-                            _color2.val = c2;
+                            _color0.Value = c0;
+                            _color1.Value = c1;
+                            _color2.Value = c2;
 
-                            int r = Lerp(w0 - bias0, w1 - bias1, w2 - bias2, _color0.r, _color1.r, _color2.r, area);
-                            int g = Lerp(w0 - bias0, w1 - bias1, w2 - bias2, _color0.g, _color1.g, _color2.g, area);
-                            int b = Lerp(w0 - bias0, w1 - bias1, w2 - bias2, _color0.b, _color1.b, _color2.b, area);
+                            int r = Lerp(w0 - bias0, w1 - bias1, w2 - bias2, _color0.R, _color1.R, _color2.R, area);
+                            int g = Lerp(w0 - bias0, w1 - bias1, w2 - bias2, _color0.G, _color1.G, _color2.G, area);
+                            int b = Lerp(w0 - bias0, w1 - bias1, w2 - bias2, _color0.B, _color1.B, _color2.B, area);
                             color = (uint)(r << 16 | g << 8 | b);
                         }
 
@@ -612,13 +592,13 @@ namespace ProjectPSX.Devices {
                             }
 
                             if (!primitive.IsRawTextured) {
-                                _color0.val = (uint)color;
-                                _color1.val = (uint)texel;
-                                _color1.r = ClampTo255(_color0.r * _color1.r >> 7);
-                                _color1.g = ClampTo255(_color0.g * _color1.g >> 7);
-                                _color1.b = ClampTo255(_color0.b * _color1.b >> 7);
+                                _color0.Value = (uint)color;
+                                _color1.Value = (uint)texel;
+                                _color1.R = ClampTo255(_color0.R * _color1.R >> 7);
+                                _color1.G = ClampTo255(_color0.G * _color1.G >> 7);
+                                _color1.B = ClampTo255(_color0.B * _color1.B >> 7);
 
-                                texel = _color1.val;
+                                texel = _color1.Value;
                             }
 
                             color = texel;
@@ -638,9 +618,9 @@ namespace ProjectPSX.Devices {
                     w2 += A01;
                 }
                 // One row step
-                w0_row += B12;
-                w1_row += B20;
-                w2_row += B01;
+                w0Row += B12;
+                w1Row += B20;
+                w2Row += B01;
             }
         }
 
@@ -685,7 +665,7 @@ namespace ProjectPSX.Devices {
                 v2 = buffer[_commandPointer++];
                 RasterizeLine(v1, v2, color1, color2, isTransparent);
                 // Console.WriteLine("RASTERIZE " + ++rasterizeline);
-                // window.update(VRAM.Bits);
+                // window.update(Vram.Bits);
                 // Console.ReadLine();
             }
 
@@ -848,8 +828,8 @@ namespace ProjectPSX.Devices {
                 for (int x = xOrigin, u = uOrigin; x < width; x++, u++) {
                     //Check background mask
                     if (_checkMaskBeforeDraw) {
-                        _color0.val = (uint)Vram.GetPixelRgb888(x & 0x3FF, y & 0x1FF); //back
-                        if (_color0.m != 0) {
+                        _color0.Value = (uint)Vram.GetPixelRgb888(x & 0x3FF, y & 0x1FF); //back
+                        if (_color0.Msb != 0) {
                             continue;
                         }
                     }
@@ -864,13 +844,13 @@ namespace ProjectPSX.Devices {
                         }
 
                         if (!primitive.IsRawTextured) {
-                            _color0.val = (uint)color;
-                            _color1.val = (uint)texel;
-                            _color1.r = ClampTo255(_color0.r * _color1.r >> 7);
-                            _color1.g = ClampTo255(_color0.g * _color1.g >> 7);
-                            _color1.b = ClampTo255(_color0.b * _color1.b >> 7);
+                            _color0.Value = (uint)color;
+                            _color1.Value = (uint)texel;
+                            _color1.R = ClampTo255(_color0.R * _color1.R >> 7);
+                            _color1.G = ClampTo255(_color0.G * _color1.G >> 7);
+                            _color1.B = ClampTo255(_color0.B * _color1.B >> 7);
 
-                            texel = _color1.val;
+                            texel = _color1.Value;
                         }
 
                         color = texel;
@@ -888,7 +868,7 @@ namespace ProjectPSX.Devices {
             }
         }
 
-        private void GP0_MemCopyRectVRAMtoVRAM(ReadOnlySpan<uint> buffer) {
+        private void GP0_MemCopyRectVramtoVram(ReadOnlySpan<uint> buffer) {
             _commandPointer++; //Command/Color parameter unused
             uint sourceXY = buffer[_commandPointer++];
             uint destinationXY = buffer[_commandPointer++];
@@ -908,8 +888,8 @@ namespace ProjectPSX.Devices {
                     uint color = Vram.GetPixelRgb888((sx + xPos) & 0x3FF, (sy + yPos) & 0x1FF);
 
                     if (_checkMaskBeforeDraw) {
-                        _color0.val = (uint)Vram.GetPixelRgb888((dx + xPos) & 0x3FF, (dy + yPos) & 0x1FF);
-                        if (_color0.m != 0) continue;
+                        _color0.Value = (uint)Vram.GetPixelRgb888((dx + xPos) & 0x3FF, (dy + yPos) & 0x1FF);
+                        if (_color0.Msb != 0) continue;
                     }
 
                     color |= _maskWhileDrawing << 24;
@@ -919,7 +899,7 @@ namespace ProjectPSX.Devices {
             }
         }
 
-        private void GP0_MemCopyRectCPUtoVRAM(ReadOnlySpan<uint> buffer) { //todo rewrite VRAM coord struct mess
+        private void GP0_MemCopyRectCputoVram(ReadOnlySpan<uint> buffer) { //todo rewrite VRAM coord struct mess
             _commandPointer++; //Command/Color parameter unused
             uint yx = buffer[_commandPointer++];
             uint wh = buffer[_commandPointer++];
@@ -941,7 +921,7 @@ namespace ProjectPSX.Devices {
             _mode = Mode.Vram;
         }
 
-        private void GP0_MemCopyRectVRAMtoCPU(ReadOnlySpan<uint> buffer) {
+        private void GP0_MemCopyRectVramtoCpu(ReadOnlySpan<uint> buffer) {
             _commandPointer++; //Command/Color parameter unused
             uint yx = buffer[_commandPointer++];
             uint wh = buffer[_commandPointer++];
@@ -960,8 +940,8 @@ namespace ProjectPSX.Devices {
             _vramTransfer.originY = y;
             _vramTransfer.halfWords = w * h;
 
-            _isReadyToSendVRAMToCPU = true;
-            _isReadyToReceiveDMABlock = false;
+            _isReadyToSendVramToCpu = true;
+            _isReadyToReceiveDmaBlock = false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1057,21 +1037,21 @@ namespace ProjectPSX.Devices {
         }
 
         public void WriteGP1(uint value) {
-            // Console.WriteLine($"[GPU] GP1 Write Value: {value:x8}");
+            // Console.WriteLine($"[GPU] GP1 Write Value: {value:X8}");
             uint opcode = value >> 24;
             switch (opcode) {
-                case 0x00: GP1_00_ResetGPU(); break;
+                case 0x00: GP1_00_ResetGpu(); break;
                 case 0x01: GP1_01_ResetCommandBuffer(); break;
-                case 0x02: GP1_02_AckGPUInterrupt(); break;
+                case 0x02: GP1_02_AckGpuInterrupt(); break;
                 case 0x03: GP1_03_DisplayEnable(value); break;
-                case 0x04: GP1_04_DMADirection(value); break;
-                case 0x05: GP1_05_DisplayVRAMStart(value); break;
+                case 0x04: GP1_04_DmaDirection(value); break;
+                case 0x05: GP1_05_DisplayVramStart(value); break;
                 case 0x06: GP1_06_DisplayHorizontalRange(value); break;
                 case 0x07: GP1_07_DisplayVerticalRange(value); break;
                 case 0x08: GP1_08_DisplayMode(value); break;
                 case 0x09: GP1_09_TextureDisable(value); break;
                 case uint _ when opcode >= 0x10 && opcode <= 0x1F:
-                    GP1_GPUInfo(value); break;
+                    GP1_GpuInfo(value); break;
                 default:
                     Console.WriteLine("[GPU] Unsupported GP1 Command " + opcode.ToString("x8"));
                     Console.ReadLine();
@@ -1079,14 +1059,14 @@ namespace ProjectPSX.Devices {
             }
         }
 
-        private void GP1_00_ResetGPU() {
+        private void GP1_00_ResetGpu() {
             GP1_01_ResetCommandBuffer();
-            GP1_02_AckGPUInterrupt();
+            GP1_02_AckGpuInterrupt();
             GP1_03_DisplayEnable(1);
-            GP1_04_DMADirection(0);
-            GP1_05_DisplayVRAMStart(0);
-            GP1_06_DisplayHorizontalRange(0xC00200);
-            GP1_07_DisplayVerticalRange(0x100010);
+            GP1_04_DmaDirection(0);
+            GP1_05_DisplayVramStart(0);
+            GP1_06_DisplayHorizontalRange(0x00C0_0200);
+            GP1_07_DisplayVerticalRange(0x0010_0010);
             GP1_08_DisplayMode(0);
 
             GP0_E1_SetDrawMode(0);
@@ -1099,25 +1079,25 @@ namespace ProjectPSX.Devices {
 
         private void GP1_01_ResetCommandBuffer() => _commandPointer = 0;
 
-        private void GP1_02_AckGPUInterrupt() => _isInterruptRequested = false;
+        private void GP1_02_AckGpuInterrupt() => _isInterruptRequested = false;
 
         private void GP1_03_DisplayEnable(uint value) => _isDisplayDisabled = (value & 1) != 0;
 
-        private void GP1_04_DMADirection(uint value) {
+        private void GP1_04_DmaDirection(uint value) {
             _dmaDirection = (byte)(value & 0x3);
 
             _isDmaRequest = _dmaDirection switch {
                 0 => false,
-                1 => _isReadyToReceiveDMABlock,
-                2 => _isReadyToReceiveDMABlock,
-                3 => _isReadyToSendVRAMToCPU,
+                1 => _isReadyToReceiveDmaBlock,
+                2 => _isReadyToReceiveDmaBlock,
+                3 => _isReadyToSendVramToCpu,
                 _ => false,
             };
         }
 
-        private void GP1_05_DisplayVRAMStart(uint value) {
-            _displayVRAMXStart = (ushort)(value & 0x3FE);
-            _displayVRAMYStart = (ushort)((value >> 10) & 0x1FE);
+        private void GP1_05_DisplayVramStart(uint value) {
+            _displayVramXStart = (ushort)(value & 0x3FE);
+            _displayVramYStart = (ushort)((value >> 10) & 0x1FE);
         }
 
         private void GP1_06_DisplayHorizontalRange(uint value) {
@@ -1144,15 +1124,13 @@ namespace ProjectPSX.Devices {
             _horizontalTiming = _isPal ? 3406 : 3413;
             _verticalTiming = _isPal ? 314 : 263;
 
-            int horizontalRes = _resolutions[_horizontalResolution2 << 2 | _horizontalResolution1];
-            int verticalRes = _isVerticalResolution480 ? 480 : 240;
-
-            // window.SetDisplayMode(horizontalRes, verticalRes, is24BitDepth);
+            _displayHorizontalRes = _Resolutions[_horizontalResolution2 << 2 | _horizontalResolution1];
+            _displayVerticalRes = _isVerticalResolution480 ? 480 : 240;
         }
 
         private void GP1_09_TextureDisable(uint value) => _isTextureDisabledAllowed = (value & 0x1) != 0;
 
-        private void GP1_GPUInfo(uint value) {
+        private void GP1_GpuInfo(uint value) {
             uint info = value & 0xF;
             switch (info) {
                 case 0x2: _gpuRead = _textureWindowBits; break;
@@ -1167,7 +1145,7 @@ namespace ProjectPSX.Devices {
             }
         }
 
-        private uint GetTexpageFromGPU() {
+        private uint GetTexpageFromGpu() {
             uint texpage = 0;
 
             texpage |= (_isTexturedRectangleYFlipped ? 1u : 0) << 13;
@@ -1184,31 +1162,31 @@ namespace ProjectPSX.Devices {
         }
 
         private uint HandleSemiTransp(int x, int y, uint color, int semiTranspMode) {
-            _color0.val = (uint)Vram.GetPixelRgb888(x, y); //back
-            _color1.val = (uint)color; //front
+            _color0.Value = (uint)Vram.GetPixelRgb888(x, y); //back
+            _color1.Value = (uint)color; //front
             switch (semiTranspMode) {
                 case 0: //0.5 x B + 0.5 x F    ;aka B/2+F/2
-                    _color1.r = (byte)((_color0.r + _color1.r) >> 1);
-                    _color1.g = (byte)((_color0.g + _color1.g) >> 1);
-                    _color1.b = (byte)((_color0.b + _color1.b) >> 1);
+                    _color1.R = (byte)((_color0.R + _color1.R) >> 1);
+                    _color1.G = (byte)((_color0.G + _color1.G) >> 1);
+                    _color1.B = (byte)((_color0.B + _color1.B) >> 1);
                     break;
                 case 1://1.0 x B + 1.0 x F    ;aka B+F
-                    _color1.r = ClampTo255(_color0.r + _color1.r);
-                    _color1.g = ClampTo255(_color0.g + _color1.g);
-                    _color1.b = ClampTo255(_color0.b + _color1.b);
+                    _color1.R = ClampTo255(_color0.R + _color1.R);
+                    _color1.G = ClampTo255(_color0.G + _color1.G);
+                    _color1.B = ClampTo255(_color0.B + _color1.B);
                     break;
                 case 2: //1.0 x B - 1.0 x F    ;aka B-F
-                    _color1.r = ClampToZero(_color0.r - _color1.r);
-                    _color1.g = ClampToZero(_color0.g - _color1.g);
-                    _color1.b = ClampToZero(_color0.b - _color1.b);
+                    _color1.R = ClampToZero(_color0.R - _color1.R);
+                    _color1.G = ClampToZero(_color0.G - _color1.G);
+                    _color1.B = ClampToZero(_color0.B - _color1.B);
                     break;
                 case 3: //1.0 x B +0.25 x F    ;aka B+F/4
-                    _color1.r = ClampTo255(_color0.r + (_color1.r >> 2));
-                    _color1.g = ClampTo255(_color0.g + (_color1.g >> 2));
-                    _color1.b = ClampTo255(_color0.b + (_color1.b >> 2));
+                    _color1.R = ClampTo255(_color0.R + (_color1.R >> 2));
+                    _color1.G = ClampTo255(_color0.G + (_color1.G >> 2));
+                    _color1.B = ClampTo255(_color0.B + (_color1.B >> 2));
                     break;
             }//actually doing RGB calcs on BGR struct...
-            return _color1.val;
+            return _color1.Value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1225,8 +1203,8 @@ namespace ProjectPSX.Devices {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint GetRgbColor(uint value) {
-            _color0.val = value;
-            return (uint)(_color0.m << 24 | _color0.r << 16 | _color0.g << 8 | _color0.b);
+            _color0.Value = value;
+            return (uint)(_color0.Msb << 24 | _color0.R << 16 | _color0.G << 8 | _color0.B);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1234,12 +1212,12 @@ namespace ProjectPSX.Devices {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint Lerp(uint c1, uint c2, float ratio) {
-            _color1.val = c1;
-            _color2.val = c2;
+            _color1.Value = c1;
+            _color2.Value = c2;
 
-            byte r = (byte)(_color2.r * ratio + _color1.r * (1 - ratio));
-            byte g = (byte)(_color2.g * ratio + _color1.g * (1 - ratio));
-            byte b = (byte)(_color2.b * ratio + _color1.b * (1 - ratio));
+            byte r = (byte)(_color2.R * ratio + _color1.R * (1 - ratio));
+            byte g = (byte)(_color2.G * ratio + _color1.G * (1 - ratio));
+            byte b = (byte)(_color2.B * ratio + _color1.B * (1 - ratio));
 
             return (uint)(r << 16 | g << 8 | b);
         }
@@ -1269,23 +1247,23 @@ namespace ProjectPSX.Devices {
         // This is only needed for the Direct GP0 commands as the command number
         // needs to be known ahead of the first command on queue.
         private static ReadOnlySpan<byte> _CommandSizeTable => new byte[] {
-            //0  1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-             1,  1,  3,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, //0
-             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, //1
-             4,  4,  4,  4,  7,  7,  7,  7,  5,  5,  5,  5,  9,  9,  9,  9, //2
-             6,  6,  6,  6,  9,  9,  9,  9,  8,  8,  8,  8, 12, 12, 12, 12, //3
-             3,  3,  3,  3,  3,  3,  3,  3, 16, 16, 16, 16, 16, 16, 16, 16, //4
-             4,  4,  4,  4,  4,  4,  4,  4, 16, 16, 16, 16, 16, 16, 16, 16, //5
-             3,  3,  3,  1,  4,  4,  4,  4,  2,  1,  2,  1,  3,  3,  3,  3, //6
-             2,  1,  2,  1,  3,  3,  3,  3,  2,  1,  2,  2,  3,  3,  3,  3, //7
-             4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, //8
-             4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, //9
-             3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, //A
-             3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, //B
-             3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, //C
-             3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, //D
-             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, //E
-             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1  //F
+            // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+               1,  1,  3,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, // 0
+               1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, // 1
+               4,  4,  4,  4,  7,  7,  7,  7,  5,  5,  5,  5,  9,  9,  9,  9, // 2
+               6,  6,  6,  6,  9,  9,  9,  9,  8,  8,  8,  8, 12, 12, 12, 12, // 3
+               3,  3,  3,  3,  3,  3,  3,  3, 16, 16, 16, 16, 16, 16, 16, 16, // 4
+               4,  4,  4,  4,  4,  4,  4,  4, 16, 16, 16, 16, 16, 16, 16, 16, // 5
+               3,  3,  3,  1,  4,  4,  4,  4,  2,  1,  2,  1,  3,  3,  3,  3, // 6
+               2,  1,  2,  1,  3,  3,  3,  3,  2,  1,  2,  2,  3,  3,  3,  3, // 7
+               4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, // 8
+               4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, // 9
+               3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, // A
+               3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, // B
+               3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, // C
+               3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3, // D
+               1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, // E
+               1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1  // F
         };
     }
 }
