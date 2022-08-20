@@ -14,12 +14,12 @@ namespace PsyCross {
             UpdateFrame?.Invoke();
         }
 
-        public static void OnJoyPadUp(JoyPad input) {
-            Input = input;
+        public static void OnJoyPadUp(JoyPad inputMask) {
+            Input &= ~inputMask;
         }
 
-        public static void OnJoyPadDown(JoyPad input) {
-            Input = input;
+        public static void OnJoyPadDown(JoyPad inputMask) {
+            Input |= inputMask;
         }
     }
 }

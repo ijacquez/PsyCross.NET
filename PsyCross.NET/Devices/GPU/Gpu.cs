@@ -13,8 +13,6 @@ namespace ProjectPSX.Devices {
         private readonly uint[] _commandFifo = new uint[16];
         private int _commandPointer;
 
-        private int _scanLine = 0;
-
         private static readonly int[] _Resolutions = { 256, 320, 512, 640, 368 }; // GPUSTAT res index
         private static readonly int[] _DotClockDiv = { 10, 8, 5, 4, 7 };
 

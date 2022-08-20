@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using PsyCross.Devices.Input;
 using PsyCross.Math;
 using PsyCross.ResourceManagement;
 
@@ -48,15 +49,30 @@ namespace PsyCross.Testing {
             //     }
             // }
 
-            // var tmdData = ResourceManager.GetBinaryFile("VENUS3G.TMD");
+            var tmdData = ResourceManager.GetBinaryFile("VENUS3G.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("SHUTTLE1.TMD");
-            var tmdData = ResourceManager.GetBinaryFile("CUBE3.TMD");
+            // var tmdData = ResourceManager.GetBinaryFile("CUBE3.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3G.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3GT.TMD");
             if (PsyQ.TryReadTmd(tmdData, out _tmd)) {
                 Console.WriteLine("Success reading TMD");
             }
+
+            // XXX: Placeholder for uploading textures
             PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), new Rgb888(255, 255, 255));
+
+            light1 = LightingManager.AllocateLight();
+            light1.Color = Rgb888.White;
+            light1.Position = new Vector3(0, 0, 0.5f);
+            light1.ConstantAttenuation = 1.0f;
+            light1.DiffuseIntensity = 1.0f;
+            light1.CutOffDistance = 3.0f;
+            light1.Flags = LightFlags.Point;
+
+            var light2 = LightingManager.AllocateLight();
+            light2.Position = new Vector3(-0.5f, 0.5f, 0.5f);
+            light2.Color = Rgb888.Red;
+            light2.Flags = LightFlags.Point;
         }
 
         private const int _ScreenWidth  = 320;
@@ -83,23 +99,34 @@ namespace PsyCross.Testing {
 
             Matrix4x4[] objectMat = new Matrix4x4[2];
 
-            _pos[0].Z = 0.3f;
-            _rot[0].X = (((_rot[0].X * _Rad2Deg) + 0.15f) % 360.0f) * _Deg2Rad;
-            _rot[0].Y = (((_rot[0].Y * _Rad2Deg) + 0.25f) % 360.0f) * _Deg2Rad;
-            _rot[0].Z = (((_rot[0].Z * _Rad2Deg) + 0.35f) % 360.0f) * _Deg2Rad;
+            // _rot[0].X = _rot[0].Y = _rot[0].Z = 0;
+            _pos[0].Z = 0.5f;
+
+            _rot[0].X = (((_rot[0].X * _Rad2Deg) + 0.515f) % 360.0f) * _Deg2Rad;
+            _rot[0].Y = (((_rot[0].Y * _Rad2Deg) + 0.525f) % 360.0f) * _Deg2Rad;
+            _rot[0].Z = (((_rot[0].Z * _Rad2Deg) + 0.535f) % 360.0f) * _Deg2Rad;
             objectMat[0] = CreateMatrix(_pos[0], _rot[0]);
 
             DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
-            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
-            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
-            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
-            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
-            // DrawTmd(_tmd.Objects[0], objectMat[0], _commandBuffer, _primitiveSort);
 
             _primitiveSort.Sort();
 
+            var p = light1.Position;
+
+            Console.WriteLine($"{p.X} {p.Z}");
+            if ((Psx.Input & JoyPad.Left) == JoyPad.Left) {
+                p.X -= 0.01f;
+            } else if ((Psx.Input & JoyPad.Right) == JoyPad.Right) {
+                p.X += 0.01f;
+            }
+
+            if ((Psx.Input & JoyPad.Up) == JoyPad.Up) {
+                p.Z += 0.01f;
+            } else if ((Psx.Input & JoyPad.Down) == JoyPad.Down) {
+                p.Z -= 0.01f;
+            }
+            light1.Position = p;
             PsyQ.DrawPrim(_primitiveSort, _commandBuffer);
-            Console.WriteLine($"_commandBuffer.AllocatedCount: {_commandBuffer.AllocatedCount}");
             PsyQ.DrawSync();
 
             // Swap buffer
@@ -118,10 +145,13 @@ namespace PsyCross.Testing {
             return (rotZ * rotY * rotX) * translation;
         }
 
-        private static Vector3[] _clipPoints = new Vector3[4];
-        private static Vector3[] _ndcPoints = new Vector3[4];
         private static Vector3[] _polygonVertices = new Vector3[4];
         private static Vector3[] _polygonNormals = new Vector3[4];
+        private static Vector3[] _clipPoints = new Vector3[4];
+        private static Vector3[] _ndcPoints = new Vector3[4];
+        private static Vector2Int[] _screenPoints = new Vector2Int[4];
+        private static Rgb888[] _lightingColors = new Rgb888[4];
+        private Light light1;
 
         private static void DrawTmd(PsyQ.TmdObject tmdObject, Matrix4x4 matrix, CommandBuffer commandBuffer, PrimitiveSort primitiveSort) {
             foreach (var tmdPacket in tmdObject.Packets) {
@@ -149,13 +179,23 @@ namespace PsyCross.Testing {
 
                 TransformToClip(tmdPacket.Primitive.VertexCount, _clipPoints, matrix, _polygonVertices);
 
-                Vector3 transformedNormal = Vector3.TransformNormal(_polygonNormals[0], matrix);
-                float t = Vector3.Dot(_clipPoints[0], transformedNormal);
-                if (t >= 0.0f) {
-                    Console.WriteLine($"transformedNormal: {transformedNormal}, {t}");
-                    continue;
+                // Perform backface culling unless it's "double sided"
+                if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Fce) != PsyQ.TmdPrimitiveFlags.Fce) {
+                    Vector3 faceNormal = CalculateNormal(tmdPacket.Primitive.VertexCount, _clipPoints);
+                    if (Vector3.Dot(_clipPoints[0], faceNormal) >= 0.0f) {
+                        continue;
+                    }
                 }
+
+                // Perform light source calculation
+                if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
+                    CalculateLighting(tmdPacket.Primitive.VertexCount, _lightingColors, _clipPoints, _polygonNormals, matrix);
+                } else {
+                    CalculateNoLighting(_lightingColors);
+                }
+
                 TransformToNdc(tmdPacket.Primitive.VertexCount, _ndcPoints, _clipPoints);
+                TransformToScreen(tmdPacket.Primitive.VertexCount, _screenPoints, _ndcPoints);
 
                 switch (tmdPacket.PrimitiveType) {
                     case PsyQ.TmdPrimitiveType.F3:
@@ -176,6 +216,59 @@ namespace PsyCross.Testing {
             }
         }
 
+        private static void CalculateNoLighting(Rgb888[] lightingColors) {
+            _lightingColors[0] = Rgb888.White;
+            _lightingColors[1] = Rgb888.White;
+            _lightingColors[2] = Rgb888.White;
+        }
+
+        private static void CalculateLighting(int vertexCount, Rgb888[] lightingColors, Vector3[] clipPoints, Vector3[] normals, Matrix4x4 matrix) {
+            for (int i = 0; i < vertexCount; i++) {
+                lightingColors[i] = Rgb888.Black;
+            }
+
+            for (int lightIndex = 0; lightIndex < LightingManager.AllocatedLights.Count; lightIndex++) {
+                Light light = LightingManager.AllocatedLights[lightIndex];
+
+                // XXX: Move this out?
+                Rgb888 matAmbientColor = new Rgb888(40, 40, 40);
+                Rgb888 matDiffuseColor = new Rgb888(40, 40, 40);
+
+                for (int i = 0; i < vertexCount; i++) {
+                    Vector3 distance = light.Position - clipPoints[i];
+                    float distanceLength = distance.Length();
+
+                    if ((light.Flags & LightFlags.Point) == LightFlags.Point) {
+                        if (distanceLength < light.CutOffDistance) {
+                            Vector3 transformedNormal = Vector3.TransformNormal(normals[i], matrix);
+
+                            float diffuseColorR = light.Color.R + matDiffuseColor.R;
+                            float diffuseColorG = light.Color.G + matDiffuseColor.G;
+                            float diffuseColorB = light.Color.B + matDiffuseColor.B;
+
+                            Vector3 N = Vector3.Normalize(transformedNormal);
+                            Vector3 L = Vector3.Normalize(distance);
+
+                            float intensity = System.Math.Max(Vector3.Dot(N, L), 0.0f);
+                            float attenuation = 1.0f / (1.0f + (light.ConstantAttenuation * distanceLength));
+
+                            float r = (attenuation * (intensity * light.DiffuseIntensity * diffuseColorR) + lightingColors[i].R + matAmbientColor.R);
+                            float g = (attenuation * (intensity * light.DiffuseIntensity * diffuseColorG) + lightingColors[i].G + matAmbientColor.G);
+                            float b = (attenuation * (intensity * light.DiffuseIntensity * diffuseColorB) + lightingColors[i].B + matAmbientColor.B);
+
+                            float clampedR = System.Math.Min(r, 255.0f);
+                            float clampedG = System.Math.Min(g, 255.0f);
+                            float clampedB = System.Math.Min(b, 255.0f);
+
+                            lightingColors[i].R = (byte)clampedR;
+                            lightingColors[i].G = (byte)clampedG;
+                            lightingColors[i].B = (byte)clampedB;
+                        }
+                    }
+                }
+            }
+        }
+
         private static void DrawTmdPrimitiveF3(PsyQ.TmdPacket tmdPacket, CommandBuffer commandBuffer, PrimitiveSort primitiveSort) {
             var primitive = (PsyQ.TmdPrimitiveF3)tmdPacket.Primitive;
 
@@ -184,9 +277,9 @@ namespace PsyCross.Testing {
 
             poly[0].SetCommand();
             poly[0].Color = primitive.Color;
-            poly[0].P0 = TransformToScreen(_ndcPoints[0]);
-            poly[0].P1 = TransformToScreen(_ndcPoints[1]);
-            poly[0].P2 = TransformToScreen(_ndcPoints[2]);
+            poly[0].P0 = _screenPoints[0];
+            poly[0].P1 = _screenPoints[1];
+            poly[0].P2 = _screenPoints[2];
 
             primitiveSort.Add(_clipPoints, PrimitiveSortPoint.Center, handle);
         }
@@ -204,9 +297,9 @@ namespace PsyCross.Testing {
             poly[0].T2 = primitive.T2;
             poly[0].TPageId = primitive.Tsb.Value;
             poly[0].ClutId = primitive.Cba.Value;
-            poly[0].P0 = TransformToScreen(_ndcPoints[0]);
-            poly[0].P1 = TransformToScreen(_ndcPoints[1]);
-            poly[0].P2 = TransformToScreen(_ndcPoints[2]);
+            poly[0].P0 = _screenPoints[0];
+            poly[0].P1 = _screenPoints[1];
+            poly[0].P2 = _screenPoints[2];
 
             primitiveSort.Add(_clipPoints, PrimitiveSortPoint.Center, handle);
         }
@@ -218,13 +311,12 @@ namespace PsyCross.Testing {
             var poly = commandBuffer.GetPolyG3(handle);
 
             poly[0].SetCommand();
-            // XXX: Bad gouraud colors
-            poly[0].C0 = new Rgb888(255,   0,   0);
-            poly[0].C1 = new Rgb888(  0, 255,   0);
-            poly[0].C2 = new Rgb888(  0,   0, 255);
-            poly[0].P0 = TransformToScreen(_ndcPoints[0]);
-            poly[0].P1 = TransformToScreen(_ndcPoints[1]);
-            poly[0].P2 = TransformToScreen(_ndcPoints[2]);
+            poly[0].C0 = _lightingColors[0];
+            poly[0].C1 = _lightingColors[1];
+            poly[0].C2 = _lightingColors[2];
+            poly[0].P0 = _screenPoints[0];
+            poly[0].P1 = _screenPoints[1];
+            poly[0].P2 = _screenPoints[2];
 
             primitiveSort.Add(_clipPoints, PrimitiveSortPoint.Center, handle);
         }
@@ -236,20 +328,26 @@ namespace PsyCross.Testing {
             var poly = commandBuffer.GetPolyGt3(handle);
 
             poly[0].SetCommand();
-            // XXX: Bad gouraud colors
-            poly[0].C0 = new Rgb888(255,   0,   0);
-            poly[0].C1 = new Rgb888(  0, 255,   0);
-            poly[0].C2 = new Rgb888(  0,   0, 255);
+            poly[0].C0 = _lightingColors[0];
+            poly[0].C1 = _lightingColors[1];
+            poly[0].C2 = _lightingColors[2];
             poly[0].T0 = primitive.T0;
             poly[0].T1 = primitive.T1;
             poly[0].T2 = primitive.T2;
             poly[0].TPageId = primitive.Tsb.Value;
             poly[0].ClutId = primitive.Cba.Value;
-            poly[0].P0 = TransformToScreen(_ndcPoints[0]);
-            poly[0].P1 = TransformToScreen(_ndcPoints[1]);
-            poly[0].P2 = TransformToScreen(_ndcPoints[2]);
+            poly[0].P0 = _screenPoints[0];
+            poly[0].P1 = _screenPoints[1];
+            poly[0].P2 = _screenPoints[2];
 
             primitiveSort.Add(_clipPoints, PrimitiveSortPoint.Center, handle);
+        }
+
+        private static Vector3 CalculateNormal(int vertexCount, Vector3[] clipPoints) {
+            Vector3 a = _clipPoints[2] - _clipPoints[0];
+            Vector3 b = _clipPoints[1] - _clipPoints[0];
+
+            return Vector3.Cross(a, b);
         }
 
         private static void TransformToClip(int vertexCount, Vector3[] clipPoints, Matrix4x4 matrix, Vector3[] vertices) {
@@ -261,16 +359,16 @@ namespace PsyCross.Testing {
         private static void TransformToNdc(int vertexCount, Vector3[] ndcPoints, Vector3[] clipPoints) {
             for (int i = 0; i < vertexCount; i++) {
                 Vector3 clipPoint = clipPoints[i];
-                float invZ = _ViewDistance / clipPoint.Z;
+                float inverseZ = _ViewDistance / clipPoint.Z;
 
-                ndcPoints[i] = new Vector3(clipPoint.X * invZ,
-                                           clipPoint.Y * invZ,
-                                           clipPoint.Z * invZ);
+                ndcPoints[i] = clipPoint * inverseZ;
             }
         }
 
-        private static Vector2Int TransformToScreen(Vector3 ndcPoint) {
-            return new Vector2(ndcPoint.X, _Ratio * -ndcPoint.Y);
+        private static void TransformToScreen(int vertexCount, Vector2Int[] screenPoints, Vector3[] ndcPoints) {
+            for (int i = 0; i < vertexCount; i++) {
+                screenPoints[i] = new Vector2(ndcPoints[i].X, _Ratio * -ndcPoints[i].Y);
+            }
         }
     }
 }

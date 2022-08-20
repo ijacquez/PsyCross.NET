@@ -2,8 +2,6 @@ using System;
 using System.Runtime.InteropServices;
 
 namespace PsyCross {
-    using static PsyCross.PsyQ;
-
     public sealed class CommandBuffer {
         private const int _WordSize = sizeof(UInt32);
 
@@ -59,22 +57,27 @@ namespace PsyCross {
 
         public Span<PsyQ.PolyGt4> GetPolyGt4(CommandHandle handle) => GetCommand<PsyQ.PolyGt4>(handle);
 
-        public static Span<T> GetCommand<T>(CommandHandle handle) where T : struct, ICommand =>
-            MemoryMarshal.Cast<uint, T>(handle.Command);
+        public static Span<T> GetCommand<T>(CommandHandle handle) where T : struct, PsyQ.ICommand {
+            if (handle.Type != typeof(T)) {
+                throw new InvalidCastException($"Type mismatch. Expected {handle.Type}, got {typeof(T)}.");
+            }
+
+            return MemoryMarshal.Cast<uint, T>(handle.Command);
+        }
 
         public static Span<uint> GetCommandAsWords(CommandHandle handle) => handle.Command;
 
-        public static Span<uint> GetCommandAsWords<T>(Span<T> spanCommand) where T : struct, ICommand =>
+        public static Span<uint> GetCommandAsWords<T>(Span<T> spanCommand) where T : struct, PsyQ.ICommand =>
             MemoryMarshal.Cast<T, uint>(spanCommand);
 
-        private CommandHandle AllocateCommand<T>() where T : struct, ICommand {
-            int wordCount = Command.GetWordCount<T>();
+        private CommandHandle AllocateCommand<T>() where T : struct, PsyQ.ICommand {
+            int wordCount = PsyQ.Command.GetWordCount<T>();
             int prevPointer = _commandPointer;
 
             _commandPointer += wordCount;
             _commandCount++;
 
-            return new CommandHandle(_commandBuffer, prevPointer, wordCount);
+            return new CommandHandle(typeof(T), _commandBuffer, prevPointer, wordCount);
         }
     }
 }

@@ -2,12 +2,15 @@ using System;
 
 namespace PsyCross {
     public struct CommandHandle {
-        private readonly ArraySegment<uint> _arraySegment;
+        internal Type Type { get; }
 
-        public CommandHandle(uint[] bits, int offset, int size) {
-            _arraySegment = new ArraySegment<uint>(bits, offset, size);
+        private readonly ArraySegment<uint> _wordsArraySegment;
+
+        public CommandHandle(Type type, uint[] words, int offset, int size) {
+            Type = type;
+            _wordsArraySegment = new ArraySegment<uint>(words, offset, size);
         }
 
-        internal Span<uint> Command => _arraySegment.AsSpan();
+        internal Span<uint> Command => _wordsArraySegment.AsSpan();
     }
 }

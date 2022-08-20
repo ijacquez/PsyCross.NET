@@ -16,7 +16,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
-        internal struct TmdHeader {
+        private struct TmdHeader {
             [FieldOffset( 0)] public uint Magic;
             [FieldOffset( 4)] public TmdFlags Flags;
             [FieldOffset( 8)] public uint ObjectCount;
@@ -44,7 +44,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 4)]
-        internal struct TmdFlags {
+        private struct TmdFlags {
             [FieldOffset( 0)] internal uint Value;
 
             // The FIXP bit indicates whether the pointer value of the OBJECT
@@ -55,7 +55,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 28)]
-        internal struct TmdObjectDesc {
+        private struct TmdObjectDesc {
             [FieldOffset( 0)] public uint VerticesOffset;
             [FieldOffset( 4)] public uint VerticesCount;
             [FieldOffset( 8)] public uint NormalsOffset;
@@ -66,7 +66,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 8)]
-        internal struct TmdVertex {
+        private struct TmdVertex {
             [FieldOffset( 0)] public short X;
             [FieldOffset( 2)] public short Y;
             [FieldOffset( 4)] public short Z;
