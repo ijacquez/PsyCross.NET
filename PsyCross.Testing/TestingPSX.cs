@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Numerics;
 using PsyCross.Devices.Input;
 using PsyCross.Math;
@@ -49,8 +50,8 @@ namespace PsyCross.Testing {
             //     }
             // }
 
-            var tmdData = ResourceManager.GetBinaryFile("VENUS3G.TMD");
-            // var tmdData = ResourceManager.GetBinaryFile("SHUTTLE1.TMD");
+            // var tmdData = ResourceManager.GetBinaryFile("VENUS3G.TMD");
+            var tmdData = ResourceManager.GetBinaryFile("SHUTTLE1.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3G.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3GT.TMD");
@@ -59,20 +60,22 @@ namespace PsyCross.Testing {
             }
 
             // XXX: Placeholder for uploading textures
-            PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), new Rgb888(255, 255, 255));
+            // PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), new Rgb888(255, 255, 255));
 
-            light1 = LightingManager.AllocateLight();
+            light1 = LightingManager.AllocatePointLight();
             light1.Color = Rgb888.White;
             light1.Position = new Vector3(0, 0, 0.5f);
             light1.ConstantAttenuation = 1.0f;
-            light1.DiffuseIntensity = 1.0f;
+            light1.DiffuseIntensity = 0.5f;
             light1.CutOffDistance = 3.0f;
-            light1.Flags = LightFlags.Point;
 
-            var light2 = LightingManager.AllocateLight();
-            light2.Position = new Vector3(-0.5f, 0.5f, 0.5f);
-            light2.Color = Rgb888.Red;
-            light2.Flags = LightFlags.Point;
+            // var light2 = LightingManager.AllocatePointLight();
+            // light2.Position = new Vector3(-0.5f, 0.5f, 0.5f);
+            var light2 = LightingManager.AllocateDirectionalLight();
+            light2.Direction = new Vector3(0, 0.707f, 0.707f);
+            light1.ConstantAttenuation = 0.1f;
+            light1.DiffuseIntensity = 1.0f;
+            light2.Color = Rgb888.Yellow;
         }
 
         private const int _ScreenWidth  = 320;
@@ -151,7 +154,7 @@ namespace PsyCross.Testing {
         private static Vector3[] _ndcPoints = new Vector3[4];
         private static Vector2Int[] _screenPoints = new Vector2Int[4];
         private static Rgb888[] _lightingColors = new Rgb888[4];
-        private Light light1;
+        private PointLight light1;
 
         private static void DrawTmd(PsyQ.TmdObject tmdObject, Matrix4x4 matrix, CommandBuffer commandBuffer, PrimitiveSort primitiveSort) {
             foreach (var tmdPacket in tmdObject.Packets) {
@@ -190,8 +193,6 @@ namespace PsyCross.Testing {
                 // Perform light source calculation
                 if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
                     CalculateLighting(tmdPacket.Primitive.VertexCount, _lightingColors, _clipPoints, _polygonNormals, matrix);
-                } else {
-                    CalculateNoLighting(_lightingColors);
                 }
 
                 TransformToNdc(tmdPacket.Primitive.VertexCount, _ndcPoints, _clipPoints);
@@ -216,57 +217,60 @@ namespace PsyCross.Testing {
             }
         }
 
-        private static void CalculateNoLighting(Rgb888[] lightingColors) {
-            _lightingColors[0] = Rgb888.White;
-            _lightingColors[1] = Rgb888.White;
-            _lightingColors[2] = Rgb888.White;
+        private static void CalculateLighting(int vertexCount, Rgb888[] lightingColors, Vector3[] clipPoints, Vector3[] normals, Matrix4x4 matrix) {
+            for (int vertexIndex = 0; vertexIndex < vertexCount; vertexIndex++) {
+                Vector3 normal = Vector3.TransformNormal(normals[vertexIndex], matrix);
+
+                Vector3 lightVector = Vector3.Zero;
+
+                for (int lightIndex = 0; lightIndex < LightingManager.PointLights.Count; lightIndex++) {
+                    PointLight light = LightingManager.PointLights[lightIndex];
+                    Vector3 distance = light.Position - clipPoints[vertexIndex];
+
+                    lightVector += CalculateLightVector(light, distance, normal);
+                }
+
+                for (int lightIndex = 0; lightIndex < LightingManager.DirectionalLights.Count; lightIndex++) {
+                    DirectionalLight light = LightingManager.DirectionalLights[lightIndex];
+                    Vector3 distance = -light.Direction;
+
+                    lightVector += CalculateLightVector(light, distance, normal);
+                }
+
+                Vector3 clampedLightVector = Vector3.Min(lightVector, 255.0f * Vector3.One);
+
+                lightingColors[vertexIndex].R = (byte)clampedLightVector.X;
+                lightingColors[vertexIndex].G = (byte)clampedLightVector.Y;
+                lightingColors[vertexIndex].B = (byte)clampedLightVector.Z;
+            }
         }
 
-        private static void CalculateLighting(int vertexCount, Rgb888[] lightingColors, Vector3[] clipPoints, Vector3[] normals, Matrix4x4 matrix) {
-            for (int i = 0; i < vertexCount; i++) {
-                lightingColors[i] = Rgb888.Black;
+        private static Vector3 CalculateLightVector(Light light, Vector3 distance, Vector3 normal) {
+            // XXX: Move this out
+            Rgb888 matAmbientColor = new Rgb888(40, 40, 40);
+            // XXX: Move this out
+            Rgb888 matDiffuseColor = new Rgb888(40, 40, 40);
+
+            float distanceLength = distance.Length();
+
+            if (distanceLength >= light.CutOffDistance) {
+                return Vector3.Zero;
             }
 
-            for (int lightIndex = 0; lightIndex < LightingManager.AllocatedLights.Count; lightIndex++) {
-                Light light = LightingManager.AllocatedLights[lightIndex];
+            float diffuseColorR = light.Color.R + matDiffuseColor.R;
+            float diffuseColorG = light.Color.G + matDiffuseColor.G;
+            float diffuseColorB = light.Color.B + matDiffuseColor.B;
 
-                // XXX: Move this out?
-                Rgb888 matAmbientColor = new Rgb888(40, 40, 40);
-                Rgb888 matDiffuseColor = new Rgb888(40, 40, 40);
+            Vector3 l = Vector3.Normalize(distance);
 
-                for (int i = 0; i < vertexCount; i++) {
-                    Vector3 distance = light.Position - clipPoints[i];
-                    float distanceLength = distance.Length();
+            float intensity = System.Math.Max(Vector3.Dot(normal, l), 0.0f);
+            float attenuation = 1.0f / (1.0f + (light.ConstantAttenuation * distanceLength));
 
-                    if ((light.Flags & LightFlags.Point) == LightFlags.Point) {
-                        if (distanceLength < light.CutOffDistance) {
-                            Vector3 transformedNormal = Vector3.TransformNormal(normals[i], matrix);
+            float r = attenuation * (intensity * light.DiffuseIntensity * diffuseColorR) + matAmbientColor.R;
+            float g = attenuation * (intensity * light.DiffuseIntensity * diffuseColorG) + matAmbientColor.G;
+            float b = attenuation * (intensity * light.DiffuseIntensity * diffuseColorB) + matAmbientColor.B;
 
-                            float diffuseColorR = light.Color.R + matDiffuseColor.R;
-                            float diffuseColorG = light.Color.G + matDiffuseColor.G;
-                            float diffuseColorB = light.Color.B + matDiffuseColor.B;
-
-                            Vector3 N = Vector3.Normalize(transformedNormal);
-                            Vector3 L = Vector3.Normalize(distance);
-
-                            float intensity = System.Math.Max(Vector3.Dot(N, L), 0.0f);
-                            float attenuation = 1.0f / (1.0f + (light.ConstantAttenuation * distanceLength));
-
-                            float r = (attenuation * (intensity * light.DiffuseIntensity * diffuseColorR) + lightingColors[i].R + matAmbientColor.R);
-                            float g = (attenuation * (intensity * light.DiffuseIntensity * diffuseColorG) + lightingColors[i].G + matAmbientColor.G);
-                            float b = (attenuation * (intensity * light.DiffuseIntensity * diffuseColorB) + lightingColors[i].B + matAmbientColor.B);
-
-                            float clampedR = System.Math.Min(r, 255.0f);
-                            float clampedG = System.Math.Min(g, 255.0f);
-                            float clampedB = System.Math.Min(b, 255.0f);
-
-                            lightingColors[i].R = (byte)clampedR;
-                            lightingColors[i].G = (byte)clampedG;
-                            lightingColors[i].B = (byte)clampedB;
-                        }
-                    }
-                }
-            }
+            return new Vector3(r, g, b);
         }
 
         private static void DrawTmdPrimitiveF3(PsyQ.TmdPacket tmdPacket, CommandBuffer commandBuffer, PrimitiveSort primitiveSort) {
@@ -350,7 +354,7 @@ namespace PsyCross.Testing {
             return Vector3.Cross(a, b);
         }
 
-        private static void TransformToClip(int vertexCount, Vector3[] clipPoints, Matrix4x4 matrix, Vector3[] vertices) {
+        private static void TransformToClip(int vertexCount, Vector3[] clipPoints, Matrix4x4 matrix, Vector3[] vertices) {
             for (int i = 0; i < vertexCount; i++) {
                 clipPoints[i] = Vector3.Transform(vertices[i], matrix) + matrix.Translation;
             }

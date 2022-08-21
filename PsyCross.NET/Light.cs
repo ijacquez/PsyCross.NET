@@ -1,11 +1,8 @@
-using System.Numerics;
 using PsyCross.Math;
 
 namespace PsyCross {
-    public class Light {
-        public Vector3 Position { get; set; }
-
-        public float ConstantAttenuation { get; set; } = 1.0f;
+    public abstract class Light {
+        public float ConstantAttenuation { get; set; }
 
         public Rgb888 Color { get; set; }
 
@@ -16,6 +13,14 @@ namespace PsyCross {
         public LightFlags Flags { get; set; }
 
         internal Light() {
+        }
+
+        internal void Init() {
+            ConstantAttenuation = 1.0f;
+            Color = Rgb888.White;
+            DiffuseIntensity = 1.0f;
+            CutOffDistance = 100.0f;
+            Flags = LightFlags.None;
         }
     }
 }

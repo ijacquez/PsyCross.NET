@@ -1,50 +1,63 @@
 using System.Collections.Generic;
-using System.Numerics;
 using PsyCross.Math;
 
 namespace PsyCross {
     public static class LightingManager {
-        public static readonly int Capacity = 16;
+        public static readonly int DirectionalLightsCapacity = 8;
+        public static readonly int PointLightsCapacity       = 8;
+        public static readonly int Capacity                  = DirectionalLightsCapacity + PointLightsCapacity;
 
-        private static readonly List<Light> _Lights = new List<Light>(Capacity);
-        private static readonly List<Light> _AllocatedLights = new List<Light>(Capacity);
+        private static readonly List<Light> _DirectionalLights = new List<Light>(DirectionalLightsCapacity);
+        private static readonly List<Light> _PointLights = new List<Light>(PointLightsCapacity);
 
-        public static IReadOnlyList<Light> AllocatedLights => _AllocatedLights.AsReadOnly();
+        private static readonly List<DirectionalLight> _AllocatedDirectionalLights = new List<DirectionalLight>(DirectionalLightsCapacity);
+        private static readonly List<PointLight> _AllocatedPointLights = new List<PointLight>(PointLightsCapacity);
 
-        public static int Count => _AllocatedLights.Count;
+        public static IReadOnlyList<PointLight> PointLights => _AllocatedPointLights.AsReadOnly();
+        public static IReadOnlyList<DirectionalLight> DirectionalLights => _AllocatedDirectionalLights.AsReadOnly();
+
+        public static int Count => (_AllocatedPointLights.Count + _AllocatedDirectionalLights.Count);
 
         static LightingManager() {
             for (int i = 0; i < Capacity; i++) {
-                _Lights.Add(new Light());
+                _PointLights.Add(new PointLight());
+                _DirectionalLights.Add(new DirectionalLight());
             }
 
-            _Lights.TrimExcess();
+            _PointLights.TrimExcess();
+            _DirectionalLights.TrimExcess();
         }
 
-        public static Light AllocateLight() {
-            if (_Lights.Count == 0) {
+        public static DirectionalLight AllocateDirectionalLight() =>
+            AllocateLight<DirectionalLight>(_DirectionalLights, _AllocatedDirectionalLights);
+
+        public static PointLight AllocatePointLight() =>
+            AllocateLight<PointLight>(_PointLights, _AllocatedPointLights);
+
+        private static T AllocateLight<T>(List<Light> lights, List<T> allocatedLights) where T : Light {
+            if (lights.Count == 0) {
                 return null;
             }
 
-            Light light = _Lights[0];
+            T light = (T)lights[0];
 
-            _Lights.RemoveAt(0);
+            lights.RemoveAt(0);
 
-            light.Position = Vector3.Zero;
-            light.ConstantAttenuation = 1.0f;
-            light.Color = Rgb888.White;
-            light.DiffuseIntensity = 1.0f;
-            light.CutOffDistance = 10.0f;
-            light.Flags = LightFlags.Point;
+            light.Init();
 
-            _AllocatedLights.Add(light);
+            allocatedLights.Add(light);
 
             return light;
         }
 
-        public static void FreeLight(Light light) {
-            _AllocatedLights.Remove(light);
-            _Lights.Add(light);
+        public static void FreeLight(DirectionalLight light) {
+            _AllocatedDirectionalLights.Remove(light);
+            _DirectionalLights.Add(light);
+        }
+
+        public static void FreeLight(PointLight light) {
+            _AllocatedPointLights.Remove(light);
+            _PointLights.Add(light);
         }
     }
 }
