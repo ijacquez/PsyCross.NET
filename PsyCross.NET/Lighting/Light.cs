@@ -12,7 +12,7 @@ namespace PsyCross {
 
         public LightFlags Flags { get; set; }
 
-        internal Light() {
+        public Light() {
         }
 
         internal void Init() {

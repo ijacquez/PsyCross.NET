@@ -2,12 +2,10 @@ using System;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using PsyCross.Math;
 
 namespace PsyCross {
     public static partial class PsyQ {
-        // XXX: Move
-        private const float _Float2Fixed = 1.0f / 4096.0f;
-
         public static bool TryReadTmd(byte[] data, out Tmd tmd) {
             const uint TmdMagic = 0x00000041;
 
@@ -70,11 +68,31 @@ namespace PsyCross {
             tmdObject.Vertices = new Vector3[tmdObjectDesc.VerticesCount];
 
             for (int vertexIndex = 0; vertexIndex < tmdObjectDesc.VerticesCount; vertexIndex++) {
-                Vector3 fixedVertex = new Vector3(tmdVertices[vertexIndex].X,
-                                                  tmdVertices[vertexIndex].Y,
-                                                  tmdVertices[vertexIndex].Z);
+                // tmdObject.Vertices[vertexIndex].X = MathHelper.Fixed2Float(tmdVertices[vertexIndex].X);
+                // tmdObject.Vertices[vertexIndex].Y = MathHelper.Fixed2Float(tmdVertices[vertexIndex].Y);
+                // tmdObject.Vertices[vertexIndex].Z = MathHelper.Fixed2Float(tmdVertices[vertexIndex].Z);
 
-                tmdObject.Vertices[vertexIndex] = fixedVertex * _Float2Fixed;
+                // tmdObject.Vertices[vertexIndex].X = (1/4096.0f)*((tmdVertices[vertexIndex].X/500)*32);
+                // tmdObject.Vertices[vertexIndex].Y = (1/4096.0f)*((tmdVertices[vertexIndex].Y/500)*32);
+                // tmdObject.Vertices[vertexIndex].Z = (1/4096.0f)*((tmdVertices[vertexIndex].Z/500)*32);
+
+                // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X*(32/500.0f));
+                // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y*(32/500.0f));
+                // tmdObject.Vertices[vertexIndex].Z = (tmdVertices[vertexIndex].Z*(32/500.0f));
+
+                // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X/50);
+                // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y/50);
+                // tmdObject.Vertices[vertexIndex].Z = (tmdVertices[vertexIndex].Z/50);
+
+                // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X*(2.5f/500.0f));
+                // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y*(2.5f/500.0f));
+                // tmdObject.Vertices[vertexIndex].Z = (tmdVertices[vertexIndex].Z*(2.5f/500.0f));
+
+                tmdObject.Vertices[vertexIndex].X = tmdVertices[vertexIndex].X;
+                tmdObject.Vertices[vertexIndex].Y = tmdVertices[vertexIndex].Y;
+                tmdObject.Vertices[vertexIndex].Z = tmdVertices[vertexIndex].Z;
+
+                Console.WriteLine($"<[1;31m{tmdVertices[vertexIndex].X}, {tmdVertices[vertexIndex].Y}, {tmdVertices[vertexIndex].Z}[m> [1;32m{tmdObject.Vertices[vertexIndex]}[m");
             }
         }
 
@@ -86,11 +104,9 @@ namespace PsyCross {
             tmdObject.Normals = new Vector3[tmdObjectDesc.NormalsCount];
 
             for (int normalIndex = 0; normalIndex < tmdObjectDesc.NormalsCount; normalIndex++) {
-                Vector3 fixedNormal = new Vector3(tmdNormals[normalIndex].X,
-                                                  tmdNormals[normalIndex].Y,
-                                                  tmdNormals[normalIndex].Z);
-
-                tmdObject.Normals[normalIndex] = fixedNormal * _Float2Fixed;
+                tmdObject.Normals[normalIndex].X = MathHelper.Fixed2Float(tmdNormals[normalIndex].X);
+                tmdObject.Normals[normalIndex].Y = MathHelper.Fixed2Float(tmdNormals[normalIndex].Y);
+                tmdObject.Normals[normalIndex].Z = MathHelper.Fixed2Float(tmdNormals[normalIndex].Z);
             }
         }
 

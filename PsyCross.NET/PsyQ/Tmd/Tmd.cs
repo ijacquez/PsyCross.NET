@@ -20,7 +20,7 @@ namespace PsyCross {
             [FieldOffset( 0)] public uint Magic;
             [FieldOffset( 4)] public TmdFlags Flags;
             [FieldOffset( 8)] public uint ObjectCount;
-        }
+            }
 
         public class TmdPacket {
             public TmdPrimitiveType PrimitiveType { get; internal set; }
@@ -78,7 +78,7 @@ namespace PsyCross {
             [FieldOffset( 1)] internal byte PacketWordCount;
             [FieldOffset( 2)] public TmdPrimitiveFlags Flags;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
-        }
+            }
 
         [Flags]
         public enum TmdPrimitiveFlags : byte {
@@ -118,6 +118,8 @@ namespace PsyCross {
         public struct TmdTsb {
             [FieldOffset( 0)] public ushort Value;
         }
+
+        #region Triangles
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
         public struct TmdPrimitiveF3 : ITmdPrimitive {
@@ -137,6 +139,15 @@ namespace PsyCross {
             public int IndexN1 => -1;
             public int IndexN2 => -1;
             public int IndexN3 => -1;
+
+            public Texcoord T0 => default(Texcoord);
+            public Texcoord T1 => default(Texcoord);
+            public Texcoord T2 => default(Texcoord);
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => default(TmdTsb);
+
+            public TmdCba Cba => default(TmdCba);
 
             public int VertexCount => 3;
 
@@ -164,6 +175,15 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
+            public Texcoord T0 => default(Texcoord);
+            public Texcoord T1 => default(Texcoord);
+            public Texcoord T2 => default(Texcoord);
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => default(TmdTsb);
+
+            public TmdCba Cba => default(TmdCba);
+
             public int VertexCount => 3;
 
             public int NormalCount => 3;
@@ -189,6 +209,15 @@ namespace PsyCross {
             public int IndexN1 => -1;
             public int IndexN2 => -1;
             public int IndexN3 => -1;
+
+            public Texcoord T0 => default(Texcoord);
+            public Texcoord T1 => default(Texcoord);
+            public Texcoord T2 => default(Texcoord);
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => default(TmdTsb);
+
+            public TmdCba Cba => default(TmdCba);
 
             public int VertexCount => 3;
 
@@ -218,6 +247,15 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
+            public Texcoord T0 => default(Texcoord);
+            public Texcoord T1 => default(Texcoord);
+            public Texcoord T2 => default(Texcoord);
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => default(TmdTsb);
+
+            public TmdCba Cba => default(TmdCba);
+
             public int VertexCount => 3;
 
             public int NormalCount => 3;
@@ -225,11 +263,11 @@ namespace PsyCross {
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
         public struct TmdPrimitiveFt3 : ITmdPrimitive {
-            [FieldOffset( 0)] public Texcoord T0;
-            [FieldOffset( 2)] public TmdCba Cba;
-            [FieldOffset( 4)] public Texcoord T1;
-            [FieldOffset( 6)] public TmdTsb Tsb;
-            [FieldOffset( 8)] public Texcoord T2;
+            [FieldOffset( 0)] private Texcoord _T0;
+            [FieldOffset( 2)] private TmdCba _Cba;
+            [FieldOffset( 4)] private Texcoord _T1;
+            [FieldOffset( 6)] private TmdTsb _Tsb;
+            [FieldOffset( 8)] private Texcoord _T2;
             [FieldOffset(12)] private ushort _IndexNormal;
             [FieldOffset(14)] private ushort _IndexV0;
             [FieldOffset(16)] private ushort _IndexV1;
@@ -245,6 +283,15 @@ namespace PsyCross {
             public int IndexN2 => -1;
             public int IndexN3 => -1;
 
+            public Texcoord T0 => _T0;
+            public Texcoord T1 => _T1;
+            public Texcoord T2 => _T2;
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => _Tsb;
+
+            public TmdCba Cba => _Cba;
+
             public int VertexCount => 3;
 
             public int NormalCount => 1;
@@ -252,11 +299,11 @@ namespace PsyCross {
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
         public struct TmdPrimitiveGt3 : ITmdPrimitive {
-            [FieldOffset( 0)] public Texcoord T0;
-            [FieldOffset( 2)] public TmdCba Cba;
-            [FieldOffset( 4)] public Texcoord T1;
-            [FieldOffset( 6)] public TmdTsb Tsb;
-            [FieldOffset( 8)] public Texcoord T2;
+            [FieldOffset( 0)] private Texcoord _T0;
+            [FieldOffset( 2)] private TmdCba _Cba;
+            [FieldOffset( 4)] private Texcoord _T1;
+            [FieldOffset( 6)] private TmdTsb _Tsb;
+            [FieldOffset( 8)] private Texcoord _T2;
             [FieldOffset(12)] private ushort _IndexN0;
             [FieldOffset(14)] private ushort _IndexV0;
             [FieldOffset(16)] private ushort _IndexN1;
@@ -274,9 +321,108 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
+            public Texcoord T0 => _T0;
+            public Texcoord T1 => _T1;
+            public Texcoord T2 => _T2;
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => _Tsb;
+
+            public TmdCba Cba => _Cba;
+
             public int VertexCount => 3;
 
             public int NormalCount => 3;
         }
+
+        #endregion
+
+        #region Quadrangles
+
+        [StructLayout(LayoutKind.Explicit, Size = 20)]
+        public struct TmdPrimitiveG4 : ITmdPrimitive {
+            [FieldOffset( 0)] public Rgb888 Color;
+            [FieldOffset( 3)] public TmdPrimitiveMode Mode;
+            [FieldOffset( 4)] private ushort _IndexN0;
+            [FieldOffset( 6)] private ushort _IndexV0;
+            [FieldOffset( 8)] private ushort _IndexN1;
+            [FieldOffset(10)] private ushort _IndexV1;
+            [FieldOffset(12)] private ushort _IndexN2;
+            [FieldOffset(14)] private ushort _IndexV2;
+            [FieldOffset(16)] private ushort _IndexN3;
+            [FieldOffset(18)] private ushort _IndexV3;
+
+            public int IndexV0 => _IndexV0;
+            public int IndexV1 => _IndexV1;
+            public int IndexV2 => _IndexV2;
+            public int IndexV3 => _IndexV3;
+
+            public int IndexN0 => _IndexN0;
+            public int IndexN1 => _IndexN1;
+            public int IndexN2 => _IndexN2;
+            public int IndexN3 => _IndexN3;
+
+            public Texcoord T0 => default(Texcoord);
+            public Texcoord T1 => default(Texcoord);
+            public Texcoord T2 => default(Texcoord);
+            public Texcoord T3 => default(Texcoord);
+
+            public TmdTsb Tsb => default(TmdTsb);
+
+            public TmdCba Cba => default(TmdCba);
+
+            public int VertexCount => 4;
+
+            public int NormalCount => 4;
+        }
+
+        // TmdPrimitiveFg3
+
+        // TmdPrimitiveGg3
+
+        // TmdPrimitiveFt3
+
+        [StructLayout(LayoutKind.Explicit, Size = 32)]
+        public struct TmdPrimitiveGt4 : ITmdPrimitive {
+            [FieldOffset( 0)] private Texcoord _T0;
+            [FieldOffset( 2)] private TmdCba _Cba;
+            [FieldOffset( 4)] private Texcoord _T1;
+            [FieldOffset( 6)] private TmdTsb _Tsb;
+            [FieldOffset( 8)] private Texcoord _T2;
+            [FieldOffset(12)] private Texcoord _T3;
+            [FieldOffset(16)] private ushort _IndexN0;
+            [FieldOffset(18)] private ushort _IndexV0;
+            [FieldOffset(20)] private ushort _IndexN1;
+            [FieldOffset(22)] private ushort _IndexV1;
+            [FieldOffset(24)] private ushort _IndexN2;
+            [FieldOffset(26)] private ushort _IndexV2;
+            [FieldOffset(28)] private ushort _IndexN3;
+            [FieldOffset(30)] private ushort _IndexV3;
+
+            public int IndexV0 => _IndexV0;
+            public int IndexV1 => _IndexV1;
+            public int IndexV2 => _IndexV2;
+            public int IndexV3 => _IndexV3;
+
+            public int IndexN0 => _IndexN0;
+            public int IndexN1 => _IndexN1;
+            public int IndexN2 => _IndexN2;
+            public int IndexN3 => _IndexN3;
+
+            public Texcoord T0 => _T0;
+            public Texcoord T1 => _T1;
+            public Texcoord T2 => _T2;
+            public Texcoord T3 => _T3;
+
+            public TmdTsb Tsb => _Tsb;
+
+            public TmdCba Cba => _Cba;
+
+            public int VertexCount => 4;
+
+            public int NormalCount => 4;
+        }
+
+        #endregion
     }
 }

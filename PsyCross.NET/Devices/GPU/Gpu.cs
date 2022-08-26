@@ -511,7 +511,7 @@ namespace ProjectPSX.Devices {
             int maxX = Math.Max(v0.X, Math.Max(v1.X, v2.X));
             int maxY = Math.Max(v0.Y, Math.Max(v1.Y, v2.Y));
 
-            if (((maxX - minX) > 1024) || ((maxY - minY) > 512)) {
+            if (((maxX - minX) > 1023) || ((maxY - minY) > 511)) {
                 return;
             }
 

@@ -8,9 +8,13 @@ namespace PsyCross {
 
         public static JoyPad Input { get; private set; }
 
+        public static Time Time { get; } = new Time();
+
         public static Action UpdateFrame;
 
-        public static void OnUpdateFrame() {
+        public static void OnUpdateFrame(double time) {
+            Time.UpdateTime(time);
+
             UpdateFrame?.Invoke();
         }
 

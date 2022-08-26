@@ -64,5 +64,7 @@ namespace PsyCross.Math {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() => X.GetHashCode() ^ (Y.GetHashCode() << 2);
+
+        public override string ToString() => $"<{X}, {Y}>";
     }
 }

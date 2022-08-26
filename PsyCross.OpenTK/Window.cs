@@ -168,9 +168,9 @@ namespace PsyCross.OpenTK {
             _gameWindow.SwapBuffers();
         }
 
-        private void OnUpdateFrame(FrameEventArgs args) {
+        private void OnUpdateFrame(FrameEventArgs e) {
             // var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-            Psx.OnUpdateFrame();
+            Psx.OnUpdateFrame(e.Time);
             // Console.WriteLine($"{stopWatch.ElapsedMilliseconds}ms");
 
             if (_viewVram) {

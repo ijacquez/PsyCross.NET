@@ -22,5 +22,7 @@ namespace PsyCross.Math {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator RectInt(RectShort v) => new RectInt(v.X, v.Y, v.Width, v.Height);
+
+        public override string ToString() => $"[<{X}, {Y}> {Width}x{Height}]";
     }
 }

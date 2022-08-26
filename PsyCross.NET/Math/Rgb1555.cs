@@ -35,5 +35,8 @@ namespace PsyCross.Math {
             get => (Value & 0x8000) != 0x8000;
             set => Value = (ushort)((Value & 0x7FFF) | ((value) ? 0x8000 : 0x0000));
         }
+
+        public override string ToString() =>
+            $"#{R:X02}{G:X02}{B:X02}";
     }
 }

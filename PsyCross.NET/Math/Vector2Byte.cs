@@ -14,5 +14,7 @@ namespace PsyCross.Math {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Vector2Byte(Vector2Int v) => new Vector2Byte((byte)v.X, (byte)v.Y);
+
+        public override string ToString() => $"<{X}, {Y}>";
     }
 }

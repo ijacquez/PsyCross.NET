@@ -16,5 +16,7 @@ namespace PsyCross.Math {
         public static implicit operator Vector2Short(Vector2Int v) => new Vector2Short((short)v.X, (short)v.Y);
 
         public static Vector2Short Zero => new Vector2Short(0, 0);
+
+        public override string ToString() => $"<{X}, {Y}>";
     }
 }
