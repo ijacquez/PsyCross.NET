@@ -2,8 +2,8 @@ using System.Collections.Generic;
 
 namespace PsyCross {
     public static class LightingManager {
-        public static readonly int DirectionalLightsCapacity = 8;
-        public static readonly int PointLightsCapacity       = 8;
+        public static readonly int DirectionalLightsCapacity = 3;
+        public static readonly int PointLightsCapacity       = 2;
 
         private static readonly ObjectPool<DirectionalLight> _DirectionalLightPool =
             new ObjectPool<DirectionalLight>(DirectionalLightsCapacity, DirectionalLightCreator);
@@ -20,21 +20,9 @@ namespace PsyCross {
         static LightingManager() {
         }
 
-        public static DirectionalLight AllocateDirectionalLight() {
-            var light = _DirectionalLightPool.AllocateObject();
+        public static DirectionalLight AllocateDirectionalLight() => _DirectionalLightPool.AllocateObject();
 
-            light.Init();
-
-            return light;
-        }
-
-        public static PointLight AllocatePointLight() {
-            var light = _PointLightPool.AllocateObject();
-
-            light.Init();
-
-            return light;
-        }
+        public static PointLight AllocatePointLight() => _PointLightPool.AllocateObject();
 
         public static void FreeLight(DirectionalLight light) => _DirectionalLightPool.FreeObject(light);
 

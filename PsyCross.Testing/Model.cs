@@ -53,6 +53,8 @@ namespace PsyCross.Testing {
 
         public Matrix4x4 Matrix => _matrix;
 
+        public Material Material { get; } = new Material();
+
         public PsyQ.Tmd Tmd { get; }
 
         public PsyQ.Tim[] Tims { get; }

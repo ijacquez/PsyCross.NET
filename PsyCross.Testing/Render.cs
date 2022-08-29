@@ -6,6 +6,7 @@ namespace PsyCross.Testing {
         // XXX: Remove GenPrimitiveAllocator class and use the allocator directly
         private readonly GenPrimitiveAllocator _genPrimitiveAllocator = new GenPrimitiveAllocator(2);
 
+        public Material Material { get; set; }
         public Matrix4x4 ModelMatrix { get; set; }
         public Matrix4x4 ModelViewMatrix { get; set; }
 

@@ -13,6 +13,11 @@ namespace PsyCross {
             int IndexN2 { get; }
             int IndexN3 { get; }
 
+            Rgb888 C0 { get; }
+            Rgb888 C1 { get; }
+            Rgb888 C2 { get; }
+            Rgb888 C3 { get; }
+
             Texcoord T0 { get; }
             Texcoord T1 { get; }
             Texcoord T2 { get; }
@@ -25,6 +30,8 @@ namespace PsyCross {
             int VertexCount { get; }
 
             int NormalCount { get; }
+
+            int ColorCount { get; }
         }
     }
 }

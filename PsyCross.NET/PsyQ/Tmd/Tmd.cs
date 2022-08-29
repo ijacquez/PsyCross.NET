@@ -78,7 +78,7 @@ namespace PsyCross {
             [FieldOffset( 1)] internal byte PacketWordCount;
             [FieldOffset( 2)] public TmdPrimitiveFlags Flags;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
-            }
+        }
 
         [Flags]
         public enum TmdPrimitiveFlags : byte {
@@ -97,7 +97,7 @@ namespace PsyCross {
         [Flags]
         public enum TmdPrimitiveMode : byte {
             None             = 0,
-            Tge              = 1 << 0, // Brightness calculation at time of calculation
+            Tge              = 1 << 0, // Brightness calculation at time of calculation (?)
             Abe              = 1 << 1, // Activates translucency when rendered
             Tme              = 1 << 2, // Sets whether a texture is used or not
             Quad             = 1 << 3, // Displays whether a 3 or 4 sided polygon
@@ -123,7 +123,7 @@ namespace PsyCross {
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
         public struct TmdPrimitiveF3 : ITmdPrimitive {
-            [FieldOffset( 0)] public Rgb888 Color;
+            [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexNormal;
             [FieldOffset( 6)] private ushort _IndexV0;
@@ -140,6 +140,11 @@ namespace PsyCross {
             public int IndexN2 => -1;
             public int IndexN3 => -1;
 
+            public Rgb888 C0 => _Color;
+            public Rgb888 C1 => _Color;
+            public Rgb888 C2 => _Color;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => default(Texcoord);
             public Texcoord T1 => default(Texcoord);
             public Texcoord T2 => default(Texcoord);
@@ -152,6 +157,8 @@ namespace PsyCross {
             public int VertexCount => 3;
 
             public int NormalCount => 1;
+
+            public int ColorCount => 1;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -175,6 +182,11 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
+            public Rgb888 C0 => Color;
+            public Rgb888 C1 => Color;
+            public Rgb888 C2 => Color;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => default(Texcoord);
             public Texcoord T1 => default(Texcoord);
             public Texcoord T2 => default(Texcoord);
@@ -187,14 +199,16 @@ namespace PsyCross {
             public int VertexCount => 3;
 
             public int NormalCount => 3;
+
+            public int ColorCount => 1;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
         public struct TmdPrimitiveFg3 : ITmdPrimitive {
-            [FieldOffset( 0)] public Rgb888 C0;
+            [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
-            [FieldOffset( 4)] public Rgb888 C1;
-            [FieldOffset( 8)] public Rgb888 C2;
+            [FieldOffset( 4)] private Rgb888 _C1;
+            [FieldOffset( 8)] private Rgb888 _C2;
             [FieldOffset(12)] private ushort _IndexNormal;
             [FieldOffset(14)] private ushort _IndexV0;
             [FieldOffset(16)] private ushort _IndexV1;
@@ -210,6 +224,11 @@ namespace PsyCross {
             public int IndexN2 => -1;
             public int IndexN3 => -1;
 
+            public Rgb888 C0 => _C0;
+            public Rgb888 C1 => _C1;
+            public Rgb888 C2 => _C2;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => default(Texcoord);
             public Texcoord T1 => default(Texcoord);
             public Texcoord T2 => default(Texcoord);
@@ -222,14 +241,16 @@ namespace PsyCross {
             public int VertexCount => 3;
 
             public int NormalCount => 1;
+
+            public int ColorCount => 3;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
         public struct TmdPrimitiveGg3 : ITmdPrimitive {
-            [FieldOffset( 0)] public Rgb888 C0;
+            [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
-            [FieldOffset( 4)] public Rgb888 C1;
-            [FieldOffset( 8)] public Rgb888 C2;
+            [FieldOffset( 4)] private Rgb888 _C1;
+            [FieldOffset( 8)] private Rgb888 _C2;
             [FieldOffset(12)] private ushort _IndexN0;
             [FieldOffset(14)] private ushort _IndexV0;
             [FieldOffset(16)] private ushort _IndexN1;
@@ -247,6 +268,11 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
+            public Rgb888 C0 => _C0;
+            public Rgb888 C1 => _C1;
+            public Rgb888 C2 => _C2;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => default(Texcoord);
             public Texcoord T1 => default(Texcoord);
             public Texcoord T2 => default(Texcoord);
@@ -259,6 +285,8 @@ namespace PsyCross {
             public int VertexCount => 3;
 
             public int NormalCount => 3;
+
+            public int ColorCount => 3;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
@@ -283,6 +311,11 @@ namespace PsyCross {
             public int IndexN2 => -1;
             public int IndexN3 => -1;
 
+            public Rgb888 C0 => Rgb888.Black;
+            public Rgb888 C1 => Rgb888.Black;
+            public Rgb888 C2 => Rgb888.Black;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => _T0;
             public Texcoord T1 => _T1;
             public Texcoord T2 => _T2;
@@ -295,6 +328,8 @@ namespace PsyCross {
             public int VertexCount => 3;
 
             public int NormalCount => 1;
+
+            public int ColorCount => 0;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
@@ -321,6 +356,11 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
+            public Rgb888 C0 => Rgb888.Black;
+            public Rgb888 C1 => Rgb888.Black;
+            public Rgb888 C2 => Rgb888.Black;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => _T0;
             public Texcoord T1 => _T1;
             public Texcoord T2 => _T2;
@@ -333,6 +373,8 @@ namespace PsyCross {
             public int VertexCount => 3;
 
             public int NormalCount => 3;
+
+            public int ColorCount => 0;
         }
 
         #endregion
@@ -362,6 +404,11 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => _IndexN3;
 
+            public Rgb888 C0 => Color;
+            public Rgb888 C1 => Color;
+            public Rgb888 C2 => Color;
+            public Rgb888 C3 => Color;
+
             public Texcoord T0 => default(Texcoord);
             public Texcoord T1 => default(Texcoord);
             public Texcoord T2 => default(Texcoord);
@@ -374,6 +421,8 @@ namespace PsyCross {
             public int VertexCount => 4;
 
             public int NormalCount => 4;
+
+            public int ColorCount => 1;
         }
 
         // TmdPrimitiveFg3
@@ -409,6 +458,11 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => _IndexN3;
 
+            public Rgb888 C0 => Rgb888.Black;
+            public Rgb888 C1 => Rgb888.Black;
+            public Rgb888 C2 => Rgb888.Black;
+            public Rgb888 C3 => Rgb888.Black;
+
             public Texcoord T0 => _T0;
             public Texcoord T1 => _T1;
             public Texcoord T2 => _T2;
@@ -421,6 +475,8 @@ namespace PsyCross {
             public int VertexCount => 4;
 
             public int NormalCount => 4;
+
+            public int ColorCount => 0;
         }
 
         #endregion

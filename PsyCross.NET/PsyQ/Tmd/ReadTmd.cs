@@ -68,21 +68,9 @@ namespace PsyCross {
             tmdObject.Vertices = new Vector3[tmdObjectDesc.VerticesCount];
 
             for (int vertexIndex = 0; vertexIndex < tmdObjectDesc.VerticesCount; vertexIndex++) {
-                // tmdObject.Vertices[vertexIndex].X = MathHelper.Fixed2Float(tmdVertices[vertexIndex].X);
-                // tmdObject.Vertices[vertexIndex].Y = MathHelper.Fixed2Float(tmdVertices[vertexIndex].Y);
-                // tmdObject.Vertices[vertexIndex].Z = MathHelper.Fixed2Float(tmdVertices[vertexIndex].Z);
-
-                // tmdObject.Vertices[vertexIndex].X = (1/4096.0f)*((tmdVertices[vertexIndex].X/500)*32);
-                // tmdObject.Vertices[vertexIndex].Y = (1/4096.0f)*((tmdVertices[vertexIndex].Y/500)*32);
-                // tmdObject.Vertices[vertexIndex].Z = (1/4096.0f)*((tmdVertices[vertexIndex].Z/500)*32);
-
-                // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X*(32/500.0f));
-                // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y*(32/500.0f));
-                // tmdObject.Vertices[vertexIndex].Z = (tmdVertices[vertexIndex].Z*(32/500.0f));
-
-                // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X/50);
-                // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y/50);
-                // tmdObject.Vertices[vertexIndex].Z = (tmdVertices[vertexIndex].Z/50);
+                // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X/100.0f);
+                // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y/100.0f);
+                // tmdObject.Vertices[vertexIndex].Z = (tmdVertices[vertexIndex].Z/100.0f);
 
                 // tmdObject.Vertices[vertexIndex].X = (tmdVertices[vertexIndex].X*(2.5f/500.0f));
                 // tmdObject.Vertices[vertexIndex].Y = (tmdVertices[vertexIndex].Y*(2.5f/500.0f));
