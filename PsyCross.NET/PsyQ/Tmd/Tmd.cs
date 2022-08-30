@@ -35,6 +35,13 @@ namespace PsyCross {
             Gg3,
             Ft3,
             Gt3,
+            // Triangle, no lighting
+            Fn3,
+            Gn3,
+            // Skip Fng3
+            // Skip Gng3
+            Fnt3 = Gn3 + 2,
+            Gnt3,
 
             // Quad, lighting
             F4,
@@ -43,16 +50,12 @@ namespace PsyCross {
             Gg4,
             Ft4,
             Gt4,
-
-            // Triangle, no lighting
-            Fn3,
-            Gn3,
-            Fnt3,
-            Gnt3,
             // Quad, no lighting
             Fn4,
             Gn4,
-            Fnt4,
+            // Skip Fng4
+            // Skip Gng4
+            Fnt4 = Gn4 + 2,
             Gnt4
         }
 

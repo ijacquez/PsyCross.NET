@@ -197,7 +197,6 @@ namespace PsyCross {
                             TmdReadPrimitivePacket<TmdPrimitiveGt3>(binaryReader, tmdPacket);
                         }
                         break;
-
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme && !isModeIip && !isFlagGrd:
                         if (isModeTge) {
                             TmdReadPrimitivePacket<TmdPrimitiveFn4>(binaryReader, tmdPacket);
@@ -237,7 +236,7 @@ namespace PsyCross {
                         if (isModeTge) {
                             TmdReadPrimitivePacket<TmdPrimitiveGnt4>(binaryReader, tmdPacket);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveG4>(binaryReader, tmdPacket);
+                            TmdReadPrimitivePacket<TmdPrimitiveGt4>(binaryReader, tmdPacket);
                         }
                         break;
 

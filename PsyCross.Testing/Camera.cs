@@ -30,7 +30,7 @@ namespace PsyCross.Testing {
 
         public int ScreenHeight { get; }
 
-        public float DepthNear { get; set; } = 0.5f;
+        public float DepthNear { get; set; } = 0.25f;
 
         public float DepthFar { get; set; } = 50.0f;
 

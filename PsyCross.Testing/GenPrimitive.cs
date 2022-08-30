@@ -4,7 +4,8 @@ using PsyCross.Math;
 
 namespace PsyCross.Testing {
     public class GenPrimitive {
-        public PsyQ.TmdPrimitiveType PrimitiveType { get; set; }
+        public GenPrimitiveFlags Flags { get; set; }
+        public PsyQ.TmdPrimitiveType Type { get; set; }
         public int VertexCount { get; set; }
         public int NormalCount { get; set; }
         public Vector3[] PolygonVertices { get; } = new Vector3[4];
@@ -23,17 +24,18 @@ namespace PsyCross.Testing {
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
 
-        public void CopyFrom(GenPrimitive fromGenPrimitive) {
-            PrimitiveType = fromGenPrimitive.PrimitiveType;
-            VertexCount = fromGenPrimitive.VertexCount;
-            NormalCount = fromGenPrimitive.NormalCount;
-            Array.Copy(fromGenPrimitive.PolygonVertices, PolygonVertices, fromGenPrimitive.VertexCount);
-            Array.Copy(fromGenPrimitive.PolygonNormals, PolygonNormals, fromGenPrimitive.NormalCount);
-            Array.Copy(fromGenPrimitive.GouraudShadingColors, GouraudShadingColors, fromGenPrimitive.VertexCount);
-            Array.Copy(fromGenPrimitive.Texcoords, Texcoords, fromGenPrimitive.VertexCount);
-            FaceNormal = fromGenPrimitive.FaceNormal;
-            TPageId = fromGenPrimitive.TPageId;
-            ClutId = fromGenPrimitive.ClutId;
+        public static void Copy(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
+            toGenPrimitive.Flags = fromGenPrimitive.Flags;
+            toGenPrimitive.Type = fromGenPrimitive.Type;
+            toGenPrimitive.VertexCount = fromGenPrimitive.VertexCount;
+            toGenPrimitive.NormalCount = fromGenPrimitive.NormalCount;
+            Array.Copy(fromGenPrimitive.PolygonVertices, toGenPrimitive.PolygonVertices, fromGenPrimitive.VertexCount);
+            Array.Copy(fromGenPrimitive.PolygonNormals, toGenPrimitive.PolygonNormals, fromGenPrimitive.NormalCount);
+            Array.Copy(fromGenPrimitive.GouraudShadingColors, toGenPrimitive.GouraudShadingColors, fromGenPrimitive.VertexCount);
+            Array.Copy(fromGenPrimitive.Texcoords, toGenPrimitive.Texcoords, fromGenPrimitive.VertexCount);
+            toGenPrimitive.FaceNormal = fromGenPrimitive.FaceNormal;
+            toGenPrimitive.TPageId = fromGenPrimitive.TPageId;
+            toGenPrimitive.ClutId = fromGenPrimitive.ClutId;
         }
     }
 }
