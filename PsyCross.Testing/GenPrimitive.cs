@@ -23,24 +23,17 @@ namespace PsyCross.Testing {
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
 
-        // XXX: Find a better way to "clone"... maybe a CoW approach? Overkill?
-        internal void CopyTo(GenPrimitive toGenPrimitive) {
-            toGenPrimitive.PrimitiveType = PrimitiveType;
-            toGenPrimitive.VertexCount = VertexCount;
-            toGenPrimitive.NormalCount = NormalCount;
-            Array.Copy(PolygonVertices, toGenPrimitive.PolygonVertices, PolygonVertices.Length);
-            Array.Copy(PolygonNormals, toGenPrimitive.PolygonNormals, PolygonNormals.Length);
-            Array.Copy(GouraudShadingColors, toGenPrimitive.GouraudShadingColors, GouraudShadingColors.Length);
-            Array.Copy(Texcoords, toGenPrimitive.Texcoords, Texcoords.Length);
-            toGenPrimitive.FaceNormal = FaceNormal;
-            Array.Copy(ClipFlags, toGenPrimitive.ClipFlags, ClipFlags.Length);
-            Array.Copy(WorldPoints, toGenPrimitive.WorldPoints, WorldPoints.Length);
-            Array.Copy(ViewPoints, toGenPrimitive.ViewPoints, ViewPoints.Length);
-            Array.Copy(ClipPoints, toGenPrimitive.ClipPoints, ClipPoints.Length);
-            Array.Copy(ScreenPoints, toGenPrimitive.ScreenPoints, ScreenPoints.Length);
-
-            toGenPrimitive.TPageId = TPageId;
-            toGenPrimitive.ClutId = ClutId;
+        public void CopyFrom(GenPrimitive fromGenPrimitive) {
+            PrimitiveType = fromGenPrimitive.PrimitiveType;
+            VertexCount = fromGenPrimitive.VertexCount;
+            NormalCount = fromGenPrimitive.NormalCount;
+            Array.Copy(fromGenPrimitive.PolygonVertices, PolygonVertices, fromGenPrimitive.VertexCount);
+            Array.Copy(fromGenPrimitive.PolygonNormals, PolygonNormals, fromGenPrimitive.NormalCount);
+            Array.Copy(fromGenPrimitive.GouraudShadingColors, GouraudShadingColors, fromGenPrimitive.VertexCount);
+            Array.Copy(fromGenPrimitive.Texcoords, Texcoords, fromGenPrimitive.VertexCount);
+            FaceNormal = fromGenPrimitive.FaceNormal;
+            TPageId = fromGenPrimitive.TPageId;
+            ClutId = fromGenPrimitive.ClutId;
         }
     }
 }

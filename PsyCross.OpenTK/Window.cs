@@ -22,7 +22,6 @@ namespace PsyCross.OpenTK {
         // private AudioPlayer audioPlayer = new AudioPlayer();
 
         private int _vSyncCounter;
-        private Vector2Int _previousDisplayVramStart;
 
         private bool _viewVram   = false;
         private int _windowScale = 3;

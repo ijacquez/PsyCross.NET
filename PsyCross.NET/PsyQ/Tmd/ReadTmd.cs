@@ -110,59 +110,136 @@ namespace PsyCross {
 
                 tmdPacket.PrimitiveHeader = binaryReader.ReadStruct<TmdPrimitiveHeader>()[0];
 
+                bool isModeTge = (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.Tge) == TmdPrimitiveMode.Tge;
                 bool isModeQuad = (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.Quad) == TmdPrimitiveMode.Quad;
                 bool isModeTme = (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.Tme) == TmdPrimitiveMode.Tme;
                 bool isModeIip = (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.Iip) == TmdPrimitiveMode.Iip;
-
                 bool isFlagGrd = (tmdPacket.PrimitiveHeader.Flags & TmdPrimitiveFlags.Grd) == TmdPrimitiveFlags.Grd;
 
-                // Quad Tme Iip Grd
-                // 0    0   0   0
-                // 0    0   1   0
-                // 0    0   0   1
-                // 0    0   1   1
-                // 0    1   0   0
-                // 0    1   1   0
+                //                  Lighting
+                // Quad Tme Iip Grd Tge
+                // 0    0   0   0   0
+                // 0    0   0   0   1
+                // 0    0   0   1   0
+                // 0    0   0   1   1
+                // 0    0   1   0   0
+                // 0    0   1   0   1
+                // 0    0   1   1   0
+                // 0    0   1   1   1
+                // 0    1   0   0   0
+                // 0    1   0   0   1
+                // 0    1   0   1   0
+                // 0    1   0   1   1
+                // 0    1   1   0   0
+                // 0    1   1   0   1
+                // 0    1   1   1   0
+                // 0    1   1   1   1
                 //
-                // 1    0   0   0
-                // 1    0   1   0
-                // 1    0   0   1
-                // 1    0   1   1
-                // 1    1   0   0
-                // 1    1   1   0
+                // 1    0   0   0   0
+                // 1    0   0   0   1
+                // 1    0   0   1   0
+                // 1    0   0   1   1
+                // 1    0   1   0   0
+                // 1    0   1   0   1
+                // 1    0   1   1   0
+                // 1    0   1   1   1
+                // 1    1   0   0   0
+                // 1    1   0   0   1
+                // 1    1   0   1   0
+                // 1    1   0   1   1
+                // 1    1   1   0   0
+                // 1    1   1   0   1
+                // 1    1   1   1   0
+                // 1    1   1   1   1
+
+                Console.WriteLine($"({tmdPacket.PrimitiveHeader.PacketWordCount * sizeof(UInt32)}B) [0x{((uint)tmdPacket.PrimitiveHeader.Mode << 8) | (uint)tmdPacket.PrimitiveHeader.Flags:X02}] isModeQuad: {isModeQuad}, isModeTme: {isModeTme}, isModeIip: {isModeIip}, isModeGrd: {isFlagGrd}");
 
                 switch (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.CodeMask) {
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme && !isModeIip && !isFlagGrd:
-                        TmdReadPrimitivePacket<TmdPrimitiveF3>(TmdPrimitiveType.F3, binaryReader, tmdPacket);
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveFn3>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveF3>(binaryReader, tmdPacket);
+                        }
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme &&  isModeIip && !isFlagGrd:
-                        TmdReadPrimitivePacket<TmdPrimitiveG3>(TmdPrimitiveType.G3, binaryReader, tmdPacket);
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveGn3>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveG3>(binaryReader, tmdPacket);
+                        }
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme && !isModeIip &&  isFlagGrd:
-                        TmdReadPrimitivePacket<TmdPrimitiveFg3>(TmdPrimitiveType.Fg3, binaryReader, tmdPacket);
+                        if (isModeTge) {
+                            throw new Exception("Invalid packet");
+                        }
+
+                        TmdReadPrimitivePacket<TmdPrimitiveFg3>(binaryReader, tmdPacket);
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme &&  isModeIip &&  isFlagGrd:
-                        TmdReadPrimitivePacket<TmdPrimitiveGg3>(TmdPrimitiveType.Gg3, binaryReader, tmdPacket);
+                        if (isModeTge) {
+                            throw new Exception("Invalid packet");
+                        }
+
+                        TmdReadPrimitivePacket<TmdPrimitiveGg3>(binaryReader, tmdPacket);
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad &&  isModeTme && !isModeIip && !isFlagGrd:
-                        TmdReadPrimitivePacket<TmdPrimitiveFt3>(TmdPrimitiveType.Ft3, binaryReader, tmdPacket);
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveFnt3>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveFt3>(binaryReader, tmdPacket);
+                        }
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad &&  isModeTme &&  isModeIip && !isFlagGrd:
-                        TmdReadPrimitivePacket<TmdPrimitiveGt3>(TmdPrimitiveType.Gt3, binaryReader, tmdPacket);
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveGnt3>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveGt3>(binaryReader, tmdPacket);
+                        }
                         break;
 
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme && !isModeIip && !isFlagGrd:
-                        throw new NotImplementedException();
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveFn4>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveF4>(binaryReader, tmdPacket);
+                        }
+                        break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme &&  isModeIip && !isFlagGrd:
-                        throw new NotImplementedException();
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveGn4>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveG4>(binaryReader, tmdPacket);
+                        }
+                        break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme && !isModeIip &&  isFlagGrd:
-                        throw new NotImplementedException();
+                        if (isModeTge) {
+                            throw new Exception("Invalid packet");
+                        }
+
+                        TmdReadPrimitivePacket<TmdPrimitiveFg4>(binaryReader, tmdPacket);
+                        break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme &&  isModeIip &&  isFlagGrd:
-                        throw new NotImplementedException();
+                        if (isModeTge) {
+                            throw new Exception("Invalid packet");
+                        }
+
+                        TmdReadPrimitivePacket<TmdPrimitiveGg4>(binaryReader, tmdPacket);
+                        break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad &&  isModeTme && !isModeIip && !isFlagGrd:
-                        throw new NotImplementedException();
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveFnt4>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveFt4>(binaryReader, tmdPacket);
+                        }
+                        break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad &&  isModeTme &&  isModeIip && !isFlagGrd:
-                        throw new NotImplementedException();
+                        if (isModeTge) {
+                            TmdReadPrimitivePacket<TmdPrimitiveGnt4>(binaryReader, tmdPacket);
+                        } else {
+                            TmdReadPrimitivePacket<TmdPrimitiveG4>(binaryReader, tmdPacket);
+                        }
+                        break;
 
                     case TmdPrimitiveMode.CodeStraightLine:
                         throw new NotImplementedException();
@@ -171,17 +248,25 @@ namespace PsyCross {
                         throw new NotImplementedException();
 
                     default:
-                        throw new NotImplementedException();
+                        throw new Exception("Unknown primitive");
                 }
             }
         }
 
-        private static void TmdReadPrimitivePacket<T>(TmdPrimitiveType primitiveType,
-                                                      BinaryReader binaryReader,
-                                                      TmdPacket tmdPacket) where T : struct, ITmdPrimitive {
-            // Console.WriteLine($"primitiveType: {primitiveType}");
-            tmdPacket.PrimitiveType = primitiveType;
+        private static void TmdReadPrimitivePacket<T>(BinaryReader binaryReader,
+                                                      TmdPacket tmdPacket)
+        where T : struct, ITmdPrimitive {
+            // Debugging only. Disable
+            int structSize = Marshal.SizeOf<T>();
+            int packetSize = tmdPacket.PrimitiveHeader.PacketWordCount * sizeof(UInt32);
+
+            if (structSize != packetSize) {
+                throw new DataMisalignedException($"Reading {structSize} for type {typeof(T)}, expecting to read {packetSize} bytes");
+            }
+
             tmdPacket.Primitive = binaryReader.ReadStruct<T>()[0];
+
+            Console.WriteLine($"{tmdPacket.Primitive.Type}");
         }
     }
 }

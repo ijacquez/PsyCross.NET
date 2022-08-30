@@ -19,14 +19,6 @@ namespace PsyCross.Testing {
         public GenPrimitive AcquireGenPrimitive() =>
             _genPrimitiveAllocator.AllocatePrimitive();
 
-        public GenPrimitive AcquireGenPrimitive(GenPrimitive fromGenPrimitive) {
-            GenPrimitive genPrimitive = AcquireGenPrimitive();
-
-            fromGenPrimitive.CopyTo(genPrimitive);
-
-            return genPrimitive;
-        }
-
         public void ReleaseGenPrimitives() => _genPrimitiveAllocator.Reset();
     }
 }

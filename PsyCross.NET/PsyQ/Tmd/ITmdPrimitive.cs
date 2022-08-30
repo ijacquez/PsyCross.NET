@@ -3,6 +3,8 @@ using PsyCross.Math;
 namespace PsyCross {
     public static partial class PsyQ {
         public interface ITmdPrimitive {
+            TmdPrimitiveType Type { get; }
+
             int IndexV0 { get; }
             int IndexV1 { get; }
             int IndexV2 { get; }
