@@ -337,9 +337,9 @@ namespace PsyCross {
             public int IndexN2 => -1;
             public int IndexN3 => -1;
 
-            public Rgb888 C0 => Rgb888.Black;
-            public Rgb888 C1 => Rgb888.Black;
-            public Rgb888 C2 => Rgb888.Black;
+            public Rgb888 C0 => Rgb888.TextureWhite;
+            public Rgb888 C1 => Rgb888.TextureWhite;
+            public Rgb888 C2 => Rgb888.TextureWhite;
             public Rgb888 C3 => Rgb888.Black;
 
             public Texcoord T0 => _T0;
@@ -384,9 +384,9 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => -1;
 
-            public Rgb888 C0 => Rgb888.Black;
-            public Rgb888 C1 => Rgb888.Black;
-            public Rgb888 C2 => Rgb888.Black;
+            public Rgb888 C0 => Rgb888.TextureWhite;
+            public Rgb888 C1 => Rgb888.TextureWhite;
+            public Rgb888 C2 => Rgb888.TextureWhite;
             public Rgb888 C3 => Rgb888.Black;
 
             public Texcoord T0 => _T0;
@@ -619,10 +619,10 @@ namespace PsyCross {
             public int IndexN2 => -1;
             public int IndexN3 => -1;
 
-            public Rgb888 C0 => Rgb888.Black;
-            public Rgb888 C1 => Rgb888.Black;
-            public Rgb888 C2 => Rgb888.Black;
-            public Rgb888 C3 => Rgb888.Black;
+            public Rgb888 C0 => Rgb888.TextureWhite;
+            public Rgb888 C1 => Rgb888.TextureWhite;
+            public Rgb888 C2 => Rgb888.TextureWhite;
+            public Rgb888 C3 => Rgb888.TextureWhite;
 
             public Texcoord T0 => _T0;
             public Texcoord T1 => _T1;
@@ -669,10 +669,10 @@ namespace PsyCross {
             public int IndexN2 => _IndexN2;
             public int IndexN3 => _IndexN3;
 
-            public Rgb888 C0 => Rgb888.Black;
-            public Rgb888 C1 => Rgb888.Black;
-            public Rgb888 C2 => Rgb888.Black;
-            public Rgb888 C3 => Rgb888.Black;
+            public Rgb888 C0 => Rgb888.TextureWhite;
+            public Rgb888 C1 => Rgb888.TextureWhite;
+            public Rgb888 C2 => Rgb888.TextureWhite;
+            public Rgb888 C3 => Rgb888.TextureWhite;
 
             public Texcoord T0 => _T0;
             public Texcoord T1 => _T1;

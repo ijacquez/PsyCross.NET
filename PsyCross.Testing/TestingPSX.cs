@@ -64,7 +64,7 @@ namespace PsyCross.Testing {
             // var tmdData = ResourceManager.GetBinaryFile("tmd_0059.tmd");
             if (PsyQ.TryReadTmd(tmdData, out PsyQ.Tmd tmd)) {
                 _model = new Model(tmd, null);
-                _model.Material.AmbientColor = new Rgb888(15, 15, 15);
+                _model.Material.AmbientColor = new Rgb888(15, 128, 15);
             }
 
             _model.Position = new Vector3(0f, 0f, 0f);
@@ -75,14 +75,14 @@ namespace PsyCross.Testing {
             _camera.Position = new Vector3(0.0068634236f, 0.5511541f, -1.3951654f);
 
             _light1 = LightingManager.AllocatePointLight();
-            _light1.Color = Rgb888.Green;
-            _light1.Position = new Vector3(0f, 1f, 3f);
-            _light1.CutOffDistance = 50.0f;
+            _light1.Color = Rgb888.Blue;
+            _light1.Position = new Vector3(0f, 1f, 0f);
+            _light1.CutOffDistance = 100.0f;
             _light1.Range = 20.0f;
 
             _light2 = LightingManager.AllocateDirectionalLight();
-            _light2.Direction = new Vector3(0, 0, 1);
-            _light2.Color = new Rgb888(128, 128, 128);
+            _light2.Direction = new Vector3(0, -1, 0);
+            _light2.Color = new Rgb888(255, 0, 0);
 
             _camera.Fov = 70;
 
@@ -296,26 +296,34 @@ namespace PsyCross.Testing {
                 otherGenPrimitive.TPageId = genPrimitive.TPageId;
                 otherGenPrimitive.ClutId = genPrimitive.ClutId;
 
-                Console.WriteLine("OTHER");
-                GenerateClipFlags(render, otherGenPrimitive);
+                // XXX: We shouldn't have to recalculate
+                // GenerateClipFlags(render, otherGenPrimitive);
                 ClipGenPrimitiveNearPlane(render, otherGenPrimitive);
             }
 
-            Console.WriteLine("GEN");
-            GenerateClipFlags(render, genPrimitive);
+            // XXX: We shouldn't have to recalculate
+            // GenerateClipFlags(render, genPrimitive);
             ClipGenPrimitiveNearPlane(render, genPrimitive);
+
+            // At this point, we may have two (or more) generated primitives.
+            // Previously we were able short circuit the pipeline and move onto
+            // the next TMD primitive.
+            //
+            // However, due to having multiple primitives in flight, some may
+            // have been culled during near plane clipping. Since we cannot
+            // short circuit, we have no choice but to flag them to not render
         }
 
         private static void ClipGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
             ClipFlags clipFlagsMask = genPrimitive.ClipFlags[0] | genPrimitive.ClipFlags[1] | genPrimitive.ClipFlags[2];
 
             if ((clipFlagsMask & ClipFlags.Near) != ClipFlags.Near) {
-                Console.WriteLine($"--------> No near Clip ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
+                // Console.WriteLine($"--------> No near Clip ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
                 return;
             }
 
             if (TestOutOfFustrum(genPrimitive)) {
-                Console.WriteLine($"--------> Cull ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
+                // Console.WriteLine($"--------> Cull ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
                 genPrimitive.Flags |= GenPrimitiveFlags.DoNotRender;
                 return;
             }
@@ -346,7 +354,6 @@ namespace PsyCross.Testing {
 
             // Case 1: One interior vertex and two exterior vertices
             if (interiorVertexCount == 1) {
-                Console.WriteLine("Case 1");
                 Span<int> vertexIndices = new int[3] {
                      interiorVertexIndices[0],
                     (interiorVertexIndices[0] + 1) % genPrimitive.VertexCount,
@@ -368,7 +375,6 @@ namespace PsyCross.Testing {
 
                 // XXX: Recalculate texcoords
             } else { // Case 2: Two interior vertices and one exterior vertex
-                Console.WriteLine("Case 2");
                 Span<int> vertexIndices = stackalloc int[3] {
                      exteriorVertexIndices[0],
                     (exteriorVertexIndices[0] + 1) % genPrimitive.VertexCount,
@@ -658,14 +664,6 @@ namespace PsyCross.Testing {
 
                 genPrimitive.ScreenPoints[i].X = System.Math.Clamp(genPrimitive.ScreenPoints[i].X, -1024, 1023);
                 genPrimitive.ScreenPoints[i].Y = System.Math.Clamp(genPrimitive.ScreenPoints[i].Y, -1024, 1023);
-
-                // if ((genPrimitive.ScreenPoints[i].X < -1024) || (genPrimitive.ScreenPoints[i].X > 1023) ||
-                //     (genPrimitive.ScreenPoints[i].Y < -1024) || (genPrimitive.ScreenPoints[i].Y > 1023)) {
-                //
-                //     Console.WriteLine($"Overflow: {genPrimitive.ScreenPoints[i]}");
-                //
-                //     // return true;
-                // }
             }
 
             return false;

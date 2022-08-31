@@ -116,7 +116,6 @@ namespace PsyCross {
                 bool isModeIip = (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.Iip) == TmdPrimitiveMode.Iip;
                 bool isFlagGrd = (tmdPacket.PrimitiveHeader.Flags & TmdPrimitiveFlags.Grd) == TmdPrimitiveFlags.Grd;
 
-                //                  Lighting
                 // Quad Tme Iip Grd Tge
                 // 0    0   0   0   0
                 // 0    0   0   0   1

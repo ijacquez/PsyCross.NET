@@ -3,8 +3,10 @@ using System.Numerics;
 
 namespace PsyCross.Testing {
     public class Render {
-        // XXX: Remove GenPrimitiveAllocator class and use the allocator directly
-        private readonly GenPrimitiveAllocator _genPrimitiveAllocator = new GenPrimitiveAllocator(32);
+        private readonly GenPrimitiveAllocator _genPrimitiveAllocator =
+            new GenPrimitiveAllocator(32);
+        private readonly GenPrimitiveAllocator _subdivGenPrimitiveAllocator =
+            new GenPrimitiveAllocator(4);
 
         public Material Material { get; set; }
         public Matrix4x4 ModelMatrix { get; set; }
@@ -14,16 +16,21 @@ namespace PsyCross.Testing {
         public CommandBuffer CommandBuffer { get; set; }
         public PrimitiveSort PrimitiveSort { get; set; }
 
-        public ReadOnlySpan<GenPrimitive> GenPrimitives => _genPrimitiveAllocator.GenPrimitives;
+        public ReadOnlySpan<GenPrimitive> GenPrimitives =>
+            _genPrimitiveAllocator.GenPrimitives;
 
-        public GenPrimitive AcquireGenPrimitive() {
-            var genPrimitive = _genPrimitiveAllocator.AllocatePrimitive();
+        public ReadOnlySpan<GenPrimitive> SubdivGenPrimitives =>
+            _genPrimitiveAllocator.GenPrimitives;
 
-            genPrimitive.Flags = GenPrimitiveFlags.None;
+        public GenPrimitive AcquireGenPrimitive() =>
+            _genPrimitiveAllocator.AllocatePrimitive();
 
-            return genPrimitive;
+        public GenPrimitive AcquireSubdivGenPrimitive() =>
+            _subdivGenPrimitiveAllocator.AllocatePrimitive();
+
+        public void ReleaseGenPrimitives() {
+            _genPrimitiveAllocator.Reset();
+            _subdivGenPrimitiveAllocator.Reset();
         }
-
-        public void ReleaseGenPrimitives() => _genPrimitiveAllocator.Reset();
     }
 }

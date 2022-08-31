@@ -8,7 +8,9 @@ namespace PsyCross.Testing {
         }
 
         public GenPrimitiveAllocator(int capacity) {
-            _genPrimitiveAllocator = new LinearAllocator<GenPrimitive>(capacity, () => new GenPrimitive());
+            _genPrimitiveAllocator = new LinearAllocator<GenPrimitive>(capacity, GenPrimitiveCreator);
+
+            GenPrimitive GenPrimitiveCreator() => new GenPrimitive();
         }
 
         public ReadOnlySpan<GenPrimitive> GenPrimitives => _genPrimitiveAllocator.Objects;
@@ -16,11 +18,11 @@ namespace PsyCross.Testing {
         public int Count => _genPrimitiveAllocator.Count;
 
         public GenPrimitive AllocatePrimitive() {
-            if (!_genPrimitiveAllocator.AllocateObject(out GenPrimitive primitive)) {
-                return null;
+            if (_genPrimitiveAllocator.AllocateObject(out GenPrimitive genPrimitive)) {
+                genPrimitive.Flags = GenPrimitiveFlags.None;
             }
 
-            return primitive;
+            return genPrimitive;
         }
 
         public void Reset() => _genPrimitiveAllocator.Reset();
