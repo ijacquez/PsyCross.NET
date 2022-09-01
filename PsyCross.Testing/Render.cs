@@ -4,7 +4,7 @@ using System.Numerics;
 namespace PsyCross.Testing {
     public class Render {
         private readonly GenPrimitiveAllocator _genPrimitiveAllocator =
-            new GenPrimitiveAllocator(256);
+            new GenPrimitiveAllocator(512);
 
         public Material Material { get; set; }
         public Matrix4x4 ModelMatrix { get; set; }

@@ -64,6 +64,10 @@ namespace PsyCross.Testing {
             }
         }
 
+        public static void Discard(GenPrimitive genPrimitive) {
+            genPrimitive.Flags |= GenPrimitiveFlags.Discarded;
+        }
+
         public static void Copy(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
             toGenPrimitive.Flags = fromGenPrimitive.Flags;
             toGenPrimitive.Type = fromGenPrimitive.Type;
