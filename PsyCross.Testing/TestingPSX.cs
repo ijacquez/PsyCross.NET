@@ -174,7 +174,7 @@ namespace PsyCross.Testing {
                 GenerateClipFlags(render, genPrimitive);
 
                 // Cull primitive if it's outside of any of the six planes
-                if (TestOutOfFustrum(genPrimitive)) {
+                if (TestOutsideFustrum(genPrimitive)) {
                     // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     continue;
                 }
@@ -299,7 +299,7 @@ namespace PsyCross.Testing {
 
                 GenerateNearPlaneClipFlags(render, genPrimitive);
 
-                if (TestOutOfFustrum(genPrimitive)) {
+                if (TestOutsideFustrum(genPrimitive)) {
                     // Console.WriteLine($"---------------- Subdiv Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     GenPrimitive.Discard(genPrimitive);
                 } else {
@@ -329,8 +329,6 @@ namespace PsyCross.Testing {
             }
         }
 
-        private static Random _Random = new Random(); // XXX: Remove
-
         private static void SubdivideQuadGenPrimitive(Render render,
                                                       GenPrimitive baseGenPrimitive,
                                                       SubdivTriple spa,
@@ -354,7 +352,7 @@ namespace PsyCross.Testing {
 
                 GenerateNearPlaneClipFlags(render, genPrimitive);
 
-                if (TestOutOfFustrum(genPrimitive)) {
+                if (TestOutsideFustrum(genPrimitive)) {
                     // Console.WriteLine($"---------------- Subdiv Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     GenPrimitive.Discard(genPrimitive);
                 } else {
@@ -454,7 +452,7 @@ namespace PsyCross.Testing {
                 return;
             }
 
-            if (TestOutOfFustrum(genPrimitive)) {
+            if (TestOutsideFustrum(genPrimitive)) {
                 // Console.WriteLine($"--------> Cull ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
                 GenPrimitive.Discard(genPrimitive);
                 return;
@@ -561,14 +559,6 @@ namespace PsyCross.Testing {
 
             GenPrimitive otherTriGenPrim = render.AcquireGenPrimitive();
 
-            degenerateGenPrim.Type = (PsyQ.TmdPrimitiveType)(degenerateGenPrim.Type - PsyQ.TmdPrimitiveType.F4);
-            degenerateGenPrim.VertexCount = 3;
-            degenerateGenPrim.NormalCount = (degenerateGenPrim.NormalCount >= 4) ? 3 : degenerateGenPrim.NormalCount;
-
-            otherTriGenPrim.Type = degenerateGenPrim.Type;
-            otherTriGenPrim.VertexCount = degenerateGenPrim.VertexCount;
-            otherTriGenPrim.NormalCount = degenerateGenPrim.NormalCount;
-
             otherTriGenPrim.PolygonVertices[0] = degenerateGenPrim.PolygonVertices[V0];
             otherTriGenPrim.PolygonVertices[1] = degenerateGenPrim.PolygonVertices[V1];
             otherTriGenPrim.PolygonVertices[2] = degenerateGenPrim.PolygonVertices[V2];
@@ -596,6 +586,14 @@ namespace PsyCross.Testing {
             otherTriGenPrim.FaceNormal = degenerateGenPrim.FaceNormal;
             otherTriGenPrim.TPageId = degenerateGenPrim.TPageId;
             otherTriGenPrim.ClutId = degenerateGenPrim.ClutId;
+
+            degenerateGenPrim.Type = (PsyQ.TmdPrimitiveType)(degenerateGenPrim.Type - PsyQ.TmdPrimitiveType.F4);
+            degenerateGenPrim.VertexCount = 3;
+            degenerateGenPrim.NormalCount = (degenerateGenPrim.NormalCount >= 4) ? 3 : degenerateGenPrim.NormalCount;
+
+            otherTriGenPrim.Type = degenerateGenPrim.Type;
+            otherTriGenPrim.VertexCount = degenerateGenPrim.VertexCount;
+            otherTriGenPrim.NormalCount = degenerateGenPrim.NormalCount;
 
             _TriangulateQuadGenPrimitives[0] = degenerateGenPrim;
             _TriangulateQuadGenPrimitives[1] = otherTriGenPrim;
@@ -748,11 +746,20 @@ namespace PsyCross.Testing {
             }
         }
 
-        private static bool TestOutOfFustrum(GenPrimitive genPrimitive) =>
+        private static ClipFlags BitwiseOrClipFlags(ReadOnlySpan<ClipFlags> clipFlags) =>
+            (clipFlags[0] | clipFlags[1] | clipFlags[2] | clipFlags[clipFlags.Length - 1]);
+
+        private static ClipFlags BitwiseAndClipFlags(ReadOnlySpan<ClipFlags> clipFlags) =>
             // If vertex count is 3, third vertex (index 2) clip flag will be
             // bitwise AND'd twice. If vertex count is 4, (index 3) will be
             // bitwise AND'd
-            ((genPrimitive.ClipFlags[0] & genPrimitive.ClipFlags[1] & genPrimitive.ClipFlags[2] & genPrimitive.ClipFlags[genPrimitive.VertexCount - 1]) != ClipFlags.None);
+            (clipFlags[0] & clipFlags[1] & clipFlags[2] & clipFlags[clipFlags.Length - 1]);
+
+        private static bool TestAnyOutsideFustrum(GenPrimitive genPrimitive) =>
+            (BitwiseOrClipFlags(genPrimitive.ClipFlags) != ClipFlags.None);
+
+        private static bool TestOutsideFustrum(GenPrimitive genPrimitive) =>
+            (BitwiseAndClipFlags(genPrimitive.ClipFlags) != ClipFlags.None);
 
         private static void CalculateLighting(Render render, GenPrimitive genPrimitive) {
             Span<Vector3> lightIntensityVectors = stackalloc Vector3[genPrimitive.NormalCount];
@@ -1129,7 +1136,7 @@ namespace PsyCross.Testing {
         private static Vector3 CalculateFaceNormal(Vector3[] points) =>
             Vector3.Normalize(CalculateScaledFaceNormal(points));
 
-        private static Vector3 CalculateScaledFaceNormal(Vector3[] points) {
+        private static Vector3 CalculateScaledFaceNormal(ReadOnlySpan<Vector3> points) {
             Vector3 a = points[2] - points[0];
             Vector3 b = points[1] - points[0];
 

@@ -26,7 +26,7 @@ namespace PsyCross {
 
         public ReadOnlySpan<Primitive> Primitives => _primitives.AsSpan(0, _index);
 
-        public void Add(Vector3[] points, PrimitiveSortPoint sortPoint, CommandHandle commandHandle) {
+        public void Add(ReadOnlySpan<Vector3> points, PrimitiveSortPoint sortPoint, CommandHandle commandHandle) {
             _primitives[_index].CommandHandle = commandHandle;
             _primitives[_index].Z = Primitive.CalculateZ(sortPoint, points);
             _index++;

@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 namespace PsyCross {
@@ -9,7 +10,7 @@ namespace PsyCross {
         internal Primitive() {
         }
 
-        internal static float CalculateZ(PrimitiveSortPoint sortPoint, Vector3[] points) {
+        internal static float CalculateZ(PrimitiveSortPoint sortPoint, ReadOnlySpan<Vector3> points) {
             switch (sortPoint) {
                 case PrimitiveSortPoint.Min:
                     return System.Math.Min(points[0].Z, System.Math.Min(points[1].Z, points[2].Z));

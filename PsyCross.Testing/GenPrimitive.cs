@@ -6,19 +6,34 @@ namespace PsyCross.Testing {
     public class GenPrimitive {
         public GenPrimitiveFlags Flags { get; set; }
         public PsyQ.TmdPrimitiveType Type { get; set; }
-        public int VertexCount { get; set; }
-        public int NormalCount { get; set; }
-        public Vector3[] PolygonVertices { get; } = new Vector3[4];
-        public Vector3[] PolygonNormals { get; } = new Vector3[4];
-        public Rgb888[] GouraudShadingColors { get; } = new Rgb888[4];
-        public Texcoord[] Texcoords { get; } = new Texcoord[4];
+        public int VertexCount { get; set; } = 3;
+        public int NormalCount { get; set; } = 1;
+
+        public Vector3[] PolygonVertexBuffer { get; } = new Vector3[4];
+        public Span<Vector3> PolygonVertices => PolygonVertexBuffer.AsSpan(0, VertexCount);
+
+        public Vector3[] PolygonNormalBuffer { get; } = new Vector3[4];
+        public Span<Vector3> PolygonNormals => PolygonNormalBuffer.AsSpan(0, VertexCount);
+
+        public Rgb888[] GouraudShadingColorBuffer { get; } = new Rgb888[4];
+        public Span<Rgb888> GouraudShadingColors => GouraudShadingColorBuffer.AsSpan(0, VertexCount);
+
+        public Texcoord[] TexcoordBuffer { get; } = new Texcoord[4];
+        public Span<Texcoord> Texcoords => TexcoordBuffer.AsSpan(0, VertexCount);
 
         public Vector3 FaceNormal { get; set; }
 
-        public ClipFlags[] ClipFlags { get; } = new ClipFlags[4];
-        public Vector3[] WorldPoints { get; } = new Vector3[4];
-        public Vector3[] ViewPoints { get; } = new Vector3[4];
-        public Vector2Int[] ScreenPoints { get; } = new Vector2Int[4];
+        public ClipFlags[] ClipFlagBuffer { get; } = new ClipFlags[4];
+        public Span<ClipFlags> ClipFlags => ClipFlagBuffer.AsSpan(0, VertexCount);
+
+        public Vector3[] WorldPointBuffer { get; } = new Vector3[4];
+        public Span<Vector3> WorldPoints => WorldPointBuffer.AsSpan(0, VertexCount);
+
+        public Vector3[] ViewPointBuffer { get; } = new Vector3[4];
+        public Span<Vector3> ViewPoints => ViewPointBuffer.AsSpan(0, VertexCount);
+
+        public Vector2Int[] ScreenPointBuffer { get; } = new Vector2Int[4];
+        public Span<Vector2Int> ScreenPoints => ScreenPointBuffer.AsSpan(0, VertexCount);
 
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
@@ -71,7 +86,7 @@ namespace PsyCross.Testing {
             genPrimitive.ClipFlags[0] = PsyCross.Testing.ClipFlags.None;
             genPrimitive.ClipFlags[1] = PsyCross.Testing.ClipFlags.None;
             genPrimitive.ClipFlags[2] = PsyCross.Testing.ClipFlags.None;
-            genPrimitive.ClipFlags[3] = PsyCross.Testing.ClipFlags.None;
+            genPrimitive.ClipFlags[genPrimitive.ClipFlags.Length - 1] = PsyCross.Testing.ClipFlags.None;
         }
 
         public static void Copy(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
@@ -79,10 +94,10 @@ namespace PsyCross.Testing {
             toGenPrimitive.Type = fromGenPrimitive.Type;
             toGenPrimitive.VertexCount = fromGenPrimitive.VertexCount;
             toGenPrimitive.NormalCount = fromGenPrimitive.NormalCount;
-            Array.Copy(fromGenPrimitive.PolygonVertices, toGenPrimitive.PolygonVertices, fromGenPrimitive.VertexCount);
-            Array.Copy(fromGenPrimitive.PolygonNormals, toGenPrimitive.PolygonNormals, fromGenPrimitive.NormalCount);
-            Array.Copy(fromGenPrimitive.GouraudShadingColors, toGenPrimitive.GouraudShadingColors, fromGenPrimitive.VertexCount);
-            Array.Copy(fromGenPrimitive.Texcoords, toGenPrimitive.Texcoords, fromGenPrimitive.VertexCount);
+            fromGenPrimitive.PolygonVertices.CopyTo(toGenPrimitive.PolygonVertices);
+            fromGenPrimitive.PolygonNormals.CopyTo(toGenPrimitive.PolygonNormals);
+            fromGenPrimitive.GouraudShadingColors.CopyTo(toGenPrimitive.GouraudShadingColors);
+            fromGenPrimitive.Texcoords.CopyTo(toGenPrimitive.Texcoords);
             toGenPrimitive.FaceNormal = fromGenPrimitive.FaceNormal;
             toGenPrimitive.TPageId = fromGenPrimitive.TPageId;
             toGenPrimitive.ClutId = fromGenPrimitive.ClutId;
