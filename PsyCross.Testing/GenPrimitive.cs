@@ -18,54 +18,60 @@ namespace PsyCross.Testing {
         public ClipFlags[] ClipFlags { get; } = new ClipFlags[4];
         public Vector3[] WorldPoints { get; } = new Vector3[4];
         public Vector3[] ViewPoints { get; } = new Vector3[4];
-        public Vector3[] ClipPoints { get; } = new Vector3[4];
         public Vector2Int[] ScreenPoints { get; } = new Vector2Int[4];
 
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
 
-        public bool IsLit {
-            get {
-                switch (Type) {
-                    case PsyQ.TmdPrimitiveType.F3:
-                    case PsyQ.TmdPrimitiveType.G3:
-                    case PsyQ.TmdPrimitiveType.Fg3:
-                    case PsyQ.TmdPrimitiveType.Gg3:
-                    case PsyQ.TmdPrimitiveType.Ft3:
-                    case PsyQ.TmdPrimitiveType.Gt3:
-                    case PsyQ.TmdPrimitiveType.F4:
-                    case PsyQ.TmdPrimitiveType.G4:
-                    case PsyQ.TmdPrimitiveType.Fg4:
-                    case PsyQ.TmdPrimitiveType.Gg4:
-                    case PsyQ.TmdPrimitiveType.Ft4:
-                    case PsyQ.TmdPrimitiveType.Gt4:
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-        }
+        // public bool IsLit {
+        //     get {
+        //         switch (Type) {
+        //             case PsyQ.TmdPrimitiveType.F3:
+        //             case PsyQ.TmdPrimitiveType.G3:
+        //             case PsyQ.TmdPrimitiveType.Fg3:
+        //             case PsyQ.TmdPrimitiveType.Gg3:
+        //             case PsyQ.TmdPrimitiveType.Ft3:
+        //             case PsyQ.TmdPrimitiveType.Gt3:
+        //             case PsyQ.TmdPrimitiveType.F4:
+        //             case PsyQ.TmdPrimitiveType.G4:
+        //             case PsyQ.TmdPrimitiveType.Fg4:
+        //             case PsyQ.TmdPrimitiveType.Gg4:
+        //             case PsyQ.TmdPrimitiveType.Ft4:
+        //             case PsyQ.TmdPrimitiveType.Gt4:
+        //                 return true;
+        //             default:
+        //                 return false;
+        //         }
+        //     }
+        // }
 
-        public bool IsTextured {
-            get {
-                switch (Type) {
-                    case PsyQ.TmdPrimitiveType.Ft3:
-                    case PsyQ.TmdPrimitiveType.Gt3:
-                    case PsyQ.TmdPrimitiveType.Fnt3:
-                    case PsyQ.TmdPrimitiveType.Gnt3:
-                    case PsyQ.TmdPrimitiveType.Ft4:
-                    case PsyQ.TmdPrimitiveType.Gt4:
-                    case PsyQ.TmdPrimitiveType.Fnt4:
-                    case PsyQ.TmdPrimitiveType.Gnt4:
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-        }
+        // public bool IsTextured {
+        //     get {
+        //         switch (Type) {
+        //             case PsyQ.TmdPrimitiveType.Ft3:
+        //             case PsyQ.TmdPrimitiveType.Gt3:
+        //             case PsyQ.TmdPrimitiveType.Fnt3:
+        //             case PsyQ.TmdPrimitiveType.Gnt3:
+        //             case PsyQ.TmdPrimitiveType.Ft4:
+        //             case PsyQ.TmdPrimitiveType.Gt4:
+        //             case PsyQ.TmdPrimitiveType.Fnt4:
+        //             case PsyQ.TmdPrimitiveType.Gnt4:
+        //                 return true;
+        //             default:
+        //                 return false;
+        //         }
+        //     }
+        // }
 
         public static void Discard(GenPrimitive genPrimitive) {
             genPrimitive.Flags |= GenPrimitiveFlags.Discarded;
+        }
+
+        public static void ClearClipFlags(GenPrimitive genPrimitive) {
+            genPrimitive.ClipFlags[0] = PsyCross.Testing.ClipFlags.None;
+            genPrimitive.ClipFlags[1] = PsyCross.Testing.ClipFlags.None;
+            genPrimitive.ClipFlags[2] = PsyCross.Testing.ClipFlags.None;
+            genPrimitive.ClipFlags[3] = PsyCross.Testing.ClipFlags.None;
         }
 
         public static void Copy(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
