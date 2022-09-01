@@ -17,12 +17,14 @@ namespace PsyCross.Math {
             $"#{R:X02}{G:X02}{B:X02}";
 
         public static readonly Rgb888 Black        = new Rgb888(  0,   0,   0);
-        public static readonly Rgb888 White        = new Rgb888(255, 255, 255);
-        public static readonly Rgb888 Red          = new Rgb888(255,   0,   0);
-        public static readonly Rgb888 Green        = new Rgb888(  0, 255,   0);
         public static readonly Rgb888 Blue         = new Rgb888(  0,   0, 255);
-        public static readonly Rgb888 Yellow       = new Rgb888(255, 255,   0);
         public static readonly Rgb888 Gray         = new Rgb888(128, 128, 128);
-        public static readonly Rgb888 TextureWhite = Gray;
+        public static readonly Rgb888 Green        = new Rgb888(  0, 255,   0);
+        public static readonly Rgb888 Magenta      = new Rgb888(255,   0, 255);
+        public static readonly Rgb888 Orange       = new Rgb888(255, 165,   0);
+        public static readonly Rgb888 Red          = new Rgb888(255,   0,   0);
+        public static readonly Rgb888 TextureWhite = new Rgb888(128, 128, 128);
+        public static readonly Rgb888 White        = new Rgb888(255, 255, 255);
+        public static readonly Rgb888 Yellow       = new Rgb888(255, 255,   0);
     }
 }

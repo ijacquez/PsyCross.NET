@@ -4,9 +4,7 @@ using System.Numerics;
 namespace PsyCross.Testing {
     public class Render {
         private readonly GenPrimitiveAllocator _genPrimitiveAllocator =
-            new GenPrimitiveAllocator(32);
-        private readonly GenPrimitiveAllocator _subdivGenPrimitiveAllocator =
-            new GenPrimitiveAllocator(4);
+            new GenPrimitiveAllocator(256);
 
         public Material Material { get; set; }
         public Matrix4x4 ModelMatrix { get; set; }
@@ -19,18 +17,10 @@ namespace PsyCross.Testing {
         public ReadOnlySpan<GenPrimitive> GenPrimitives =>
             _genPrimitiveAllocator.GenPrimitives;
 
-        public ReadOnlySpan<GenPrimitive> SubdivGenPrimitives =>
-            _genPrimitiveAllocator.GenPrimitives;
-
         public GenPrimitive AcquireGenPrimitive() =>
             _genPrimitiveAllocator.AllocatePrimitive();
 
-        public GenPrimitive AcquireSubdivGenPrimitive() =>
-            _subdivGenPrimitiveAllocator.AllocatePrimitive();
-
-        public void ReleaseGenPrimitives() {
+        public void ReleaseGenPrimitives() =>
             _genPrimitiveAllocator.Reset();
-            _subdivGenPrimitiveAllocator.Reset();
-        }
     }
 }

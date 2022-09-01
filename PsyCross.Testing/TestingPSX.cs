@@ -27,10 +27,10 @@ namespace PsyCross.Testing {
             _renderStates[1].DispEnv = new PsyQ.DispEnv(new RectInt(0, _ScreenHeight, _ScreenWidth, _ScreenHeight));
             _renderStates[1].DrawEnv = new PsyQ.DrawEnv(new RectInt(0,             0, _ScreenWidth, _ScreenHeight), new Vector2Int(_ScreenWidth / 2, _ScreenHeight / 2));
 
-            _renderStates[0].DrawEnv.Color = new Rgb888(0x60, 0x60, 0x60);
+            _renderStates[0].DrawEnv.Color = new Rgb888(0x10, 0x60, 0x10);
             _renderStates[0].DrawEnv.IsClear = true;
 
-            _renderStates[1].DrawEnv.Color = new Rgb888(0x60, 0x60, 0x60);
+            _renderStates[1].DrawEnv.Color = new Rgb888(0x10, 0x60, 0x10);
             _renderStates[1].DrawEnv.IsClear = true;
 
             _renderStateIndex = 0;
@@ -42,6 +42,7 @@ namespace PsyCross.Testing {
 
             PsyQ.DrawSync();
 
+            PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), Rgb888.Magenta);
             var timData = ResourceManager.GetBinaryFile("pebles.tim");
             if (PsyQ.TryReadTim(timData, out PsyQ.Tim tim)) {
                 PsyQ.LoadImage(tim.ImageHeader.Rect, tim.Header.Flags.BitDepth, tim.Image);
@@ -64,27 +65,29 @@ namespace PsyCross.Testing {
             // var tmdData = ResourceManager.GetBinaryFile("tmd_0059.tmd");
             if (PsyQ.TryReadTmd(tmdData, out PsyQ.Tmd tmd)) {
                 _model = new Model(tmd, null);
-                _model.Material.AmbientColor = new Rgb888(15, 128, 15);
+                _model.Material.AmbientColor = new Rgb888(15, 15, 15);
             }
 
             _model.Position = new Vector3(0f, 0f, 0f);
-            _camera.Position = new Vector3(0f, 1f, -10f);
+            _camera.Position = new Vector3(0f, 0f, -5f);
             // _camera.Position = new Vector3(-5.0768924f, 1.2252761f, -5.8041654f);
             // _camera.Position = new Vector3(1.5899091f, 0.33251408f, -1.492207f);
             // _camera.Position = new Vector3(0.0068634236f, 1.9390371f, -1.3951654f);
-            _camera.Position = new Vector3(0.0068634236f, 0.5511541f, -1.3951654f);
+            // _camera.Position = new Vector3(1.4112625f, 1.56911f, 0.16002977f);
+            // _camera.Position = new Vector3(3.7436612E-07f, 1.4166918f, -1.4354988f);
+            // _camera.Yaw = -11;
 
-            _light1 = LightingManager.AllocatePointLight();
-            _light1.Color = Rgb888.Blue;
-            _light1.Position = new Vector3(0f, 1f, 0f);
-            _light1.CutOffDistance = 100.0f;
-            _light1.Range = 20.0f;
+            // _light1 = LightingManager.AllocatePointLight();
+            // _light1.Color = Rgb888.Blue;
+            // _light1.Position = new Vector3(0f, 1f, 0f);
+            // _light1.CutOffDistance = 100.0f;
+            // _light1.Range = 20.0f;
 
             _light2 = LightingManager.AllocateDirectionalLight();
             _light2.Direction = new Vector3(0, -1, 0);
-            _light2.Color = new Rgb888(255, 0, 0);
+            _light2.Color = Rgb888.Red;
 
-            _camera.Fov = 70;
+            _camera.Fov = 90;
 
             _flyCamera = new FlyCamera(_camera);
         }
@@ -151,7 +154,8 @@ namespace PsyCross.Testing {
             _render.CommandBuffer = _commandBuffer;
             _render.PrimitiveSort = _primitiveSort;
 
-            Console.WriteLine($"_camera.Position: [1;32m{_camera.Position}[m");
+            Console.WriteLine("********************************************************************************");
+            Console.WriteLine($"_camera.Position: [1;32m{_camera.Position}, Pitch, Yaw: {_camera.Pitch}, {_camera.Yaw}[m");
 
             DrawTmd(_render, _model.Tmd);
 
@@ -192,7 +196,7 @@ namespace PsyCross.Testing {
 
                 // Cull primitive if it's outside of any of the six planes
                 if (TestOutOfFustrum(genPrimitive)) {
-                    // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
+                    Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     continue;
                 }
 
@@ -210,26 +214,8 @@ namespace PsyCross.Testing {
 
                 genPrimitive.FaceNormal = Vector3.Normalize(genPrimitive.FaceNormal);
 
-                ClipAtNearPlane(render, genPrimitive);
-
-                Console.WriteLine($"Rendering {render.GenPrimitives.Length} primitives");
-
                 foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
                     if ((currentGenPrimitive.Flags & GenPrimitiveFlags.DoNotRender) == GenPrimitiveFlags.DoNotRender) {
-                        continue;
-                    }
-
-                    TransformToClip(render, currentGenPrimitive);
-
-                    TransformToScreen(render, currentGenPrimitive);
-
-                    if (TestScreenPointOverflow(currentGenPrimitive)) {
-                        // Console.WriteLine($"Overflow vertex cull -> {currentGenPrimitive.Type}");
-                        continue;
-                    }
-
-                    if (TestScreenPrimitiveArea(currentGenPrimitive)) {
-                        // Console.WriteLine($"Area of triangle is too small");
                         continue;
                     }
 
@@ -239,12 +225,172 @@ namespace PsyCross.Testing {
 
                         CalculateLighting(render, currentGenPrimitive);
                     }
-
-                    var commandHandle = DrawPrimitive(render, tmdPacket, currentGenPrimitive);
-
-                    render.PrimitiveSort.Add(genPrimitive.ViewPoints, PrimitiveSortPoint.Center, commandHandle);
                 }
+
+                Console.WriteLine($"Subdividing {render.GenPrimitives.Length} primitives");
+                foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
+                    if ((currentGenPrimitive.Flags & GenPrimitiveFlags.DoNotRender) == GenPrimitiveFlags.DoNotRender) {
+                        continue;
+                    }
+
+                    if (true) {
+                        SubdivideTriangleGenPrimitive(render,
+                                                      currentGenPrimitive,
+                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 0),
+                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 1),
+                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 2),
+                                                      2,
+                                                      _color);
+                        _color += 3;
+
+                        // Discard non-subdivided generated primitive
+                        currentGenPrimitive.Flags |= GenPrimitiveFlags.DoNotRender;
+                    }
+                }
+
+                Console.WriteLine($"Drawing {render.GenPrimitives.Length} primitives");
+                foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
+                    if ((currentGenPrimitive.Flags & GenPrimitiveFlags.DoNotRender) == GenPrimitiveFlags.DoNotRender) {
+                        continue;
+                    }
+
+                    TransformToScreen(render, currentGenPrimitive);
+
+                    if (TestScreenPointOverflow(currentGenPrimitive)) {
+                        Console.WriteLine("[1;31mOverflow[m");
+                        continue;
+                    }
+
+                    if (TestScreenPrimitiveArea(currentGenPrimitive)) {
+                        Console.WriteLine("[1;31mArea<=0[m");
+                        continue;
+                    }
+
+                    DrawGenPrimitive(render, currentGenPrimitive);
+                }
+
+                Console.WriteLine("--------------------------------------------------------------------------------");
             }
+
+            // XXX: Remove
+            _color = 0;
+        }
+
+        static int _color = 0;
+        static Rgb888[] _Colors = new Rgb888[] {
+            Rgb888.Red,
+            Rgb888.Green,
+            Rgb888.Blue,
+            Rgb888.Yellow,
+            Rgb888.Orange,
+            Rgb888.Magenta,
+            Rgb888.Gray,
+            Rgb888.White
+        };
+
+        private struct SubdivTriple {
+            public Vector3 ViewPoint { get; set; }
+
+            public Rgb888 GouraudShadingColor { get; set; }
+
+            public Texcoord Texcoord { get; set; }
+
+            public static SubdivTriple FromGenPrimitive(GenPrimitive genPrimitive, int index) =>
+                new SubdivTriple {
+                    ViewPoint           = genPrimitive.ViewPoints[index],
+                    GouraudShadingColor = genPrimitive.GouraudShadingColors[index],
+                    Texcoord            = genPrimitive.Texcoords[index]
+                };
+        }
+
+        private static void SubdivideTriangleGenPrimitive(Render render,
+                                                          GenPrimitive baseGenPrimitive,
+                                                          SubdivTriple spa,
+                                                          SubdivTriple spb,
+                                                          SubdivTriple spc,
+                                                          int level,
+                                                          // XXX: Remove
+                                                          int color) {
+            if (level == 0) {
+                GenPrimitive genPrimitive = render.AcquireGenPrimitive();
+
+                // XXX: Slow... copies more than what we need
+                GenPrimitive.Copy(baseGenPrimitive, genPrimitive);
+
+                genPrimitive.ViewPoints[0] = spa.ViewPoint;
+                genPrimitive.ViewPoints[1] = spb.ViewPoint;
+                genPrimitive.ViewPoints[2] = spc.ViewPoint;
+
+                // Clobber the clip flags
+                for (int i = 0; i < 3; i++) {
+                    genPrimitive.ClipFlags[i] = ClipFlags.None;
+
+                    if (genPrimitive.ViewPoints[i].Z < render.Camera.DepthNear) {
+                        genPrimitive.ClipFlags[i] = ClipFlags.Near;
+                    }
+                }
+
+                if (TestOutOfFustrum(genPrimitive)) {
+                    Console.WriteLine($"---------------- Subdiv Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
+                    genPrimitive.Flags |= GenPrimitiveFlags.DoNotRender;
+                } else {
+                    genPrimitive.GouraudShadingColors[0] = spa.GouraudShadingColor;
+                    genPrimitive.GouraudShadingColors[1] = spb.GouraudShadingColor;
+                    genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
+
+                    // genPrimitive.GouraudShadingColors[0] = _Colors[color%_Colors.Length];
+                    // genPrimitive.GouraudShadingColors[1] = _Colors[color%_Colors.Length];
+                    // genPrimitive.GouraudShadingColors[2] = _Colors[color%_Colors.Length];
+
+                    genPrimitive.Texcoords[0] = spa.Texcoord;
+                    genPrimitive.Texcoords[1] = spb.Texcoord;
+                    genPrimitive.Texcoords[2] = spc.Texcoord;
+
+                    ClipGenPrimitiveNearPlane(render, genPrimitive);
+                }
+
+                // Console.WriteLine($"[1;36m{genPrimitive.ScreenPoints[0]}; {genPrimitive.ScreenPoints[1]}; {genPrimitive.ScreenPoints[2]}[m");
+            } else {
+                ReadOnlySpan<SubdivTriple> midPoint = stackalloc SubdivTriple[] {
+                    CalculateMidPoint(spa, spb),
+                    CalculateMidPoint(spb, spc),
+                    CalculateMidPoint(spc, spa)
+                };
+
+                SubdivideTriangleGenPrimitive(render, baseGenPrimitive,         spa, midPoint[0], midPoint[2], level - 1, color + 1);
+                SubdivideTriangleGenPrimitive(render, baseGenPrimitive, midPoint[0],         spb, midPoint[1], level - 1, color + 2);
+                SubdivideTriangleGenPrimitive(render, baseGenPrimitive, midPoint[2], midPoint[1],         spc, level - 1, color + 3);
+                SubdivideTriangleGenPrimitive(render, baseGenPrimitive, midPoint[0], midPoint[1], midPoint[2], level - 1, color + 4);
+            }
+        }
+
+        private static void DrawGenPrimitive(Render render, GenPrimitive genPrimitive) {
+            var commandHandle = DrawPrimitive(render, genPrimitive);
+            // XXX: Move the sort point code out and take in only the Z value
+            render.PrimitiveSort.Add(genPrimitive.ViewPoints, PrimitiveSortPoint.Center, commandHandle);
+        }
+
+        private static SubdivTriple CalculateMidPoint(SubdivTriple a, SubdivTriple b) {
+            SubdivTriple c = new SubdivTriple();
+
+            c.ViewPoint = 0.5f * (a.ViewPoint + b.ViewPoint);
+
+            Rgb888 color;
+
+            color.R = (byte)((a.GouraudShadingColor.R + b.GouraudShadingColor.R) / 2);
+            color.G = (byte)((a.GouraudShadingColor.G + b.GouraudShadingColor.G) / 2);
+            color.B = (byte)((a.GouraudShadingColor.B + b.GouraudShadingColor.B) / 2);
+
+            c.GouraudShadingColor = color;
+
+            Texcoord texcoord;
+
+            texcoord.X = (byte)((a.Texcoord.X + b.Texcoord.X) / 2);
+            texcoord.Y = (byte)((a.Texcoord.Y + b.Texcoord.Y) / 2);
+
+            c.Texcoord = texcoord;
+
+            return c;
         }
 
         private static void ClipAtNearPlane(Render render, GenPrimitive genPrimitive) {
@@ -255,55 +401,13 @@ namespace PsyCross.Testing {
             }
 
             if (genPrimitive.VertexCount == 4) {
-                GenPrimitive otherGenPrimitive = render.AcquireGenPrimitive();
+                var triangleGenPrimitives = TriangulateQuadGenPrimitive(render, genPrimitive);
 
-                PsyQ.TmdPrimitiveType quadPrimitiveType = genPrimitive.Type;
-
-                // XXX: Write a static method to convert type: GenPrimitive.Degenerate(genPrimitive)
-                genPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
-                genPrimitive.VertexCount = 3;
-                genPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
-
-                otherGenPrimitive.Type = genPrimitive.Type;
-                otherGenPrimitive.VertexCount = genPrimitive.VertexCount;
-                otherGenPrimitive.NormalCount = genPrimitive.NormalCount;
-
-                otherGenPrimitive.PolygonVertices[0] = genPrimitive.PolygonVertices[2];
-                otherGenPrimitive.PolygonVertices[1] = genPrimitive.PolygonVertices[1];
-                otherGenPrimitive.PolygonVertices[2] = genPrimitive.PolygonVertices[3];
-
-                otherGenPrimitive.PolygonNormals[0] = genPrimitive.PolygonNormals[2];
-                otherGenPrimitive.PolygonNormals[1] = genPrimitive.PolygonNormals[1];
-                otherGenPrimitive.PolygonNormals[2] = genPrimitive.PolygonNormals[3];
-
-                otherGenPrimitive.ViewPoints[0] = genPrimitive.ViewPoints[2];
-                otherGenPrimitive.ViewPoints[1] = genPrimitive.ViewPoints[1];
-                otherGenPrimitive.ViewPoints[2] = genPrimitive.ViewPoints[3];
-
-                otherGenPrimitive.Texcoords[0] = genPrimitive.Texcoords[2];
-                otherGenPrimitive.Texcoords[1] = genPrimitive.Texcoords[1];
-                otherGenPrimitive.Texcoords[2] = genPrimitive.Texcoords[3];
-
-                otherGenPrimitive.GouraudShadingColors[0] = genPrimitive.GouraudShadingColors[2];
-                otherGenPrimitive.GouraudShadingColors[1] = genPrimitive.GouraudShadingColors[1];
-                otherGenPrimitive.GouraudShadingColors[2] = genPrimitive.GouraudShadingColors[3];
-
-                otherGenPrimitive.ClipFlags[0] = genPrimitive.ClipFlags[2];
-                otherGenPrimitive.ClipFlags[1] = genPrimitive.ClipFlags[1];
-                otherGenPrimitive.ClipFlags[2] = genPrimitive.ClipFlags[3];
-
-                otherGenPrimitive.FaceNormal = genPrimitive.FaceNormal;
-                otherGenPrimitive.TPageId = genPrimitive.TPageId;
-                otherGenPrimitive.ClutId = genPrimitive.ClutId;
-
-                // XXX: We shouldn't have to recalculate
-                // GenerateClipFlags(render, otherGenPrimitive);
-                ClipGenPrimitiveNearPlane(render, otherGenPrimitive);
+                ClipGenPrimitiveNearPlane(render, triangleGenPrimitives[0]);
+                ClipGenPrimitiveNearPlane(render, triangleGenPrimitives[1]);
+            } else {
+                ClipGenPrimitiveNearPlane(render, genPrimitive);
             }
-
-            // XXX: We shouldn't have to recalculate
-            // GenerateClipFlags(render, genPrimitive);
-            ClipGenPrimitiveNearPlane(render, genPrimitive);
 
             // At this point, we may have two (or more) generated primitives.
             // Previously we were able short circuit the pipeline and move onto
@@ -318,12 +422,12 @@ namespace PsyCross.Testing {
             ClipFlags clipFlagsMask = genPrimitive.ClipFlags[0] | genPrimitive.ClipFlags[1] | genPrimitive.ClipFlags[2];
 
             if ((clipFlagsMask & ClipFlags.Near) != ClipFlags.Near) {
-                // Console.WriteLine($"--------> No near Clip ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
+                Console.WriteLine($"--------> No near Clip ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
                 return;
             }
 
             if (TestOutOfFustrum(genPrimitive)) {
-                // Console.WriteLine($"--------> Cull ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
+                Console.WriteLine($"--------> Cull ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
                 genPrimitive.Flags |= GenPrimitiveFlags.DoNotRender;
                 return;
             }
@@ -364,16 +468,26 @@ namespace PsyCross.Testing {
                 Vector3 exteriorV1 = genPrimitive.ViewPoints[vertexIndices[1]];
                 Vector3 exteriorV2 = genPrimitive.ViewPoints[vertexIndices[2]];
 
-                // Interpolate between edge (v0,v1) and find the
-                // point along the edge that intersects with the
-                // near plane
+                // Interpolate between edge (v0,v1) and find the point along the
+                // edge that intersects with the near plane
 
-                // Overwrite vertex
-                genPrimitive.ViewPoints[vertexIndices[1]] = ClipLerpEdge(render, interiorVertex, exteriorV1);
-                // Overwrite vertex
-                genPrimitive.ViewPoints[vertexIndices[2]] = ClipLerpEdge(render, interiorVertex, exteriorV2);
+                float t1 = FindClipLerpEdgeT(render, interiorVertex, exteriorV1);
+                float t2 = FindClipLerpEdgeT(render, interiorVertex, exteriorV2);
 
-                // XXX: Recalculate texcoords
+                // Overwrite vertices
+                genPrimitive.ViewPoints[vertexIndices[1]] = ClipLerpVertex(render, interiorVertex, exteriorV1, t1);
+                genPrimitive.ViewPoints[vertexIndices[2]] = ClipLerpVertex(render, interiorVertex, exteriorV2, t2);
+
+                // genPrimitive.GouraudShadingColors[0] = Rgb888.Magenta; // XXX: Remove
+                // genPrimitive.GouraudShadingColors[1] = Rgb888.Magenta; // XXX: Remove
+                // genPrimitive.GouraudShadingColors[2] = Rgb888.Magenta; // XXX: Remove
+
+                Texcoord interiorTexcoord = genPrimitive.Texcoords[vertexIndices[0]];
+                Texcoord exteriorT1 = genPrimitive.Texcoords[vertexIndices[1]];
+                Texcoord exteriorT2 = genPrimitive.Texcoords[vertexIndices[2]];
+
+                genPrimitive.Texcoords[vertexIndices[1]] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
+                genPrimitive.Texcoords[vertexIndices[2]] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
             } else { // Case 2: Two interior vertices and one exterior vertex
                 Span<int> vertexIndices = stackalloc int[3] {
                      exteriorVertexIndices[0],
@@ -389,8 +503,11 @@ namespace PsyCross.Testing {
                 Vector3 interiorV1 = genPrimitive.ViewPoints[vertexIndices[1]];
                 Vector3 interiorV2 = genPrimitive.ViewPoints[vertexIndices[2]];
 
-                Vector3 lerpedV1 = ClipLerpEdge(render, interiorV1, exteriorVertex);
-                Vector3 lerpedV2 = ClipLerpEdge(render, interiorV2, exteriorVertex);
+                float t1 = FindClipLerpEdgeT(render, interiorV1, exteriorVertex);
+                float t2 = FindClipLerpEdgeT(render, interiorV2, exteriorVertex);
+
+                Vector3 lerpedV1 = ClipLerpVertex(render, interiorV1, exteriorVertex, t1);
+                Vector3 lerpedV2 = ClipLerpVertex(render, interiorV2, exteriorVertex, t2);
 
                 // Generate two points and from that, pass in the quad
                 genPrimitive.ViewPoints[vertexIndices[0]] = lerpedV1;
@@ -399,11 +516,75 @@ namespace PsyCross.Testing {
                 newGenPrimitive.ViewPoints[vertexIndices[1]] = interiorV2;
                 newGenPrimitive.ViewPoints[vertexIndices[2]] = lerpedV2;
 
-                // XXX: Recalculate texcoords
+                Texcoord exteriorTexcoord = genPrimitive.Texcoords[vertexIndices[0]];
+                Texcoord interiorT1 = genPrimitive.Texcoords[vertexIndices[1]];
+                Texcoord interiorT2 = genPrimitive.Texcoords[vertexIndices[2]];
+
+                genPrimitive.Texcoords[vertexIndices[0]] = ClipLerpTexcoord(render, interiorT1, exteriorTexcoord, t1);
+
+                newGenPrimitive.Texcoords[vertexIndices[0]] = genPrimitive.Texcoords[vertexIndices[0]];
+                newGenPrimitive.Texcoords[vertexIndices[1]] = genPrimitive.Texcoords[vertexIndices[2]];
+                newGenPrimitive.Texcoords[vertexIndices[2]] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
+
+                // genPrimitive.GouraudShadingColors[0] = Rgb888.Yellow;
+                // genPrimitive.GouraudShadingColors[1] = Rgb888.Yellow;
+                // genPrimitive.GouraudShadingColors[2] = Rgb888.Yellow;
+
+                // newGenPrimitive.GouraudShadingColors[0] = Rgb888.Orange;
+                // newGenPrimitive.GouraudShadingColors[1] = Rgb888.Orange;
+                // newGenPrimitive.GouraudShadingColors[2] = Rgb888.Orange;
             }
         }
 
-        private static CommandHandle DrawPrimitive(Render render, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
+        private static GenPrimitive[] _TriangulateQuadGenPrimitives { get; } = new GenPrimitive[2];
+
+        private static ReadOnlySpan<GenPrimitive> TriangulateQuadGenPrimitive(Render render, GenPrimitive degenerateGenPrim) {
+            GenPrimitive otherTriGenPrim = render.AcquireGenPrimitive();
+
+            degenerateGenPrim.Type = (PsyQ.TmdPrimitiveType)(degenerateGenPrim.Type - PsyQ.TmdPrimitiveType.F4);
+            degenerateGenPrim.VertexCount = 3;
+            degenerateGenPrim.NormalCount = (degenerateGenPrim.NormalCount >= 4) ? 3 : degenerateGenPrim.NormalCount;
+
+            otherTriGenPrim.Type = degenerateGenPrim.Type;
+            otherTriGenPrim.VertexCount = degenerateGenPrim.VertexCount;
+            otherTriGenPrim.NormalCount = degenerateGenPrim.NormalCount;
+
+            otherTriGenPrim.PolygonVertices[0] = degenerateGenPrim.PolygonVertices[2];
+            otherTriGenPrim.PolygonVertices[1] = degenerateGenPrim.PolygonVertices[1];
+            otherTriGenPrim.PolygonVertices[2] = degenerateGenPrim.PolygonVertices[3];
+
+            otherTriGenPrim.PolygonNormals[0] = degenerateGenPrim.PolygonNormals[2];
+            otherTriGenPrim.PolygonNormals[1] = degenerateGenPrim.PolygonNormals[1];
+            otherTriGenPrim.PolygonNormals[2] = degenerateGenPrim.PolygonNormals[3];
+
+            otherTriGenPrim.ViewPoints[0] = degenerateGenPrim.ViewPoints[2];
+            otherTriGenPrim.ViewPoints[1] = degenerateGenPrim.ViewPoints[1];
+            otherTriGenPrim.ViewPoints[2] = degenerateGenPrim.ViewPoints[3];
+
+            otherTriGenPrim.Texcoords[0] = degenerateGenPrim.Texcoords[2];
+            otherTriGenPrim.Texcoords[1] = degenerateGenPrim.Texcoords[1];
+            otherTriGenPrim.Texcoords[2] = degenerateGenPrim.Texcoords[3];
+
+            otherTriGenPrim.GouraudShadingColors[0] = degenerateGenPrim.GouraudShadingColors[2];
+            otherTriGenPrim.GouraudShadingColors[1] = degenerateGenPrim.GouraudShadingColors[1];
+            otherTriGenPrim.GouraudShadingColors[2] = degenerateGenPrim.GouraudShadingColors[3];
+
+            otherTriGenPrim.ClipFlags[0] = degenerateGenPrim.ClipFlags[2];
+            otherTriGenPrim.ClipFlags[1] = degenerateGenPrim.ClipFlags[1];
+            otherTriGenPrim.ClipFlags[2] = degenerateGenPrim.ClipFlags[3];
+
+            otherTriGenPrim.FaceNormal = degenerateGenPrim.FaceNormal;
+            otherTriGenPrim.TPageId = degenerateGenPrim.TPageId;
+            otherTriGenPrim.ClutId = degenerateGenPrim.ClutId;
+
+            _TriangulateQuadGenPrimitives[0] = degenerateGenPrim;
+            _TriangulateQuadGenPrimitives[1] = otherTriGenPrim;
+
+            return new ReadOnlySpan<GenPrimitive>(_TriangulateQuadGenPrimitives);
+        }
+
+        private static CommandHandle DrawPrimitive(Render render, GenPrimitive genPrimitive) {
+            Console.WriteLine($"DrawPrimitive {genPrimitive.Type}");
             switch (genPrimitive.Type) {
                 // With lighting
                 case PsyQ.TmdPrimitiveType.F3:
@@ -449,12 +630,23 @@ namespace PsyCross.Testing {
             }
         }
 
-        private static Vector3 ClipLerpEdge(Render render, Vector3 aVertex, Vector3 bVertex) {
-            // Find t between an edge
-            float t = System.Math.Clamp((render.Camera.DepthNear - aVertex.Z) / (bVertex.Z - aVertex.Z), 0f, 1f);
-            Vector3 l = Vector3.Lerp(aVertex, bVertex, t);
+        private static float FindClipLerpEdgeT(Render render, Vector3 aVertex, Vector3 bVertex) =>
+            System.Math.Clamp((render.Camera.DepthNear - aVertex.Z) / (bVertex.Z - aVertex.Z), 0f, 1f);
 
-            return new Vector3(l.X, l.Y, render.Camera.DepthNear);
+        private static Vector3 ClipLerpVertex(Render render, Vector3 aVertex, Vector3 bVertex, float t) {
+            Vector3 lerpedVertex = Vector3.Lerp(aVertex, bVertex, t);
+
+            lerpedVertex.Z = render.Camera.DepthNear;
+
+            return lerpedVertex;
+        }
+
+        private static Texcoord ClipLerpTexcoord(Render render, Texcoord aTexcoord, Texcoord bTexcoord, float t) {
+            Vector2 aVector = new Vector2(aTexcoord.X, aTexcoord.Y);
+            Vector2 bVector = new Vector2(bTexcoord.X, bTexcoord.Y);
+            Vector2 lerpedVertex = Vector2.Lerp(aVector, bVector, t);
+
+            return new Texcoord((byte)lerpedVertex.X, (byte)lerpedVertex.Y);
         }
 
         private static void CollectPrimitiveVerticesData(Render render, PsyQ.TmdObject tmdObject, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
@@ -641,13 +833,15 @@ namespace PsyCross.Testing {
                 return true;
             }
 
-            Vector2Int c = genPrimitive.ScreenPoints[1] - genPrimitive.ScreenPoints[2];
-            Vector2Int d = genPrimitive.ScreenPoints[3] - genPrimitive.ScreenPoints[2];
+            if (genPrimitive.VertexCount == 4) {
+                Vector2Int c = genPrimitive.ScreenPoints[1] - genPrimitive.ScreenPoints[2];
+                Vector2Int d = genPrimitive.ScreenPoints[3] - genPrimitive.ScreenPoints[2];
 
-            int z2 = (a.X * b.Y) - (a.Y * b.X);
+                int z2 = (a.X * b.Y) - (a.Y * b.X);
 
-            if (z2 <= 0) {
-                return true;
+                if (z2 <= 0) {
+                    return true;
+                }
             }
 
             return false;
@@ -661,6 +855,10 @@ namespace PsyCross.Testing {
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
                 int sx = genPrimitive.ScreenPoints[i].X;
                 int sy = genPrimitive.ScreenPoints[i].Y;
+
+                // if ((sx < -1024) || (sx > 1023) || (sy < -1024) || (sy > 1023)) {
+                //     return true;
+                // }
 
                 genPrimitive.ScreenPoints[i].X = System.Math.Clamp(genPrimitive.ScreenPoints[i].X, -1024, 1023);
                 genPrimitive.ScreenPoints[i].Y = System.Math.Clamp(genPrimitive.ScreenPoints[i].Y, -1024, 1023);
@@ -702,7 +900,7 @@ namespace PsyCross.Testing {
             var poly = render.CommandBuffer.GetPolyFt3(handle);
 
             poly[0].SetCommand();
-            poly[0].Color = Rgb888.White;
+            poly[0].Color = genPrimitive.GouraudShadingColors[0];
             poly[0].T0 = genPrimitive.Texcoords[0];
             poly[0].T1 = genPrimitive.Texcoords[1];
             poly[0].T2 = genPrimitive.Texcoords[2];
@@ -924,10 +1122,10 @@ namespace PsyCross.Testing {
 
         private static void TransformToScreen(Render render, GenPrimitive genPrimitive) {
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
-                Vector3 clipPoint = genPrimitive.ClipPoints[i];
+                Vector3 clipPoint = TransformToClip(render, genPrimitive.ViewPoints[i]);
 
-                genPrimitive.ScreenPoints[i].X = (int)( clipPoint.X * render.Camera.ScreenWidth);
-                genPrimitive.ScreenPoints[i].Y = (int)(-clipPoint.Y * render.Camera.ScreenWidth);
+                genPrimitive.ScreenPoints[i].X = (int) clipPoint.X;
+                genPrimitive.ScreenPoints[i].Y = (int)-clipPoint.Y;
             }
         }
     }

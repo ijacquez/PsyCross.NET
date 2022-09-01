@@ -30,9 +30,9 @@ namespace PsyCross.Testing {
 
         public int ScreenHeight { get; }
 
-        public float DepthNear { get; set; } = 0.25f;
+        public float DepthNear { get; set; } = 0.5f;
 
-        public float DepthFar { get; set; } = 50.0f;
+        public float DepthFar { get; set; } = 1000.0f;
 
         public float ViewDistance { get; private set; }
 
@@ -99,7 +99,7 @@ namespace PsyCross.Testing {
             // This is 2x2 for normalized projection, or the exact same size as
             // the view port or screen window if you want to merge the
             // perspective transform and screen transform together (faster)
-            const float NormalizedWidth = 2.0f;
+            const float NormalizedWidth = 320.0f;
 
             // This calculation will give us the correct d value if we want to
             // merge the perspective transform and screen transform into one
