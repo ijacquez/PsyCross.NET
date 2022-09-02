@@ -1,4 +1,4 @@
-﻿using PsyCross.Devices.GPU;
+using PsyCross.Devices.GPU;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System;

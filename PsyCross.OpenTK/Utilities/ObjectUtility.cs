@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
 namespace PsyCross.OpenTK.Utilities {
     using global::OpenTK.Graphics.OpenGL4;

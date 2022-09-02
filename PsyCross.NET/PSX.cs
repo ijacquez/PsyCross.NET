@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ProjectPSX.Devices;
 using PsyCross.Devices.Input;
 

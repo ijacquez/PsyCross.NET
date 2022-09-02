@@ -52,9 +52,28 @@ namespace PsyCross.Testing.Rendering {
                     }
 
                     TransformToWorld(render, currentGenPrimitive);
+
+                    // Perform fog
+                    float FogDistance = render.Camera.DepthFar * 0.60f;
 
+                    Vector3 bgColor = render.DrawEnv.Color;
+                    Vector3 ambientColor = Rgb888.White;
+
+                    for (int i = 0; i < currentGenPrimitive.VertexCount; i++) {
+                        float fogDistance = (render.Camera.ViewDistance / 160.0f) * currentGenPrimitive.ViewPoints[i].Z;
+                        float fogDistanceClamped = System.Math.Clamp(fogDistance, 0f, FogDistance);
+                        float t = 1f - (fogDistanceClamped / FogDistance);
+
+                        Vector3 lerpedColor = Vector3.Lerp(bgColor, ambientColor, t);
+                        Rgb888 color = lerpedColor;
+
+                        Console.WriteLine($"{fogDistanceClamped} -> {t} -> {color}");
+
+                        genPrimitive.GouraudShadingColors[i] = color;
+                    }
+
                     // Perform light source calculation
-                    // XXX: Change this to check lighting via a getter and not from the TMD packet
+                    // XXX: Change this to check lighting
                     if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
                         CalculateLighting(render, currentGenPrimitive);
                     }

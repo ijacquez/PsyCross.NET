@@ -1,4 +1,4 @@
-﻿using PsyCross.Devices.Input;
+using PsyCross.Devices.Input;
 using PsyCross.Math;
 using PsyCross.OpenTK.Types;
 using PsyCross.OpenTK.Utilities;

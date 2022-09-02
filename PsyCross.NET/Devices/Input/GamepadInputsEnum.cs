@@ -1,4 +1,4 @@
-﻿namespace PsyCross.Devices.Input {
+namespace PsyCross.Devices.Input {
     public enum JoyPad : ushort {
         Select   = 0x1,
         L2       = 0x2,
