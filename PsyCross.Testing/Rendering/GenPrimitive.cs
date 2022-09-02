@@ -2,12 +2,12 @@ using System;
 using System.Numerics;
 using PsyCross.Math;
 
-namespace PsyCross.Testing {
+namespace PsyCross.Testing.Rendering {
     public class GenPrimitive {
         public GenPrimitiveFlags Flags { get; set; }
         public PsyQ.TmdPrimitiveType Type { get; set; }
         public int VertexCount { get; set; } = 3;
-        public int NormalCount { get; set; } = 1;
+        public int NormalCount { get; set; }
 
         public Vector3[] PolygonVertexBuffer { get; } = new Vector3[4];
         public Span<Vector3> PolygonVertices => PolygonVertexBuffer.AsSpan(0, VertexCount);

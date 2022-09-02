@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using PsyCross.Testing.Rendering;
 
 namespace PsyCross.Testing {
     public class Model {
@@ -16,7 +17,7 @@ namespace PsyCross.Testing {
                 _matrix.M41 = _position.X;
                 _matrix.M42 = _position.Y;
                 _matrix.M43 = _position.Z;
-                _matrix.M44 = 1.0f;
+                _matrix.M44 = 1f;
             }
         }
 
@@ -37,17 +38,17 @@ namespace PsyCross.Testing {
                 float yZ = _rotation.Y * _rotation.Z;
                 float wX = _rotation.X * _rotation.W;
 
-                _matrix.M11 = 1.0f - 2.0f * (yY + zZ);
-                _matrix.M12 = 2.0f * (xY + wZ);
-                _matrix.M13 = 2.0f * (xZ - wY);
-                _matrix.M14 = 0.0f;
-                _matrix.M21 = 2.0f * (xY - wZ);
-                _matrix.M22 = 1.0f - 2.0f * (zZ + xX);
-                _matrix.M23 = 2.0f * (yZ + wX);
-                _matrix.M24 = 0.0f;
-                _matrix.M31 = 2.0f * (xZ + wY);
-                _matrix.M32 = 2.0f * (yZ - wX);
-                _matrix.M33 = 1.0f - 2.0f * (yY + xX);
+                _matrix.M11 = 1f - 2f * (yY + zZ);
+                _matrix.M12 = 2f * (xY + wZ);
+                _matrix.M13 = 2f * (xZ - wY);
+                _matrix.M14 = 0f;
+                _matrix.M21 = 2f * (xY - wZ);
+                _matrix.M22 = 1f - 2f * (zZ + xX);
+                _matrix.M23 = 2f * (yZ + wX);
+                _matrix.M24 = 0f;
+                _matrix.M31 = 2f * (xZ + wY);
+                _matrix.M32 = 2f * (yZ - wX);
+                _matrix.M33 = 1f - 2f * (yY + xX);
             }
         }
 

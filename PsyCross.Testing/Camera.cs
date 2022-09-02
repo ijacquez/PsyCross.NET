@@ -32,7 +32,7 @@ namespace PsyCross.Testing {
 
         public float DepthNear { get; set; } = 0.5f;
 
-        public float DepthFar { get; set; } = 1000.0f;
+        public float DepthFar { get; set; } = 10.0f;
 
         public float ViewDistance { get; private set; }
 

@@ -1,13 +1,13 @@
 using System;
 
-namespace PsyCross.Testing {
-    public class GenPrimitiveAllocator {
+namespace PsyCross.Testing.Rendering.Internal {
+    internal class GenPrimitiveLinearAllocator {
         private readonly LinearAllocator<GenPrimitive> _genPrimitiveAllocator;
 
-        private GenPrimitiveAllocator() {
+        private GenPrimitiveLinearAllocator() {
         }
 
-        public GenPrimitiveAllocator(int capacity) {
+        public GenPrimitiveLinearAllocator(int capacity) {
             _genPrimitiveAllocator = new LinearAllocator<GenPrimitive>(capacity, GenPrimitiveCreator);
 
             GenPrimitive GenPrimitiveCreator() => new GenPrimitive();

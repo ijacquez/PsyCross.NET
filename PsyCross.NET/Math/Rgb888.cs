@@ -1,3 +1,5 @@
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PsyCross.Math {
@@ -12,6 +14,14 @@ namespace PsyCross.Math {
             G = g;
             B = b;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector3(Rgb888 v) => new Vector3(v.R, v.G, v.B) / 255f;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgb888(Vector3 v) => new Rgb888((byte)System.Math.Clamp(v.X * 255f, 0, 255),
+                                                                        (byte)System.Math.Clamp(v.Y * 255f, 0, 255),
+                                                                        (byte)System.Math.Clamp(v.Z * 255f, 0, 255));
 
         public override string ToString() =>
             $"#{R:X02}{G:X02}{B:X02}";

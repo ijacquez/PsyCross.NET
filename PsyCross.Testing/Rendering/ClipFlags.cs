@@ -1,6 +1,6 @@
 using System;
 
-namespace PsyCross.Testing {
+namespace PsyCross.Testing.Rendering {
     [Flags]
     public enum ClipFlags {
         None   = 0,
