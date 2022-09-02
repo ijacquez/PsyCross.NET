@@ -38,46 +38,6 @@ namespace PsyCross.Testing {
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
 
-        // public bool IsLit {
-        //     get {
-        //         switch (Type) {
-        //             case PsyQ.TmdPrimitiveType.F3:
-        //             case PsyQ.TmdPrimitiveType.G3:
-        //             case PsyQ.TmdPrimitiveType.Fg3:
-        //             case PsyQ.TmdPrimitiveType.Gg3:
-        //             case PsyQ.TmdPrimitiveType.Ft3:
-        //             case PsyQ.TmdPrimitiveType.Gt3:
-        //             case PsyQ.TmdPrimitiveType.F4:
-        //             case PsyQ.TmdPrimitiveType.G4:
-        //             case PsyQ.TmdPrimitiveType.Fg4:
-        //             case PsyQ.TmdPrimitiveType.Gg4:
-        //             case PsyQ.TmdPrimitiveType.Ft4:
-        //             case PsyQ.TmdPrimitiveType.Gt4:
-        //                 return true;
-        //             default:
-        //                 return false;
-        //         }
-        //     }
-        // }
-
-        // public bool IsTextured {
-        //     get {
-        //         switch (Type) {
-        //             case PsyQ.TmdPrimitiveType.Ft3:
-        //             case PsyQ.TmdPrimitiveType.Gt3:
-        //             case PsyQ.TmdPrimitiveType.Fnt3:
-        //             case PsyQ.TmdPrimitiveType.Gnt3:
-        //             case PsyQ.TmdPrimitiveType.Ft4:
-        //             case PsyQ.TmdPrimitiveType.Gt4:
-        //             case PsyQ.TmdPrimitiveType.Fnt4:
-        //             case PsyQ.TmdPrimitiveType.Gnt4:
-        //                 return true;
-        //             default:
-        //                 return false;
-        //         }
-        //     }
-        // }
-
         public static void Discard(GenPrimitive genPrimitive) {
             genPrimitive.Flags |= GenPrimitiveFlags.Discarded;
         }

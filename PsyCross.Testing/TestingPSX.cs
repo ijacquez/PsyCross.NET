@@ -311,7 +311,9 @@ namespace PsyCross.Testing {
                     genPrimitive.Texcoords[1] = spb.Texcoord;
                     genPrimitive.Texcoords[2] = spc.Texcoord;
 
-                    ClipTriangleGenPrimitiveNearPlane(render, genPrimitive);
+                    if ((BitwiseOrClipFlags(genPrimitive) & ClipFlags.Near) == ClipFlags.Near) {
+                        ClipTriangleGenPrimitiveNearPlane(render, genPrimitive);
+                    }
                 }
             } else {
                 // Get the midpoints of each edge of the triangle. From that,
@@ -366,10 +368,72 @@ namespace PsyCross.Testing {
                     genPrimitive.Texcoords[2] = spc.Texcoord;
                     genPrimitive.Texcoords[3] = spd.Texcoord;
 
-                    var triangleGenPrimitives = TriangulateQuadGenPrimitive(render, genPrimitive);
+                    Span<ClipFlags> tri1ClipFlags = stackalloc ClipFlags[3];
+                    Span<ClipFlags> tri2ClipFlags = stackalloc ClipFlags[3];
 
-                    ClipTriangleGenPrimitiveNearPlane(render, triangleGenPrimitives[0]);
-                    ClipTriangleGenPrimitiveNearPlane(render, triangleGenPrimitives[1]);
+                    // Before triangulating the quad primitive, first check if
+                    // it's at all clipping the near plane
+                    TriangulateQuadOrder(genPrimitive.ClipFlags, tri1ClipFlags, tri2ClipFlags);
+
+                    ClipFlags tri1ClipFlagOrMask = BitwiseOrClipFlags(tri1ClipFlags);
+                    ClipFlags tri2ClipFlagOrMask = BitwiseOrClipFlags(tri2ClipFlags);
+
+                    // Check if either of the two are clipping the near plane
+                    if (((tri1ClipFlagOrMask | tri2ClipFlagOrMask) & ClipFlags.Near) == ClipFlags.Near) {
+                        // We're forced to triangulate
+
+                        // Have the current generated primitive be the first triangle
+                        GenPrimitive tri1GenPrimitive = genPrimitive;
+                        GenPrimitive tri2GenPrimitive = render.AcquireGenPrimitive();
+
+                        Span<Vector3> tri1ViewPoints = tri1GenPrimitive.ViewPoints;
+                        Span<Vector3> tri2ViewPoints = tri2GenPrimitive.ViewPoints;
+
+                        Span<Rgb888> tri1GouraudShadingColors = tri1GenPrimitive.GouraudShadingColors;
+                        Span<Rgb888> tri2GouraudShadingColors = tri2GenPrimitive.GouraudShadingColors;
+
+                        Span<Texcoord> tri1Texcoords = tri1GenPrimitive.Texcoords;
+                        Span<Texcoord> tri2Texcoords = tri2GenPrimitive.Texcoords;
+
+                        TriangulateQuadOrder(genPrimitive.ViewPoints, tri1ViewPoints, tri2ViewPoints);
+                        TriangulateQuadOrder(genPrimitive.GouraudShadingColors, tri1GouraudShadingColors, tri2GouraudShadingColors);
+                        TriangulateQuadOrder(genPrimitive.Texcoords, tri1Texcoords, tri2Texcoords);
+
+                        tri1ClipFlags.CopyTo(tri1GenPrimitive.ClipFlags);
+                        tri2ClipFlags.CopyTo(tri2GenPrimitive.ClipFlags);
+
+                        tri1GenPrimitive.Type = (PsyQ.TmdPrimitiveType)(tri1GenPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
+                        tri1GenPrimitive.VertexCount = 3;
+                        tri1GenPrimitive.NormalCount = (tri1GenPrimitive.NormalCount >= 4) ? 3 : tri1GenPrimitive.NormalCount;
+
+                        tri2GenPrimitive.Flags = tri1GenPrimitive.Flags;
+                        tri2GenPrimitive.Type = tri1GenPrimitive.Type;
+                        tri2GenPrimitive.VertexCount = tri1GenPrimitive.VertexCount;
+                        tri2GenPrimitive.NormalCount = tri1GenPrimitive.NormalCount;
+                        tri2GenPrimitive.FaceNormal = tri1GenPrimitive.FaceNormal;
+                        tri2GenPrimitive.TPageId = tri1GenPrimitive.TPageId;
+                        tri2GenPrimitive.ClutId = tri1GenPrimitive.ClutId;
+
+                        ClipFlags tri1ClipFlagAndMask = BitwiseAndClipFlags(tri1ClipFlags);
+                        ClipFlags tri2ClipFlagAndMask = BitwiseAndClipFlags(tri2ClipFlags);
+
+                        // Consider the case when a little over half the quad
+                        // intersects the near plane. When triangulated, one
+                        // triangle is now intersecting the near plane while the
+                        // other is completely behind the near plane. At this
+                        // point, we need to cull the triangle completely
+                        if (tri1ClipFlagAndMask != ClipFlags.None) {
+                            GenPrimitive.Discard(tri1GenPrimitive);
+                        } else if ((tri1ClipFlagOrMask & ClipFlags.Near) == ClipFlags.Near) {
+                            ClipTriangleGenPrimitiveNearPlane(render, tri1GenPrimitive);
+                        }
+
+                        if (tri2ClipFlagAndMask != ClipFlags.None) {
+                            GenPrimitive.Discard(tri2GenPrimitive);
+                        } else if ((tri2ClipFlagOrMask & ClipFlags.Near) == ClipFlags.Near) {
+                            ClipTriangleGenPrimitiveNearPlane(render, tri2GenPrimitive);
+                        }
+                    }
                 }
             } else {
                 // Vertex order for a quad:
@@ -390,6 +454,16 @@ namespace PsyCross.Testing {
                 SubdivideQuadGenPrimitive(render, baseGenPrimitive, midPoints[1],  centerPoint,          spc, midPoints[2], level - 1);
                 SubdivideQuadGenPrimitive(render, baseGenPrimitive,  centerPoint, midPoints[3], midPoints[2],          spd, level - 1);
             }
+        }
+
+        private static void TriangulateQuadOrder<T>(ReadOnlySpan<T> quadPoints, Span<T> tri1Points, Span<T> tri2Points) where T : struct {
+            tri1Points[0] = quadPoints[0];
+            tri1Points[1] = quadPoints[1];
+            tri1Points[2] = quadPoints[2];
+
+            tri2Points[0] = quadPoints[2];
+            tri2Points[1] = quadPoints[1];
+            tri2Points[2] = quadPoints[3];
         }
 
         private static void DrawGenPrimitive(Render render, GenPrimitive genPrimitive) {
@@ -445,19 +519,6 @@ namespace PsyCross.Testing {
         }
 
         private static void ClipTriangleGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
-            ClipFlags clipFlagsMask = genPrimitive.ClipFlags[0] | genPrimitive.ClipFlags[1] | genPrimitive.ClipFlags[2];
-
-            if ((clipFlagsMask & ClipFlags.Near) != ClipFlags.Near) {
-                // Console.WriteLine($"--------> No near Clip ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
-                return;
-            }
-
-            if (TestOutsideFustrum(genPrimitive)) {
-                // Console.WriteLine($"--------> Cull ({genPrimitive.ClipFlags[0]}) ({genPrimitive.ClipFlags[1]}) ({genPrimitive.ClipFlags[2]})");
-                GenPrimitive.Discard(genPrimitive);
-                return;
-            }
-
             Span<int> interiorVertexIndices = stackalloc int[3];
             Span<int> exteriorVertexIndices = stackalloc int[3];
 
@@ -548,57 +609,6 @@ namespace PsyCross.Testing {
                 newGenPrimitive.Texcoords[vertexIndices[1]] = genPrimitive.Texcoords[vertexIndices[2]];
                 newGenPrimitive.Texcoords[vertexIndices[2]] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
             }
-        }
-
-        private static GenPrimitive[] _TriangulateQuadGenPrimitives { get; } = new GenPrimitive[2];
-
-        private static ReadOnlySpan<GenPrimitive> TriangulateQuadGenPrimitive(Render render, GenPrimitive degenerateGenPrim) {
-            const int V0 = 2;
-            const int V1 = 1;
-            const int V2 = 3;
-
-            GenPrimitive otherTriGenPrim = render.AcquireGenPrimitive();
-
-            otherTriGenPrim.PolygonVertices[0] = degenerateGenPrim.PolygonVertices[V0];
-            otherTriGenPrim.PolygonVertices[1] = degenerateGenPrim.PolygonVertices[V1];
-            otherTriGenPrim.PolygonVertices[2] = degenerateGenPrim.PolygonVertices[V2];
-
-            otherTriGenPrim.PolygonNormals[0] = degenerateGenPrim.PolygonNormals[V0];
-            otherTriGenPrim.PolygonNormals[1] = degenerateGenPrim.PolygonNormals[V1];
-            otherTriGenPrim.PolygonNormals[2] = degenerateGenPrim.PolygonNormals[V2];
-
-            otherTriGenPrim.ViewPoints[0] = degenerateGenPrim.ViewPoints[V0];
-            otherTriGenPrim.ViewPoints[1] = degenerateGenPrim.ViewPoints[V1];
-            otherTriGenPrim.ViewPoints[2] = degenerateGenPrim.ViewPoints[V2];
-
-            otherTriGenPrim.Texcoords[0] = degenerateGenPrim.Texcoords[V0];
-            otherTriGenPrim.Texcoords[1] = degenerateGenPrim.Texcoords[V1];
-            otherTriGenPrim.Texcoords[2] = degenerateGenPrim.Texcoords[V2];
-
-            otherTriGenPrim.GouraudShadingColors[0] = degenerateGenPrim.GouraudShadingColors[V0];
-            otherTriGenPrim.GouraudShadingColors[1] = degenerateGenPrim.GouraudShadingColors[V1];
-            otherTriGenPrim.GouraudShadingColors[2] = degenerateGenPrim.GouraudShadingColors[V2];
-
-            otherTriGenPrim.ClipFlags[0] = degenerateGenPrim.ClipFlags[V0];
-            otherTriGenPrim.ClipFlags[1] = degenerateGenPrim.ClipFlags[V1];
-            otherTriGenPrim.ClipFlags[2] = degenerateGenPrim.ClipFlags[V2];
-
-            otherTriGenPrim.FaceNormal = degenerateGenPrim.FaceNormal;
-            otherTriGenPrim.TPageId = degenerateGenPrim.TPageId;
-            otherTriGenPrim.ClutId = degenerateGenPrim.ClutId;
-
-            degenerateGenPrim.Type = (PsyQ.TmdPrimitiveType)(degenerateGenPrim.Type - PsyQ.TmdPrimitiveType.F4);
-            degenerateGenPrim.VertexCount = 3;
-            degenerateGenPrim.NormalCount = (degenerateGenPrim.NormalCount >= 4) ? 3 : degenerateGenPrim.NormalCount;
-
-            otherTriGenPrim.Type = degenerateGenPrim.Type;
-            otherTriGenPrim.VertexCount = degenerateGenPrim.VertexCount;
-            otherTriGenPrim.NormalCount = degenerateGenPrim.NormalCount;
-
-            _TriangulateQuadGenPrimitives[0] = degenerateGenPrim;
-            _TriangulateQuadGenPrimitives[1] = otherTriGenPrim;
-
-            return new ReadOnlySpan<GenPrimitive>(_TriangulateQuadGenPrimitives);
         }
 
         private static CommandHandle DrawPrimitive(Render render, GenPrimitive genPrimitive) {
