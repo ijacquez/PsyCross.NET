@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System;
 
 namespace PsyCross.OpenTK {
+    using System.Runtime.InteropServices;
     using global::OpenTK.Graphics.OpenGL4;
     using global::OpenTK.Mathematics;
     using global::OpenTK.Windowing.Common;
@@ -14,10 +15,11 @@ namespace PsyCross.OpenTK {
     using global::OpenTK.Windowing.GraphicsLibraryFramework;
 
     public class Window {
-        private const string _PositionAttribName = "in_position";
-        private const string _TexcoordAttribName = "in_texcoord";
+        private const string _PositionAttribName      = "in_position";
+        private const string _TexcoordAttribName      = "in_texcoord";
 
-        private uint[] _displayBuffer;
+        private const string _Is24BitDepthUniformName = "is24BitDepth";
+
         private readonly Dictionary<Keys, JoyPad> _gamepadKeyMap;
         // private AudioPlayer audioPlayer = new AudioPlayer();
 
@@ -103,10 +105,11 @@ namespace PsyCross.OpenTK {
             var fragmentShaderSource = LoadShaderSource(ShaderType.FragmentShader, "Shaders/model_view.frag");
 
             _shader = new Shader("main", vertexShaderSource, fragmentShaderSource);
-            _texture = new Texture("main_tex", Psx.Gpu.Vram.Width, Psx.Gpu.Vram.Height, data: null, srgb: false);
+            _texture = new Texture("main_tex", Psx.Gpu.Vram.Width, Psx.Gpu.Vram.Height, SizedInternalFormat.Rgb5A1);
 
             _texture.SetMinFilter(TextureMinFilter.Nearest);
             _texture.SetMagFilter(TextureMagFilter.Nearest);
+            _texture.SetTextureMaxLevel(0);
 
             _vaoHandle = GL.GenVertexArray();
             GL.BindVertexArray(_vaoHandle);
@@ -161,6 +164,8 @@ namespace PsyCross.OpenTK {
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vboHandle);
 
             UploadVertexBuffer();
+
+            _shader.SetBool(_Is24BitDepthUniformName, Psx.Gpu.Is24BitDepth);
 
             GL.DrawArrays(PrimitiveType.Triangles, first: 0, (_VertexTexcoordBuffer.Length / 5));
 
@@ -223,9 +228,8 @@ namespace PsyCross.OpenTK {
 
         private void Render() {
             _vSyncCounter++;
-            _displayBuffer = Psx.Gpu.Vram.Bits;
 
-            _texture.Update(_displayBuffer);
+            _texture.Update(Psx.Gpu.Vram.Bits, PixelFormat.Bgra, PixelType.UnsignedByte);
         }
 
         private void UpdateTexcoords(int x, int y, int width, int height) {

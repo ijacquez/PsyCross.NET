@@ -11,7 +11,7 @@ namespace PsyCross {
 
             public bool IsDithered { get; set; }
 
-            public bool IsDraw { get; set; }
+            public bool IsDraw { get; }
 
             public bool IsClear { get; set; }
 

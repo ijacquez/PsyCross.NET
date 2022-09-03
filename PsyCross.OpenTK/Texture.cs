@@ -29,64 +29,16 @@ namespace PsyCross.OpenTK.Types {
         private Texture() {
         }
 
-        public Texture(string name, int width, int height, uint[] data, bool srgb) {
+        public Texture(string name, int width, int height, SizedInternalFormat internalFormat) {
             Name = name;
-            Width = width;
-            Height = height;
-            InternalFormat = srgb ? Srgb8Alpha8 : SizedInternalFormat.Rgba8;
-
-            DebugUtility.CheckGLError("Clear");
-
-            ObjectUtility.CreateTexture(TextureTarget.Texture2D, Name, out int texture);
-            Handle = texture;
-            GL.TextureStorage2D(Handle, 1, InternalFormat, Width, Height);
-            DebugUtility.CheckGLError("Storage2d");
-
-            if (data != null) {
-                GL.TextureSubImage2D(Handle, level: 0, xoffset: 0, yoffset: 0, Width, Height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
-                DebugUtility.CheckGLError("SubImage");
-            }
-
-            GL.TextureParameter(Handle, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-            DebugUtility.CheckGLError("WrapS");
-            GL.TextureParameter(Handle, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-            DebugUtility.CheckGLError("WrapT");
-
-            GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, 0);
-        }
-
-        public Texture(string name, int handler, int width, int height, SizedInternalFormat internalFormat) {
-            Name = name;
-            Handle = handler;
             Width = width;
             Height = height;
             InternalFormat = internalFormat;
-        }
-
-        public Texture(string name, int width, int height, IntPtr data, bool srgb = false) {
-            Name = name;
-            Width = width;
-            Height = height;
-            InternalFormat = srgb ? Srgb8Alpha8 : SizedInternalFormat.Rgba8;
-
-            DebugUtility.CheckGLError("Clear");
 
             ObjectUtility.CreateTexture(TextureTarget.Texture2D, Name, out int texture);
             Handle = texture;
             GL.TextureStorage2D(Handle, 1, InternalFormat, Width, Height);
             DebugUtility.CheckGLError("Storage2d");
-
-            if (data != null) {
-                GL.TextureSubImage2D(Handle, level: 0, xoffset: 0, yoffset: 0, Width, Height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
-                DebugUtility.CheckGLError("SubImage");
-            }
-
-            GL.TextureParameter(Handle, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-            DebugUtility.CheckGLError("WrapS");
-            GL.TextureParameter(Handle, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-            DebugUtility.CheckGLError("WrapT");
-
-            GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, 0);
         }
 
         public void Use(TextureUnit unit) {
@@ -94,13 +46,18 @@ namespace PsyCross.OpenTK.Types {
             GL.BindTexture(TextureTarget.Texture2D, Handle);
         }
 
-        public void Update(uint[] data) {
-            GL.TextureSubImage2D(Handle, 0, 0, 0, Width, Height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
+        public void Update(ushort[] data, PixelFormat pixelFormat, PixelType pixelType) {
+            GL.TextureSubImage2D(Handle, 0, 0, 0, Width, Height, pixelFormat, pixelType, data);
             DebugUtility.CheckGLError("SubImage");
         }
 
-        public void Update(IntPtr data) {
-            GL.TextureSubImage2D(Handle, 0, 0, 0, Width, Height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
+        public void Update(uint[] data, PixelFormat pixelFormat, PixelType pixelType) {
+            GL.TextureSubImage2D(Handle, 0, 0, 0, Width, Height, pixelFormat, pixelType, data);
+            DebugUtility.CheckGLError("SubImage");
+        }
+
+        public void Update(IntPtr data, PixelFormat pixelFormat, PixelType pixelType) {
+            GL.TextureSubImage2D(Handle, 0, 0, 0, Width, Height, pixelFormat, pixelType, data);
             DebugUtility.CheckGLError("SubImage");
         }
 
@@ -124,6 +81,10 @@ namespace PsyCross.OpenTK.Types {
             GL.TextureParameter(Handle, TextureParameterName.TextureLodBias, @base);
             GL.TextureParameter(Handle, TextureParameterName.TextureMinLod, min);
             GL.TextureParameter(Handle, TextureParameterName.TextureMaxLod, max);
+        }
+
+        public void SetTextureMaxLevel(int level) {
+            GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, level);
         }
 
         public void SetWrap(TextureCoord coord, TextureWrapMode mode) {

@@ -43,10 +43,10 @@ namespace PsyCross.Testing.Rendering {
         }
 
         public static void ClearClipFlags(GenPrimitive genPrimitive) {
-            genPrimitive.ClipFlags[0] = PsyCross.Testing.ClipFlags.None;
-            genPrimitive.ClipFlags[1] = PsyCross.Testing.ClipFlags.None;
-            genPrimitive.ClipFlags[2] = PsyCross.Testing.ClipFlags.None;
-            genPrimitive.ClipFlags[genPrimitive.ClipFlags.Length - 1] = PsyCross.Testing.ClipFlags.None;
+            genPrimitive.ClipFlags[0] = PsyCross.Testing.Rendering.ClipFlags.None;
+            genPrimitive.ClipFlags[1] = PsyCross.Testing.Rendering.ClipFlags.None;
+            genPrimitive.ClipFlags[2] = PsyCross.Testing.Rendering.ClipFlags.None;
+            genPrimitive.ClipFlags[genPrimitive.ClipFlags.Length - 1] = PsyCross.Testing.Rendering.ClipFlags.None;
         }
 
         public static void Copy(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {

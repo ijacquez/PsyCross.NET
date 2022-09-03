@@ -99,6 +99,10 @@ namespace PsyCross.OpenTK.Types {
             return attribs;
         }
 
+        public void SetBool(string uniform, bool value) {
+            SetInt(uniform, (value) ? 1 : 0);
+        }
+
         public void SetInt(string uniform, int value) {
             if (!_uniformToLocation.TryGetValue(uniform, out int location)) {
                 System.Console.WriteLine($"The uniform '{uniform}' does not exist in the shader '{Name}'!");

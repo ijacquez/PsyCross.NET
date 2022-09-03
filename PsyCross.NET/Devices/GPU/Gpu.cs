@@ -16,6 +16,15 @@ namespace ProjectPSX.Devices {
         private static readonly int[] _Resolutions = { 256, 320, 512, 640, 368 }; // GPUSTAT res index
         private static readonly int[] _DotClockDiv = { 10, 8, 5, 4, 7 };
 
+        private static readonly int[,] _DitherTable = new int[,] {
+            { -4, +0, -3, +1 }, // ;\ Dither offsets for first two scanlines
+            { +2, -2, +3, -1 }, // ;/
+            { -3, +1, -4, +0 }, // ;\ Dither offsets for next two scanlines
+            { +3, -1, +2, -2 }  // ;/  (same as above, but shifted two pixels horizontally)
+        };
+
+        private static byte[,,] _DitherTableWithSaturation = new byte[4, 4, 512];
+
         private enum Mode {
             Command,
             Vram
@@ -143,13 +152,23 @@ namespace ProjectPSX.Devices {
         private int _verticalTiming   = 263;
 
         public Gpu() {
+            InitDitheringTable();
+
             _mode = Mode.Command;
             GP1_00_ResetGpu();
         }
 
-        public Vram Vram { get; } = new Vram(1024, 512); // VRAM is 8888 and we transform everything to it
+        // VRAM is 8888 and we transform everything to it
+        public Vram Vram { get; } = new Vram(1024, 512);
 
-        public Vram1555 Vram1555 { get; } = new Vram1555(1024, 512); // An un transformed 1555 to 8888 vram so we can fetch clut indexes without reverting to 1555
+        // An un-transformed 1555 to 8888 VRAM so we can fetch CLUT indexes
+        // without reverting to 1555
+        //
+        // We need another copy of VRAM as CLUTs technically could be stored
+        // anywhere in VRAM
+        public Vram1555 Vram1555 { get; } = new Vram1555(1024, 512);
+
+        public bool Is24BitDepth => _is24BitDepth;
 
         public Vector2Int DisplayVramStart =>
             new Vector2Int(_displayVramXStart, _displayVramYStart);
@@ -251,7 +270,8 @@ namespace ProjectPSX.Devices {
 
             DrawVramPixel(pixel0);
 
-            //Force exit if we arrived to the end pixel (fixes weird artifacts on textures on Metal Gear Solid)
+            // Force exit if we arrived to the end pixel (fixes weird artifacts
+            // on textures on Metal Gear Solid)
             if (--_vramTransfer.halfWords == 0) {
                 _mode = Mode.Command;
                 return;
@@ -281,21 +301,21 @@ namespace ProjectPSX.Devices {
                 _isReadyToReceiveDmaBlock = true;
             }
 
-            return (uint)(pixel1 << 16 | pixel0);
+            return (uint)((pixel1 << 16) | pixel0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DrawVramPixel(ushort val) {
+        private void DrawVramPixel(ushort pixelValue) {
             if (_checkMaskBeforeDraw) {
                 uint bg = Vram.GetPixelRgb888(_vramTransfer.X, _vramTransfer.Y);
 
-                if (bg >> 24 == 0) {
-                    Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, Color1555to8888(val));
-                    Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, val);
+                if ((bg >> 24) == 0) {
+                    Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, Color1555to8888(pixelValue));
+                    Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, pixelValue);
                 }
             } else {
-                Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, Color1555to8888(val));
-                Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, val);
+                Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, Color1555to8888(pixelValue));
+                Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, pixelValue);
             }
 
             _vramTransfer.X++;
@@ -521,8 +541,6 @@ namespace ProjectPSX.Devices {
             _max.X = (short)Math.Min(maxX, _drawingAreaRight);
             _max.Y = (short)Math.Min(maxY, _drawingAreaBottom);
 
-            // Console.WriteLine($"{_min.X},{_min.Y} => {_max.X},{_max.Y}");
-
             int A01 = v0.Y - v1.Y, B01 = v1.X - v0.X;
             int A12 = v1.Y - v2.Y, B12 = v2.X - v1.X;
             int A20 = v2.Y - v0.Y, B20 = v0.X - v2.X;
@@ -602,8 +620,12 @@ namespace ProjectPSX.Devices {
                             color = texel;
                         }
 
-                        if (primitive.IsSemiTransparent && (!primitive.IsTextured || (color & 0xFF00_0000) != 0)) {
+                        if (primitive.IsSemiTransparent && (!primitive.IsTextured || ((color & 0xFF00_0000) != 0))) {
                             color = HandleSemiTransp(x, y, color, primitive.SemiTransparencyMode);
+                        }
+
+                        if (_isDithered) {
+                            color = HandleDithering(x, y, color);
                         }
 
                         color |= _maskWhileDrawing << 24;
@@ -678,7 +700,9 @@ namespace ProjectPSX.Devices {
             short x2 = Signed11bit(v2 & 0xFFFF);
             short y2 = Signed11bit(v2 >> 16);
 
-            if (Math.Abs(x - x2) > 0x3FF || Math.Abs(y - y2) > 0x1FF) return;
+            if ((Math.Abs(x - x2) > 0x3FF) || (Math.Abs(y - y2) > 0x1FF)) {
+                return;
+            }
 
             x += _drawingXOffset;
             y += _drawingYOffset;
@@ -710,13 +734,17 @@ namespace ProjectPSX.Devices {
                 float ratio = (float)i / longest;
                 uint color = Lerp(color1, color2, ratio);
 
-                //x = (short)Math.Min(Math.Max(x, drawingAreaLeft), drawingAreaRight); //this generates glitches on RR4
-                //y = (short)Math.Min(Math.Max(y, drawingAreaTop), drawingAreaBottom);
+                // x = (short)Math.Min(Math.Max(x, drawingAreaLeft), drawingAreaRight); //this generates glitches on RR4
+                // y = (short)Math.Min(Math.Max(y, drawingAreaTop), drawingAreaBottom);
 
                 if (x >= _drawingAreaLeft && x < _drawingAreaRight && y >= _drawingAreaTop && y < _drawingAreaBottom) {
-                    //if (primitive.isSemiTransparent && (!primitive.isTextured || (color & 0xFF00_0000) != 0)) {
+                    // if (primitive.isSemiTransparent && (!primitive.isTextured || (color & 0xFF00_0000) != 0)) {
                     if (isTransparent) {
                         color = HandleSemiTransp(x, y, color, _transparencyMode);
+                    }
+
+                    if (_isDithered) {
+                        color = HandleDithering(x, y, color);
                     }
 
                     color |= _maskWhileDrawing << 24;
@@ -734,7 +762,6 @@ namespace ProjectPSX.Devices {
                     y += (short)dy2;
                 }
             }
-            // Console.ReadLine();
         }
 
         private void GP0_RenderRectangle(ReadOnlySpan<uint> buffer) {
@@ -858,11 +885,14 @@ namespace ProjectPSX.Devices {
                         color = HandleSemiTransp(x, y, color, primitive.SemiTransparencyMode);
                     }
 
+                    if (_isDithered) {
+                        color = HandleDithering(x, y, color);
+                    }
+
                     color |= _maskWhileDrawing << 24;
 
                     Vram.SetPixel(x, y, color);
                 }
-
             }
         }
 
@@ -1159,31 +1189,55 @@ namespace ProjectPSX.Devices {
             return texpage;
         }
 
+        private static void InitDitheringTable() {
+            for (int y = 0; y < 4; y++) {
+                for (int x = 0; x < 4; x++) {
+                    for (int v = 0; v < 512; v++) {
+                        _DitherTableWithSaturation[y, x, v] = (byte)System.Math.Clamp((v + _DitherTable[y, x]), 0, 255);
+                    }
+                }
+            }
+        }
+
+        private static uint HandleDithering(int x, int y, uint color) {
+            int px = x & 3;
+            int py = y & 3;
+
+            Color color0 = default(Color);
+            color0.Value = (uint)color;
+
+            color0.R = _DitherTableWithSaturation[py, px, color0.R];
+            color0.G = _DitherTableWithSaturation[py, px, color0.G];
+            color0.B = _DitherTableWithSaturation[py, px, color0.B];
+
+            return color0.Value;
+        }
+
         private uint HandleSemiTransp(int x, int y, uint color, int semiTranspMode) {
-            _color0.Value = (uint)Vram.GetPixelRgb888(x, y); //back
-            _color1.Value = (uint)color; //front
+            _color0.Value = (uint)Vram.GetPixelRgb888(x, y); // Back
+            _color1.Value = (uint)color; // Front
             switch (semiTranspMode) {
-                case 0: //0.5 x B + 0.5 x F    ;aka B/2+F/2
+                case 0: //0.5 x B + 0.5 x F   ; AKA B/2+F/2
                     _color1.R = (byte)((_color0.R + _color1.R) >> 1);
                     _color1.G = (byte)((_color0.G + _color1.G) >> 1);
                     _color1.B = (byte)((_color0.B + _color1.B) >> 1);
                     break;
-                case 1://1.0 x B + 1.0 x F    ;aka B+F
+                case 1://1.0 x B + 1.0 x F    ; AKA B+F
                     _color1.R = ClampTo255(_color0.R + _color1.R);
                     _color1.G = ClampTo255(_color0.G + _color1.G);
                     _color1.B = ClampTo255(_color0.B + _color1.B);
                     break;
-                case 2: //1.0 x B - 1.0 x F    ;aka B-F
+                case 2: //1.0 x B - 1.0 x F   ; AKA B-F
                     _color1.R = ClampToZero(_color0.R - _color1.R);
                     _color1.G = ClampToZero(_color0.G - _color1.G);
                     _color1.B = ClampToZero(_color0.B - _color1.B);
                     break;
-                case 3: //1.0 x B +0.25 x F    ;aka B+F/4
+                case 3: //1.0 x B +0.25 x F   ; AKA B+F/4
                     _color1.R = ClampTo255(_color0.R + (_color1.R >> 2));
                     _color1.G = ClampTo255(_color0.G + (_color1.G >> 2));
                     _color1.B = ClampTo255(_color0.B + (_color1.B >> 2));
                     break;
-            }//actually doing RGB calcs on BGR struct...
+            } // Actually doing RGB calcs on BGR struct...
             return _color1.Value;
         }
 
@@ -1231,15 +1285,15 @@ namespace ProjectPSX.Devices {
             return (short)(((int)n << 21) >> 21);
         }
 
-        // This needs to go away once a BGR bitmap is achieved
+        // XXX: This needs to go away once a BGR bitmap is achieved
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint Color1555to8888(ushort val) {
-            byte m = (byte)(val >> 15);
-            byte r = (byte)((val & 0x1F) << 3);
-            byte g = (byte)(((val >> 5) & 0x1F) << 3);
-            byte b = (byte)(((val >> 10) & 0x1F) << 3);
+        private static uint Color1555to8888(ushort colorValue) {
+            byte m = (byte)(colorValue >> 15);
+            byte r = (byte)((colorValue & 0x1F) << 3);
+            byte g = (byte)(((colorValue >> 5) & 0x1F) << 3);
+            byte b = (byte)(((colorValue >> 10) & 0x1F) << 3);
 
-            return (uint)(m << 24 | r << 16 | g << 8 | b);
+            return (uint)((m << 24) | (r << 16) | (g << 8) | b);
         }
 
         // This is only needed for the Direct GP0 commands as the command number

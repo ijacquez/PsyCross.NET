@@ -21,11 +21,16 @@ namespace PsyCross.Testing {
             _DispEnv[1] = new PsyQ.DispEnv(new RectInt(0, _ScreenHeight, _ScreenWidth, _ScreenHeight));
             _DrawEnv[1] = new PsyQ.DrawEnv(new RectInt(0,             0, _ScreenWidth, _ScreenHeight), new Vector2Int(_ScreenWidth / 2, _ScreenHeight / 2));
 
+            _DispEnv[0].IsRgb24 = false;
+            _DispEnv[1].IsRgb24 = false;
+            
             _DrawEnv[0].Color = new Rgb888(0x10, 0x60, 0x10);
             _DrawEnv[0].IsClear = true;
+            _DrawEnv[0].IsDithered = true;
 
             _DrawEnv[1].Color = new Rgb888(0x10, 0x60, 0x10);
             _DrawEnv[1].IsClear = true;
+            _DrawEnv[1].IsDithered = true;
 
             _EnvIndex = 0;
 
@@ -76,7 +81,7 @@ namespace PsyCross.Testing {
             _light2.Direction = new Vector3(0, -1, 0);
             _light2.Color = Rgb888.Red;
 
-            _camera.Fov = 70;
+            _camera.Fov = 123.855f;
 
             _flyCamera = new FlyCamera(_camera);
 

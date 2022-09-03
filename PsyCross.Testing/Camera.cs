@@ -32,7 +32,7 @@ namespace PsyCross.Testing {
 
         public float DepthNear { get; set; } = 0.5f;
 
-        public float DepthFar { get; set; } = 10.0f;
+        public float DepthFar { get; set; } = 100.0f;
 
         public float ViewDistance { get; private set; }
 
@@ -84,7 +84,7 @@ namespace PsyCross.Testing {
             get => MathHelper.RadiansToDegrees(_fov);
 
             set {
-                var angle = System.Math.Clamp(value, 1.0f, 90.0f);
+                var angle = System.Math.Clamp(value, 1.0f, 180.0f);
 
                 _fov = MathHelper.DegreesToRadians(angle);
 

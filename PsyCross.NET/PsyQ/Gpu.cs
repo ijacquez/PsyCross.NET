@@ -68,7 +68,9 @@ namespace PsyCross {
             Psx.Gpu.WriteGP0(0xE4_000000 | ((y2 & 0x1FF) << 10) | (x2 & 0x3FF)); // Set Drawing Area bottom right (X2,Y2)
             Psx.Gpu.WriteGP0(0xE5_000000 | (uint)(((offsetY & 0x7FF) << 11) | (offsetX & 0x7FF))); // Must allow -1024...+1023
 
-            Psx.Gpu.WriteGP1(0x08_000000 | horizontalRes1);
+            uint isRgb24Bit = (PsyQ.ActiveDispEnv.IsRgb24) ? 1U << 4 : 0;
+
+            Psx.Gpu.WriteGP1(0x08_000000 | horizontalRes1 | isRgb24Bit);
 
             uint dx1 = (uint)PsyQ.ActiveDispEnv.Rect.X;
             uint dy1 = (uint)PsyQ.ActiveDispEnv.Rect.Y;

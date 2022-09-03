@@ -54,20 +54,32 @@ namespace PsyCross.Testing.Rendering {
                     TransformToWorld(render, currentGenPrimitive);
 
                     // Perform fog
-                    float FogDistance = render.Camera.DepthFar * 0.60f;
+                    // float FogStart = render.Camera.DepthNear + 2.5f;
+                    // float FogEnd = FogStart*10;
+                    float FogStart = 0.8f;
+                    float FogEnd = 4f;
+
+                    float FogDifferenceDenom = 1f / (FogEnd - FogStart);
+                    // DQA
+                    float FogCoefficient = -(FogStart * FogEnd) * FogDifferenceDenom;
+                    // DQB
+                    float FogOffset = FogEnd * FogDifferenceDenom;
+                    // XXX: Move over as a function
+                    Func<float, float> CalculateFogIntensity = (z) =>
+                        System.Math.Clamp(((FogCoefficient / z) + FogOffset), 0f, 1f);
 
                     Vector3 bgColor = render.DrawEnv.Color;
                     Vector3 ambientColor = Rgb888.White;
 
                     for (int i = 0; i < currentGenPrimitive.VertexCount; i++) {
-                        float fogDistance = (render.Camera.ViewDistance / 160.0f) * currentGenPrimitive.ViewPoints[i].Z;
-                        float fogDistanceClamped = System.Math.Clamp(fogDistance, 0f, FogDistance);
-                        float t = 1f - (fogDistanceClamped / FogDistance);
+                        float z = System.Math.Max(currentGenPrimitive.ViewPoints[i].Z, render.Camera.DepthNear);
 
-                        Vector3 lerpedColor = Vector3.Lerp(bgColor, ambientColor, t);
+                        // https://www.sjbaker.org/steve/omniv/love_your_z_buffer.html
+                        // Fog intensity: [0..1]
+                        float fogIntensity = CalculateFogIntensity(z);
+
+                        Vector3 lerpedColor = Vector3.Lerp(ambientColor, bgColor, fogIntensity);
                         Rgb888 color = lerpedColor;
-
-                        Console.WriteLine($"{fogDistanceClamped} -> {t} -> {color}");
 
                         genPrimitive.GouraudShadingColors[i] = color;
                     }
@@ -75,7 +87,7 @@ namespace PsyCross.Testing.Rendering {
                     // Perform light source calculation
                     // XXX: Change this to check lighting
                     if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
-                        CalculateLighting(render, currentGenPrimitive);
+                        // CalculateLighting(render, currentGenPrimitive);
                     }
 
                     // Get the distance from the primitive and calculate the

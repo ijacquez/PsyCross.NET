@@ -27,6 +27,5 @@ namespace PsyCross.Devices.GPU {
             int index = x + (y * Width);
             return Bits[index];
         }
-
     }
 }
