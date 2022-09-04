@@ -105,7 +105,7 @@ namespace PsyCross.OpenTK {
             var fragmentShaderSource = LoadShaderSource(ShaderType.FragmentShader, "Shaders/model_view.frag");
 
             _shader = new Shader("main", vertexShaderSource, fragmentShaderSource);
-            _texture = new Texture("main_tex", Psx.Gpu.Vram.Width, Psx.Gpu.Vram.Height, SizedInternalFormat.Rgb5A1);
+            _texture = new Texture("main_tex", Psx.Gpu.Vram.Width, Psx.Gpu.Vram.Height, SizedInternalFormat.Rgb8);
 
             _texture.SetMinFilter(TextureMinFilter.Nearest);
             _texture.SetMagFilter(TextureMagFilter.Nearest);

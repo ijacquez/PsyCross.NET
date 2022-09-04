@@ -86,6 +86,7 @@ namespace PsyCross {
             [FieldOffset( 0)] public short X;
             [FieldOffset( 2)] public short Y;
             [FieldOffset( 4)] public short Z;
+            [FieldOffset( 6)] public short W; // May contain extra information
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 4)]
@@ -138,7 +139,7 @@ namespace PsyCross {
         #region Triangles with lighting
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
-        public struct TmdPrimitiveF3 : ITmdPrimitive {
+        public struct TmdPrimitiveF3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexNormal;
@@ -148,15 +149,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.F3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => _IndexNormal;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexNormal; set => _IndexNormal = (ushort)value; }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -180,7 +181,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 16)]
-        public struct TmdPrimitiveG3 : ITmdPrimitive {
+        public struct TmdPrimitiveG3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexN0;
@@ -192,15 +193,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.G3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => _IndexN0;
-            public int IndexN1 => _IndexN1;
-            public int IndexN2 => _IndexN2;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexN0; set => _IndexN0 = (ushort)value; }
+            public int IndexN1 { get => _IndexN1; set => _IndexN1 = (ushort)value; }
+            public int IndexN2 { get => _IndexN2; set => _IndexN2 = (ushort)value; }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -224,7 +225,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 16)]
-        public struct TmdPrimitiveFg3 : ITmdPrimitive {
+        public struct TmdPrimitiveFg3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private Rgb888 _C1;
@@ -236,15 +237,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Fg3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => _IndexNormal;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexNormal; set => _IndexNormal = (ushort)value; }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -268,7 +269,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
-        public struct TmdPrimitiveGg3 : ITmdPrimitive {
+        public struct TmdPrimitiveGg3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private Rgb888 _C1;
@@ -282,15 +283,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gg3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => _IndexN0;
-            public int IndexN1 => _IndexN1;
-            public int IndexN2 => _IndexN2;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexN0; set => _IndexN0 = (ushort)value; }
+            public int IndexN1 { get => _IndexN1; set => _IndexN1 = (ushort)value; }
+            public int IndexN2 { get => _IndexN2; set => _IndexN2 = (ushort)value; }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -314,7 +315,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
-        public struct TmdPrimitiveFt3 : ITmdPrimitive {
+        public struct TmdPrimitiveFt3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -327,15 +328,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Ft3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => _IndexNormal;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexNormal; set => _IndexNormal = (ushort)value; }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => Rgb888.TextureWhite;
             public Rgb888 C1 => Rgb888.TextureWhite;
@@ -359,7 +360,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
-        public struct TmdPrimitiveGt3 : ITmdPrimitive {
+        public struct TmdPrimitiveGt3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -374,15 +375,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gt3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => _IndexN0;
-            public int IndexN1 => _IndexN1;
-            public int IndexN2 => _IndexN2;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexN0; set => _IndexN0 = (ushort)value; }
+            public int IndexN1 { get => _IndexN1; set => _IndexN1 = (ushort)value; }
+            public int IndexN2 { get => _IndexN2; set => _IndexN2 = (ushort)value; }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => Rgb888.TextureWhite;
             public Rgb888 C1 => Rgb888.TextureWhite;
@@ -410,7 +411,7 @@ namespace PsyCross {
         #region Quadrangles with lighting
 
         [StructLayout(LayoutKind.Explicit, Size = 16)]
-        public struct TmdPrimitiveF4 : ITmdPrimitive {
+        public struct TmdPrimitiveF4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexNormal;
@@ -421,15 +422,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.F4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => _IndexNormal;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexNormal; set => _IndexNormal = (ushort)value; }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -453,7 +454,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
-        public struct TmdPrimitiveG4 : ITmdPrimitive {
+        public struct TmdPrimitiveG4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexN0;
@@ -467,15 +468,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.G4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => _IndexN0;
-            public int IndexN1 => _IndexN1;
-            public int IndexN2 => _IndexN2;
-            public int IndexN3 => _IndexN3;
+            public int IndexN0 { get => _IndexN0; set => _IndexN0 = (ushort)value; }
+            public int IndexN1 { get => _IndexN1; set => _IndexN1 = (ushort)value; }
+            public int IndexN2 { get => _IndexN2; set => _IndexN2 = (ushort)value; }
+            public int IndexN3 { get => _IndexN3; set => _IndexN3 = (ushort)value; }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -499,7 +500,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 28)]
-        public struct TmdPrimitiveFg4 : ITmdPrimitive {
+        public struct TmdPrimitiveFg4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private Rgb888 _C1;
@@ -513,15 +514,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Fg4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => _IndexNormal;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexNormal; set => _IndexNormal = (ushort)value; }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -545,7 +546,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 32)]
-        public struct TmdPrimitiveGg4 : ITmdPrimitive {
+        public struct TmdPrimitiveGg4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private Rgb888 _C1;
@@ -562,15 +563,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gg4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => _IndexN0;
-            public int IndexN1 => _IndexN1;
-            public int IndexN2 => _IndexN2;
-            public int IndexN3 => _IndexN3;
+            public int IndexN0 { get => _IndexN0; set => _IndexN0 = (ushort)value; }
+            public int IndexN1 { get => _IndexN1; set => _IndexN1 = (ushort)value; }
+            public int IndexN2 { get => _IndexN2; set => _IndexN2 = (ushort)value; }
+            public int IndexN3 { get => _IndexN3; set => _IndexN3 = (ushort)value; }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -594,7 +595,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 28)]
-        public struct TmdPrimitiveFt4 : ITmdPrimitive {
+        public struct TmdPrimitiveFt4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -609,15 +610,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Ft4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => _IndexNormal;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => _IndexNormal; set => _IndexNormal = (ushort)value; }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => Rgb888.TextureWhite;
             public Rgb888 C1 => Rgb888.TextureWhite;
@@ -641,7 +642,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 32)]
-        public struct TmdPrimitiveGt4 : ITmdPrimitive {
+        public struct TmdPrimitiveGt4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -659,15 +660,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gt4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => _IndexN0;
-            public int IndexN1 => _IndexN1;
-            public int IndexN2 => _IndexN2;
-            public int IndexN3 => _IndexN3;
+            public int IndexN0 { get => _IndexN0; set => _IndexN0 = (ushort)value; }
+            public int IndexN1 { get => _IndexN1; set => _IndexN1 = (ushort)value; }
+            public int IndexN2 { get => _IndexN2; set => _IndexN2 = (ushort)value; }
+            public int IndexN3 { get => _IndexN3; set => _IndexN3 = (ushort)value; }
 
             public Rgb888 C0 => Rgb888.TextureWhite;
             public Rgb888 C1 => Rgb888.TextureWhite;
@@ -695,7 +696,7 @@ namespace PsyCross {
         #region Triangles without lighting
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
-        public struct TmdPrimitiveFn3 : ITmdPrimitive {
+        public struct TmdPrimitiveFn3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexV0;
@@ -704,15 +705,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Fn3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -736,7 +737,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 20)]
-        public struct TmdPrimitiveGn3 : ITmdPrimitive {
+        public struct TmdPrimitiveGn3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private Rgb888 _C1;
@@ -747,15 +748,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gn3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -779,7 +780,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
-        public struct TmdPrimitiveFnt3 : ITmdPrimitive {
+        public struct TmdPrimitiveFnt3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -792,15 +793,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Fnt3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -824,7 +825,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 32)]
-        public struct TmdPrimitiveGnt3 : ITmdPrimitive {
+        public struct TmdPrimitiveGnt3 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -839,15 +840,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gnt3;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => -1;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => -1; set { } }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -875,7 +876,7 @@ namespace PsyCross {
         #region Quadrangles with lighting
 
         [StructLayout(LayoutKind.Explicit, Size = 12)]
-        public struct TmdPrimitiveFn4 : ITmdPrimitive {
+        public struct TmdPrimitiveFn4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _Color;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private ushort _IndexV0;
@@ -885,15 +886,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Fn4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -917,7 +918,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]
-        public struct TmdPrimitiveGn4 : ITmdPrimitive {
+        public struct TmdPrimitiveGn4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Rgb888 _C0;
             [FieldOffset( 3)] public TmdPrimitiveMode Mode;
             [FieldOffset( 4)] private Rgb888 _C1;
@@ -930,15 +931,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gn4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;
@@ -962,7 +963,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 28)]
-        public struct TmdPrimitiveFnt4 : ITmdPrimitive {
+        public struct TmdPrimitiveFnt4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -977,15 +978,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Fnt4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _Color;
             public Rgb888 C1 => _Color;
@@ -1009,7 +1010,7 @@ namespace PsyCross {
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 40)]
-        public struct TmdPrimitiveGnt4 : ITmdPrimitive {
+        public struct TmdPrimitiveGnt4 : ITmdPrimitive, ITmdUpdatePrimitive {
             [FieldOffset( 0)] private Texcoord _T0;
             [FieldOffset( 2)] private TmdCba _Cba;
             [FieldOffset( 4)] private Texcoord _T1;
@@ -1027,15 +1028,15 @@ namespace PsyCross {
 
             public TmdPrimitiveType Type => TmdPrimitiveType.Gnt4;
 
-            public int IndexV0 => _IndexV0;
-            public int IndexV1 => _IndexV1;
-            public int IndexV2 => _IndexV2;
-            public int IndexV3 => _IndexV3;
+            public int IndexV0 { get => _IndexV0; set => _IndexV0 = (ushort)value; }
+            public int IndexV1 { get => _IndexV1; set => _IndexV1 = (ushort)value; }
+            public int IndexV2 { get => _IndexV2; set => _IndexV2 = (ushort)value; }
+            public int IndexV3 { get => _IndexV3; set => _IndexV3 = (ushort)value; }
 
-            public int IndexN0 => -1;
-            public int IndexN1 => -1;
-            public int IndexN2 => -1;
-            public int IndexN3 => -1;
+            public int IndexN0 { get => -1; set { } }
+            public int IndexN1 { get => -1; set { } }
+            public int IndexN2 { get => -1; set { } }
+            public int IndexN3 { get => -1; set { } }
 
             public Rgb888 C0 => _C0;
             public Rgb888 C1 => _C1;

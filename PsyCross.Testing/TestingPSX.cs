@@ -23,7 +23,7 @@ namespace PsyCross.Testing {
 
             _DispEnv[0].IsRgb24 = false;
             _DispEnv[1].IsRgb24 = false;
-            
+
             _DrawEnv[0].Color = new Rgb888(0x10, 0x60, 0x10);
             _DrawEnv[0].IsClear = true;
             _DrawEnv[0].IsDithered = true;
@@ -55,17 +55,17 @@ namespace PsyCross.Testing {
                 }
             }
 
-            var tmdData = ResourceManager.GetBinaryFile("OUT.TMD");
+            var tmdData = ResourceManager.GetBinaryFile("KF/0000.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("VENUS3G.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("SHUTTLE1.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3G.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("CUBE3GT.TMD");
             // var tmdData = ResourceManager.GetBinaryFile("tmd_0059.tmd");
-            if (PsyQ.TryReadTmd(tmdData, out PsyQ.Tmd tmd)) {
-                _model = new Model(tmd, null);
-                _model.Material.AmbientColor = new Rgb888(15, 15, 15);
-            }
+            PsyQ.ReadTmd(tmdData, PsyQ.ReadTmdFlags.ApplyKingsField2JpFixes, out PsyQ.Tmd tmd);
+
+            _model = new Model(tmd, null);
+            _model.Material.AmbientColor = new Rgb888(15, 15, 15);
 
             _model.Position = new Vector3(0f, 0f, 0f);
             _camera.Position = new Vector3(0f, 0f, -5f);
@@ -81,7 +81,8 @@ namespace PsyCross.Testing {
             _light2.Direction = new Vector3(0, -1, 0);
             _light2.Color = Rgb888.Red;
 
-            _camera.Fov = 123.855f;
+            _camera.Fov = 90f;
+            // _camera.Fov = 123.855f;
 
             _flyCamera = new FlyCamera(_camera);
 
@@ -99,6 +100,8 @@ namespace PsyCross.Testing {
         private Model _model;
         private PointLight _light1;
         private DirectionalLight _light2;
+
+        int _tmdObjectIndex = 0;
 
         public void Update() {
             _commandBuffer.Reset();
@@ -136,6 +139,14 @@ namespace PsyCross.Testing {
                 }
             }
 
+            if ((Psx.Input & JoyPad.Start) == JoyPad.Select) {
+                _tmdObjectIndex--;
+            }
+            if ((Psx.Input & JoyPad.Start) == JoyPad.Start) {
+                _tmdObjectIndex++;
+            }
+            _tmdObjectIndex %= _model.Tmd.Objects.Length;
+
             _render.Material = _model.Material;
             _render.ModelMatrix = _model.Matrix;
             _render.ModelViewMatrix = _camera.GetViewMatrix() * _model.Matrix;
@@ -143,7 +154,7 @@ namespace PsyCross.Testing {
 
             Console.WriteLine($"_camera.Position: [1;32m{_camera.Position}, Pitch, Yaw: {_camera.Pitch}, {_camera.Yaw}[m");
 
-            Renderer.DrawTmd(_render, _model.Tmd);
+            Renderer.DrawTmdObject(_render, _model.Tmd.Objects[_tmdObjectIndex]);
 
             _primitiveSort.Sort();
 

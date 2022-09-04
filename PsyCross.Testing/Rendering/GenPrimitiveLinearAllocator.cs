@@ -18,9 +18,11 @@ namespace PsyCross.Testing.Rendering.Internal {
         public int Count => _genPrimitiveAllocator.Count;
 
         public GenPrimitive AllocatePrimitive() {
-            if (_genPrimitiveAllocator.AllocateObject(out GenPrimitive genPrimitive)) {
-                genPrimitive.Flags = GenPrimitiveFlags.None;
+            if (!_genPrimitiveAllocator.AllocateObject(out GenPrimitive genPrimitive)) {
+                throw new OutOfMemoryException("GenPrimitiveLinearAllocator: Out of memory.");
             }
+
+            genPrimitive.Flags = GenPrimitiveFlags.None;
 
             return genPrimitive;
         }

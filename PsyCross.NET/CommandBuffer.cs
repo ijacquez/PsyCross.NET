@@ -77,6 +77,10 @@ namespace PsyCross {
             _commandPointer += wordCount;
             _commandCount++;
 
+            if (_commandPointer >= _commandBuffer.Length) {
+                throw new OutOfMemoryException("CommandBuffer: Out of memory.");
+            }
+
             return new CommandHandle(typeof(T), _commandBuffer, prevPointer, wordCount);
         }
     }

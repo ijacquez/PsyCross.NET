@@ -52,42 +52,13 @@ namespace PsyCross.Testing.Rendering {
                     }
 
                     TransformToWorld(render, currentGenPrimitive);
-
-                    // Perform fog
-                    // float FogStart = render.Camera.DepthNear + 2.5f;
-                    // float FogEnd = FogStart*10;
-                    float FogStart = 0.8f;
-                    float FogEnd = 4f;
 
-                    float FogDifferenceDenom = 1f / (FogEnd - FogStart);
-                    // DQA
-                    float FogCoefficient = -(FogStart * FogEnd) * FogDifferenceDenom;
-                    // DQB
-                    float FogOffset = FogEnd * FogDifferenceDenom;
-                    // XXX: Move over as a function
-                    Func<float, float> CalculateFogIntensity = (z) =>
-                        System.Math.Clamp(((FogCoefficient / z) + FogOffset), 0f, 1f);
+                    // CalculateFog(render, currentGenPrimitive);
 
-                    Vector3 bgColor = render.DrawEnv.Color;
-                    Vector3 ambientColor = Rgb888.White;
-
-                    for (int i = 0; i < currentGenPrimitive.VertexCount; i++) {
-                        float z = System.Math.Max(currentGenPrimitive.ViewPoints[i].Z, render.Camera.DepthNear);
-
-                        // https://www.sjbaker.org/steve/omniv/love_your_z_buffer.html
-                        // Fog intensity: [0..1]
-                        float fogIntensity = CalculateFogIntensity(z);
-
-                        Vector3 lerpedColor = Vector3.Lerp(ambientColor, bgColor, fogIntensity);
-                        Rgb888 color = lerpedColor;
-
-                        genPrimitive.GouraudShadingColors[i] = color;
-                    }
-
                     // Perform light source calculation
                     // XXX: Change this to check lighting
                     if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
-                        // CalculateLighting(render, currentGenPrimitive);
+                        CalculateLighting(render, currentGenPrimitive);
                     }
 
                     // Get the distance from the primitive and calculate the
@@ -563,10 +534,10 @@ namespace PsyCross.Testing.Rendering {
         private static void CollectPrimitiveVerticesData(Render render, PsyQ.TmdObject tmdObject, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
             genPrimitive.VertexCount = tmdPacket.Primitive.VertexCount;
 
-            genPrimitive.PolygonVertices[0] = tmdObject.Vertices[tmdPacket.Primitive.IndexV0];
-            genPrimitive.PolygonVertices[1] = tmdObject.Vertices[tmdPacket.Primitive.IndexV1];
-            genPrimitive.PolygonVertices[2] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV2, 0)];
-            genPrimitive.PolygonVertices[3] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV3, 0)];
+            genPrimitive.PolygonVertexBuffer[0] = tmdObject.Vertices[tmdPacket.Primitive.IndexV0];
+            genPrimitive.PolygonVertexBuffer[1] = tmdObject.Vertices[tmdPacket.Primitive.IndexV1];
+            genPrimitive.PolygonVertexBuffer[2] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV2, 0)];
+            genPrimitive.PolygonVertexBuffer[3] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV3, 0)];
         }
 
         private static void CollectRemainingPrimitiveData(Render render, PsyQ.TmdObject tmdObject, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
@@ -574,26 +545,26 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.Type = tmdPacket.Primitive.Type;
 
             if (tmdPacket.Primitive.NormalCount > 0) {
-                genPrimitive.PolygonNormals[0] = tmdObject.Normals[tmdPacket.Primitive.IndexN0];
-                genPrimitive.PolygonNormals[1] = (tmdPacket.Primitive.IndexN1 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN1] : genPrimitive.PolygonNormals[0];
-                genPrimitive.PolygonNormals[2] = (tmdPacket.Primitive.IndexN2 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN2] : genPrimitive.PolygonNormals[0];
-                genPrimitive.PolygonNormals[3] = (tmdPacket.Primitive.IndexN3 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN3] : genPrimitive.PolygonNormals[0];
+                genPrimitive.PolygonNormalBuffer[0] = tmdObject.Normals[tmdPacket.Primitive.IndexN0];
+                genPrimitive.PolygonNormalBuffer[1] = (tmdPacket.Primitive.IndexN1 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN1] : genPrimitive.PolygonNormals[0];
+                genPrimitive.PolygonNormalBuffer[2] = (tmdPacket.Primitive.IndexN2 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN2] : genPrimitive.PolygonNormals[0];
+                genPrimitive.PolygonNormalBuffer[3] = (tmdPacket.Primitive.IndexN3 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN3] : genPrimitive.PolygonNormals[0];
             }
 
             if ((tmdPacket.PrimitiveHeader.Mode & PsyQ.TmdPrimitiveMode.Tme) == PsyQ.TmdPrimitiveMode.Tme) {
-                genPrimitive.Texcoords[0] = tmdPacket.Primitive.T0;
-                genPrimitive.Texcoords[1] = tmdPacket.Primitive.T1;
-                genPrimitive.Texcoords[2] = tmdPacket.Primitive.T2;
-                genPrimitive.Texcoords[3] = tmdPacket.Primitive.T3;
+                genPrimitive.TexcoordBuffer[0] = tmdPacket.Primitive.T0;
+                genPrimitive.TexcoordBuffer[1] = tmdPacket.Primitive.T1;
+                genPrimitive.TexcoordBuffer[2] = tmdPacket.Primitive.T2;
+                genPrimitive.TexcoordBuffer[3] = tmdPacket.Primitive.T3;
 
                 genPrimitive.TPageId = tmdPacket.Primitive.Tsb.Value;
                 genPrimitive.ClutId = tmdPacket.Primitive.Cba.Value;
             }
 
-            genPrimitive.GouraudShadingColors[0] = tmdPacket.Primitive.C0;
-            genPrimitive.GouraudShadingColors[1] = tmdPacket.Primitive.C1;
-            genPrimitive.GouraudShadingColors[2] = tmdPacket.Primitive.C2;
-            genPrimitive.GouraudShadingColors[3] = tmdPacket.Primitive.C3;
+            genPrimitive.GouraudShadingColorBuffer[0] = tmdPacket.Primitive.C0;
+            genPrimitive.GouraudShadingColorBuffer[1] = tmdPacket.Primitive.C1;
+            genPrimitive.GouraudShadingColorBuffer[2] = tmdPacket.Primitive.C2;
+            genPrimitive.GouraudShadingColorBuffer[3] = tmdPacket.Primitive.C3;
         }
 
         private static void GenerateClipFlags(Render render, GenPrimitive genPrimitive) {
@@ -653,6 +624,39 @@ namespace PsyCross.Testing.Rendering {
 
         private static bool TestOutsideFustrum(GenPrimitive genPrimitive) =>
             (BitwiseAndClipFlags(genPrimitive.ClipFlags) != ClipFlags.None);
+
+        private static void CalculateFog(Render render, GenPrimitive genPrimitive) {
+            // Perform fog
+            // float FogStart = render.Camera.DepthNear + 2.5f;
+            // float FogEnd = FogStart*10;
+            float FogStart = 0.8f;
+            float FogEnd = 4f;
+
+            float FogDifferenceDenom = 1f / (FogEnd - FogStart);
+            // DQA
+            float FogCoefficient = -(FogStart * FogEnd) * FogDifferenceDenom;
+            // DQB
+            float FogOffset = FogEnd * FogDifferenceDenom;
+            // XXX: Move over as a function
+            Func<float, float> CalculateFogIntensity = (z) =>
+                System.Math.Clamp(((FogCoefficient / z) + FogOffset), 0f, 1f);
+
+            Vector3 bgColor = render.DrawEnv.Color;
+            Vector3 ambientColor = Rgb888.White;
+
+            for (int i = 0; i < genPrimitive.VertexCount; i++) {
+                float z = System.Math.Max(genPrimitive.ViewPoints[i].Z, render.Camera.DepthNear);
+
+                // https://www.sjbaker.org/steve/omniv/love_your_z_buffer.html
+                // Fog intensity: [0..1]
+                float fogIntensity = CalculateFogIntensity(z);
+
+                Vector3 lerpedColor = Vector3.Lerp(ambientColor, bgColor, fogIntensity);
+                Rgb888 color = lerpedColor;
+
+                genPrimitive.GouraudShadingColors[i] = color;
+            }
+        }
 
         private static void CalculateLighting(Render render, GenPrimitive genPrimitive) {
             const float NormalizeVectorFactor = 1f / 255f;
