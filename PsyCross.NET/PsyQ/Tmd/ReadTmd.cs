@@ -6,7 +6,7 @@ using PsyCross.Math;
 
 namespace PsyCross {
     public static partial class PsyQ {
-        public static void ReadTmd(byte[] data, ReadTmdFlags readTmdFlags, out Tmd tmd) {
+        public static void ReadTmd(byte[] data, ReadTmdOptions readTmdOptions, out Tmd tmd) {
             const uint TmdMagic = 0x00000041;
 
             tmd = default(Tmd);
@@ -20,7 +20,7 @@ namespace PsyCross {
             using (var binaryReader = new BinaryReader(data)) {
                 var tmdHeader = binaryReader.ReadStruct<TmdHeader>()[0];
 
-                if (!readTmdFlags.HasFlag(ReadTmdFlags.IgnoreMagicValue) && (tmdHeader.Magic != TmdMagic)) {
+                if (!readTmdOptions.Flags.HasFlag(ReadTmdFlags.IgnoreMagicValue) && (tmdHeader.Magic != TmdMagic)) {
                     throw new ReadTmdException($"Magic number 0x{TmdMagic:X08} does not match: 0x{tmdHeader.Magic:X08}");
                 }
 
@@ -51,51 +51,50 @@ namespace PsyCross {
 
                     TmdObject tmdObject = tmd.Objects[objectIndex];
 
-                    TmdReadVertices(binaryReader, tmdObjectDesc, tmdObject, readTmdFlags);
-                    TmdReadNormals(binaryReader, tmdObjectDesc, tmdObject, readTmdFlags);
-                    TmdReadPrimitives(binaryReader, tmdObjectDesc, tmdObject, readTmdFlags);
+                    TmdReadVertices(binaryReader, tmdObjectDesc, tmdObject, readTmdOptions);
+                    TmdReadNormals(binaryReader, tmdObjectDesc, tmdObject, readTmdOptions);
+                    TmdReadPrimitives(binaryReader, tmdObjectDesc, tmdObject, readTmdOptions);
                 }
             }
         }
 
-        private static void TmdReadVertices(BinaryReader binaryReader, TmdObjectDesc tmdObjectDesc, TmdObject tmdObject, ReadTmdFlags readTmdFlags) {
+        private static void TmdReadVertices(BinaryReader binaryReader, TmdObjectDesc tmdObjectDesc, TmdObject tmdObject, ReadTmdOptions readTmdOptions) {
             binaryReader.Seek((int)tmdObjectDesc.VerticesOffset, SeekOrigin.Begin);
 
             var tmdVertices = binaryReader.ReadStruct<TmdVertex>((int)tmdObjectDesc.VerticesCount);
 
             tmdObject.Vertices = new Vector3[tmdObjectDesc.VerticesCount];
 
-            float negate = (readTmdFlags.HasFlag(ReadTmdFlags.NegateYAxis) ? -1 : 1);
-            float scale = (readTmdFlags.HasFlag(ReadTmdFlags.ConvertVerticesToFixed) ? (1f / 2048f) : 1f);
-
             for (int vertexIndex = 0; vertexIndex < tmdObjectDesc.VerticesCount; vertexIndex++) {
-                tmdObject.Vertices[vertexIndex].X = tmdVertices[vertexIndex].X * scale;
-                tmdObject.Vertices[vertexIndex].Y = tmdVertices[vertexIndex].Y * scale * negate;
-                tmdObject.Vertices[vertexIndex].Z = tmdVertices[vertexIndex].Z * scale;
+                tmdObject.Vertices[vertexIndex].X = tmdVertices[vertexIndex].X;
+                tmdObject.Vertices[vertexIndex].Y = tmdVertices[vertexIndex].Y;
+                tmdObject.Vertices[vertexIndex].Z = tmdVertices[vertexIndex].Z;
+
+                tmdObject.Vertices[vertexIndex] = readTmdOptions.Scale * Vector3.Transform(tmdObject.Vertices[vertexIndex], readTmdOptions.Axis);
 
                 Console.WriteLine($"V:<[1;31m{tmdVertices[vertexIndex].X}, {tmdVertices[vertexIndex].Y}, {tmdVertices[vertexIndex].Z}[m> [1;32m{tmdObject.Vertices[vertexIndex]}[m");
             }
         }
 
-        private static void TmdReadNormals(BinaryReader binaryReader, TmdObjectDesc tmdObjectDesc, TmdObject tmdObject, ReadTmdFlags readTmdFlags) {
+        private static void TmdReadNormals(BinaryReader binaryReader, TmdObjectDesc tmdObjectDesc, TmdObject tmdObject, ReadTmdOptions readTmdOptions) {
             binaryReader.Seek((int)tmdObjectDesc.NormalsOffset, SeekOrigin.Begin);
 
             var tmdNormals = binaryReader.ReadStruct<TmdVertex>((int)tmdObjectDesc.NormalsCount);
 
             tmdObject.Normals = new Vector3[tmdObjectDesc.NormalsCount];
 
-            float negate = (readTmdFlags.HasFlag(ReadTmdFlags.NegateYAxis) ? -1 : 1);
-
             for (int normalIndex = 0; normalIndex < tmdObjectDesc.NormalsCount; normalIndex++) {
                 tmdObject.Normals[normalIndex].X = MathHelper.Fixed2Float(tmdNormals[normalIndex].X);
-                tmdObject.Normals[normalIndex].Y = MathHelper.Fixed2Float(tmdNormals[normalIndex].Y) * negate;
+                tmdObject.Normals[normalIndex].Y = MathHelper.Fixed2Float(tmdNormals[normalIndex].Y);
                 tmdObject.Normals[normalIndex].Z = MathHelper.Fixed2Float(tmdNormals[normalIndex].Z);
+
+                tmdObject.Normals[normalIndex] = Vector3.TransformNormal(tmdObject.Normals[normalIndex], readTmdOptions.Axis);
 
                 Console.WriteLine($"N:<[1;31m{tmdNormals[normalIndex].X}, {tmdNormals[normalIndex].Y}, {tmdNormals[normalIndex].Z}[m> [1;32m{tmdObject.Normals[normalIndex]}[m");
             }
         }
 
-        private static void TmdReadPrimitives(BinaryReader binaryReader, TmdObjectDesc tmdObjectDesc, TmdObject tmdObject, ReadTmdFlags readTmdFlags) {
+        private static void TmdReadPrimitives(BinaryReader binaryReader, TmdObjectDesc tmdObjectDesc, TmdObject tmdObject, ReadTmdOptions readTmdOptions) {
             binaryReader.Seek((int)tmdObjectDesc.PrimitivesOffset, SeekOrigin.Begin);
 
             tmdObject.Packets = new TmdPacket[tmdObjectDesc.PrimitivesCount];
@@ -153,16 +152,16 @@ namespace PsyCross {
                 switch (tmdPacket.PrimitiveHeader.Mode & TmdPrimitiveMode.CodeMask) {
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme && !isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveFn3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveFn3>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveF3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveF3>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme &&  isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveGn3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveGn3>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveG3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveG3>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme && !isModeIip &&  isFlagGrd:
@@ -170,41 +169,41 @@ namespace PsyCross {
                             throw new ReadTmdException("Invalid packet");
                         }
 
-                        TmdReadPrimitivePacket<TmdPrimitiveFg3>(binaryReader, tmdPacket, readTmdFlags);
+                        TmdReadPrimitivePacket<TmdPrimitiveFg3>(binaryReader, tmdPacket, readTmdOptions);
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad && !isModeTme &&  isModeIip &&  isFlagGrd:
                         if (isModeTge) {
                             throw new ReadTmdException("Invalid packet");
                         }
 
-                        TmdReadPrimitivePacket<TmdPrimitiveGg3>(binaryReader, tmdPacket, readTmdFlags);
+                        TmdReadPrimitivePacket<TmdPrimitiveGg3>(binaryReader, tmdPacket, readTmdOptions);
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad &&  isModeTme && !isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveFnt3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveFnt3>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveFt3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveFt3>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when !isModeQuad &&  isModeTme &&  isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveGnt3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveGnt3>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveGt3>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveGt3>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme && !isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveFn4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveFn4>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveF4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveF4>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme &&  isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveGn4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveGn4>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveG4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveG4>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme && !isModeIip &&  isFlagGrd:
@@ -212,27 +211,27 @@ namespace PsyCross {
                             throw new ReadTmdException("Invalid packet");
                         }
 
-                        TmdReadPrimitivePacket<TmdPrimitiveFg4>(binaryReader, tmdPacket, readTmdFlags);
+                        TmdReadPrimitivePacket<TmdPrimitiveFg4>(binaryReader, tmdPacket, readTmdOptions);
                         break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad && !isModeTme &&  isModeIip &&  isFlagGrd:
                         if (isModeTge) {
                             throw new ReadTmdException("Invalid packet");
                         }
 
-                        TmdReadPrimitivePacket<TmdPrimitiveGg4>(binaryReader, tmdPacket, readTmdFlags);
+                        TmdReadPrimitivePacket<TmdPrimitiveGg4>(binaryReader, tmdPacket, readTmdOptions);
                         break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad &&  isModeTme && !isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveFnt4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveFnt4>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveFt4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveFt4>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
                     case TmdPrimitiveMode.CodePolygon when  isModeQuad &&  isModeTme &&  isModeIip && !isFlagGrd:
                         if (isModeTge) {
-                            TmdReadPrimitivePacket<TmdPrimitiveGnt4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveGnt4>(binaryReader, tmdPacket, readTmdOptions);
                         } else {
-                            TmdReadPrimitivePacket<TmdPrimitiveGt4>(binaryReader, tmdPacket, readTmdFlags);
+                            TmdReadPrimitivePacket<TmdPrimitiveGt4>(binaryReader, tmdPacket, readTmdOptions);
                         }
                         break;
 
@@ -250,7 +249,7 @@ namespace PsyCross {
 
         private static void TmdReadPrimitivePacket<T>(BinaryReader binaryReader,
                                                       TmdPacket tmdPacket,
-                                                      ReadTmdFlags readTmdFlags)
+                                                      ReadTmdOptions readTmdOptions)
         where T : struct, ITmdPrimitive {
             // Debugging only. Disable
             int structSize = Marshal.SizeOf<T>();
@@ -262,7 +261,7 @@ namespace PsyCross {
 
             tmdPacket.Primitive = binaryReader.ReadStruct<T>()[0];
 
-            if (readTmdFlags.HasFlag(ReadTmdFlags.ApplyKingsField2JpFixes)) {
+            if (readTmdOptions.Flags.HasFlag(ReadTmdFlags.ApplyKingsField2JpFixes)) {
                 var updatePrimitive = (ITmdUpdatePrimitive)tmdPacket.Primitive;
 
                 updatePrimitive.IndexV0 >>= 3;
