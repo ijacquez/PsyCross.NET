@@ -275,7 +275,7 @@ namespace PsyCross.Testing {
             for (int yy = 0; yy < 10; yy++) {
                 for (int xx = 0; xx < 20; xx++) {
                     NewMethod(yy, xx, yOff, xOff, _layer1);
-                    // NewMethod(yy, xx, yOff, xOff, _layer2);
+                    NewMethod(yy, xx, yOff, xOff, _layer2);
                 }
             }
 
