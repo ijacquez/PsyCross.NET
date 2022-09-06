@@ -102,8 +102,8 @@ namespace PsyCross.Testing {
             _camera.Position = new Vector3(0f, 0f, 0f);
             _camera.Position = new Vector3(54f, 70f, 64f);
             _camera.Position = new Vector3(75.36116f, 66.19299f, 75.67318f);
-            _camera.Pitch = 1.5802542f;
-            _camera.Yaw = -181.42516f;
+            _camera.Pitch = 0f;
+            _camera.Yaw = 180f;
             // _camera.Yaw = -11;
 
             _light1 = LightingManager.AllocatePointLight();
@@ -121,7 +121,8 @@ namespace PsyCross.Testing {
             // light3.Color = Rgb888.Blue;
 
             // _camera.Fov = 90f;
-            _camera.Fov = 123.855f;
+            // _camera.Fov = 123.855f; // Shadow Tower
+            _camera.Fov = 102.680f; // King's Field
 
             _flyCamera = new FlyCamera(_camera);
 
@@ -272,9 +273,9 @@ namespace PsyCross.Testing {
             int xOff=(int)(10f*XXX.X);
             int yOff=(int)(10f*XXX.Y);
             for (int yy = 0; yy < 10; yy++) {
-                for (int xx = 0; xx < 10; xx++) {
+                for (int xx = 0; xx < 20; xx++) {
                     NewMethod(yy, xx, yOff, xOff, _layer1);
-                    NewMethod(yy, xx, yOff, xOff, _layer2);
+                    // NewMethod(yy, xx, yOff, xOff, _layer2);
                 }
             }
 

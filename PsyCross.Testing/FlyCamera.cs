@@ -2,7 +2,7 @@ using PsyCross.Devices.Input;
 
 namespace PsyCross.Testing {
     public sealed class FlyCamera {
-        private const float _CameraSpeed = 2.5f;
+        private const float _CameraSpeed = 10.0f;
 
         private const float _YawAngleSpeed   = 30.0f;
         private const float _PitchAngleSpeed = 30.0f;

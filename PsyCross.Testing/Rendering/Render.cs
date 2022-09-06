@@ -5,7 +5,7 @@ using PsyCross.Testing.Rendering.Internal;
 namespace PsyCross.Testing.Rendering {
     public class Render {
         private readonly GenPrimitiveLinearAllocator _genPrimitiveAllocator =
-            new GenPrimitiveLinearAllocator(512);
+            new GenPrimitiveLinearAllocator(65536);
 
         public Material Material { get; set; }
         public Matrix4x4 ModelMatrix { get; set; }

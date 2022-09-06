@@ -12,11 +12,11 @@ namespace PsyCross.Testing.Rendering {
 
         public static void DrawTmdObject(Render render, PsyQ.TmdObject tmdObject) {
             for (int packetIndex = 0; packetIndex < tmdObject.Packets.Length; packetIndex++) {
+                PsyQ.TmdPacket tmdPacket = tmdObject.Packets[packetIndex];
+
                 // Release all gen primitives here as any culled primitives
                 // won't be released (due to continue(s) in loop)
                 render.ReleaseGenPrimitives();
-
-                PsyQ.TmdPacket tmdPacket = tmdObject.Packets[packetIndex];
 
                 GenPrimitive genPrimitive = render.AcquireGenPrimitive();
 
@@ -24,17 +24,11 @@ namespace PsyCross.Testing.Rendering {
 
                 TransformToView(render, genPrimitive);
 
-                GenerateClipFlags(render, genPrimitive);
-
-                // Cull primitive if it's outside of any of the six planes
-                if (TestOutsideFustrum(genPrimitive)) {
-                    // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
-                    continue;
-                }
-
-                CollectRemainingPrimitiveData(render, tmdObject, tmdPacket, genPrimitive);
-
-                genPrimitive.FaceNormal = CalculateScaledFaceNormal(genPrimitive.ViewPoints);
+                // if (genPrimitive.NormalCount == 0) {
+                    genPrimitive.FaceNormal = CalculateScaledFaceNormal(genPrimitive.ViewPoints);
+                // } else {
+                //     genPrimitive.FaceNormal = genPrimitive.PolygonNormals[0];
+                // }
 
                 // Perform backface culling unless it's "double sided"
                 if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Fce) != PsyQ.TmdPrimitiveFlags.Fce) {
@@ -44,57 +38,41 @@ namespace PsyCross.Testing.Rendering {
                     }
                 }
 
+                GenerateClipFlags(render, genPrimitive);
+
+                // Cull primitive if it's outside of any of the six planes
+
+                if (TestOutsideFustrum(genPrimitive)) {
+                    // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
+                    continue;
+                }
+
+                CollectRemainingPrimitiveData(render, tmdObject, tmdPacket, genPrimitive);
+
+
+                if (genPrimitive.VertexCount == 3) {
+                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
+                } else {
+                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
+                }
+                genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
+                genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex+1);
+                genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex+2);
+                genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex+3);
+
                 genPrimitive.FaceNormal = Vector3.Normalize(genPrimitive.FaceNormal);
 
-                foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
-                    if ((currentGenPrimitive.Flags & GenPrimitiveFlags.Discarded) == GenPrimitiveFlags.Discarded) {
-                        continue;
-                    }
+                TransformToWorld(render, genPrimitive);
 
-                    TransformToWorld(render, currentGenPrimitive);
+                // CalculateFog(render, genPrimitive);
 
-                    // CalculateFog(render, currentGenPrimitive);
-
-                    // Perform light source calculation
-                    // XXX: Change this to check lighting
-                    if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
-                        CalculateLighting(render, currentGenPrimitive);
-                    }
-
-                    // Get the distance from the primitive and calculate the
-                    // subdivision level
-
-                    // XXX: Move to a method that gets you the min/max/center of a primitive
-                    float distanceSquared = System.Math.Min(currentGenPrimitive.ViewPoints[0].Z,
-                                                            System.Math.Min(currentGenPrimitive.ViewPoints[1].Z,
-                                                                            currentGenPrimitive.ViewPoints[2].Z));
-
-                    // This is all janky, but the bigger the divisor, the more
-                    // area subdivision is performed
-                    // XXX: Move the 1f value somewhere... Render maybe?
-                    int subdivLevel = 2 - System.Math.Min(2, (int)(distanceSquared / 1f));
-
-                    if (subdivLevel > 0) {
-                        if (currentGenPrimitive.VertexCount == 3) {
-                            SubdivideTriangleGenPrimitive(render,
-                                                          currentGenPrimitive,
-                                                          SubdivTriple.FromGenPrimitive(currentGenPrimitive, 0),
-                                                          SubdivTriple.FromGenPrimitive(currentGenPrimitive, 1),
-                                                          SubdivTriple.FromGenPrimitive(currentGenPrimitive, 2),
-                                                          subdivLevel);
-                        } else {
-                            SubdivideQuadGenPrimitive(render,
-                                                      currentGenPrimitive,
-                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 0),
-                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 1),
-                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 2),
-                                                      SubdivTriple.FromGenPrimitive(currentGenPrimitive, 3),
-                                                      subdivLevel);
-                        }
-
-                        GenPrimitive.Discard(currentGenPrimitive);
-                    }
+                // Perform light source calculation
+                // XXX: Change this to check lighting from a property getter
+                if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
+                    // CalculateLighting(render, genPrimitive);
                 }
+
+                SubdivideGenPrimitive(render, genPrimitive);
 
                 foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
                     if ((currentGenPrimitive.Flags & GenPrimitiveFlags.Discarded) == GenPrimitiveFlags.Discarded) {
@@ -108,10 +86,10 @@ namespace PsyCross.Testing.Rendering {
                         continue;
                     }
 
-                    if (TestScreenPrimitiveArea(currentGenPrimitive)) {
-                        // Console.WriteLine("[1;31mArea<=0[m");
-                        continue;
-                    }
+                    // if (TestScreenPrimitiveArea(currentGenPrimitive)) {
+                    //     // Console.WriteLine("[1;31mArea<=0[m");
+                    //     continue;
+                    // }
 
                     DrawGenPrimitive(render, currentGenPrimitive);
                 }
@@ -132,6 +110,49 @@ namespace PsyCross.Testing.Rendering {
                 GouraudShadingColor = genPrimitive.GouraudShadingColors[index],
                 Texcoord            = genPrimitive.Texcoords[index]
             };
+        }
+
+        private static void SubdivideGenPrimitive(Render render, GenPrimitive genPrimitive) {
+            // Get the distance from the primitive and calculate the
+            // subdivision level
+            //
+
+            // XXX: Move to a method that gets you the min/max/center of a primitive
+            Vector3 minViewPoint = Vector3.Min(genPrimitive.ViewPoints[0],
+                                               Vector3.Min(genPrimitive.ViewPoints[1],
+                                                           genPrimitive.ViewPoints[2]));
+
+            Vector3 distance = minViewPoint;
+
+            int subdivLevel = 0;
+
+            // XXX: Move the 1f value somewhere... Render maybe?
+            if (distance.Z < 10f) {
+                subdivLevel = 2;
+            } else if (distance.Z < 5f) {
+                subdivLevel = 3;
+            }
+
+            if (subdivLevel > 0) {
+                if (genPrimitive.VertexCount == 3) {
+                    SubdivideTriangleGenPrimitive(render,
+                                                  genPrimitive,
+                                                  SubdivTriple.FromGenPrimitive(genPrimitive, 0),
+                                                  SubdivTriple.FromGenPrimitive(genPrimitive, 1),
+                                                  SubdivTriple.FromGenPrimitive(genPrimitive, 2),
+                                                  subdivLevel);
+                } else {
+                    SubdivideQuadGenPrimitive(render,
+                                              genPrimitive,
+                                              SubdivTriple.FromGenPrimitive(genPrimitive, 0),
+                                              SubdivTriple.FromGenPrimitive(genPrimitive, 1),
+                                              SubdivTriple.FromGenPrimitive(genPrimitive, 2),
+                                              SubdivTriple.FromGenPrimitive(genPrimitive, 3),
+                                              subdivLevel);
+                }
+
+                GenPrimitive.Discard(genPrimitive);
+            }
         }
 
         private static void SubdivideTriangleGenPrimitive(Render render,
@@ -176,9 +197,9 @@ namespace PsyCross.Testing.Rendering {
                 // manually subdivide
                 ReadOnlySpan<SubdivTriple> midPoint = stackalloc SubdivTriple[] {
                     CalculateMidPoint(spa, spb),
-                        CalculateMidPoint(spb, spc),
-                        CalculateMidPoint(spc, spa)
-                        };
+                    CalculateMidPoint(spb, spc),
+                    CalculateMidPoint(spc, spa)
+                };
 
                 SubdivideTriangleGenPrimitive(render, baseGenPrimitive,         spa, midPoint[0], midPoint[2], level - 1);
                 SubdivideTriangleGenPrimitive(render, baseGenPrimitive, midPoint[0],         spb, midPoint[1], level - 1);
@@ -217,78 +238,15 @@ namespace PsyCross.Testing.Rendering {
                     genPrimitive.GouraudShadingColors[0] = spa.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[1] = spb.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
-                    genPrimitive.GouraudShadingColors[2] = spd.GouraudShadingColor;
+                    genPrimitive.GouraudShadingColors[3] = spd.GouraudShadingColor;
 
                     genPrimitive.Texcoords[0] = spa.Texcoord;
                     genPrimitive.Texcoords[1] = spb.Texcoord;
                     genPrimitive.Texcoords[2] = spc.Texcoord;
                     genPrimitive.Texcoords[3] = spd.Texcoord;
 
-                    Span<ClipFlags> tri1ClipFlags = stackalloc ClipFlags[3];
-                    Span<ClipFlags> tri2ClipFlags = stackalloc ClipFlags[3];
-
-                    // Before triangulating the quad primitive, first check if
-                    // it's at all clipping the near plane
-                    TriangulateQuadOrder(genPrimitive.ClipFlags, tri1ClipFlags, tri2ClipFlags);
-
-                    ClipFlags tri1ClipFlagOrMask = BitwiseOrClipFlags(tri1ClipFlags);
-                    ClipFlags tri2ClipFlagOrMask = BitwiseOrClipFlags(tri2ClipFlags);
-
-                    // Check if either of the two are clipping the near plane
-                    if (((tri1ClipFlagOrMask | tri2ClipFlagOrMask) & ClipFlags.Near) == ClipFlags.Near) {
-                        // We're forced to triangulate
-
-                        // Have the current generated primitive be the first triangle
-                        GenPrimitive tri1GenPrimitive = genPrimitive;
-                        GenPrimitive tri2GenPrimitive = render.AcquireGenPrimitive();
-
-                        Span<Vector3> tri1ViewPoints = tri1GenPrimitive.ViewPoints;
-                        Span<Vector3> tri2ViewPoints = tri2GenPrimitive.ViewPoints;
-
-                        Span<Rgb888> tri1GouraudShadingColors = tri1GenPrimitive.GouraudShadingColors;
-                        Span<Rgb888> tri2GouraudShadingColors = tri2GenPrimitive.GouraudShadingColors;
-
-                        Span<Texcoord> tri1Texcoords = tri1GenPrimitive.Texcoords;
-                        Span<Texcoord> tri2Texcoords = tri2GenPrimitive.Texcoords;
-
-                        TriangulateQuadOrder(genPrimitive.ViewPoints, tri1ViewPoints, tri2ViewPoints);
-                        TriangulateQuadOrder(genPrimitive.GouraudShadingColors, tri1GouraudShadingColors, tri2GouraudShadingColors);
-                        TriangulateQuadOrder(genPrimitive.Texcoords, tri1Texcoords, tri2Texcoords);
-
-                        tri1ClipFlags.CopyTo(tri1GenPrimitive.ClipFlags);
-                        tri2ClipFlags.CopyTo(tri2GenPrimitive.ClipFlags);
-
-                        tri1GenPrimitive.Type = (PsyQ.TmdPrimitiveType)(tri1GenPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
-                        tri1GenPrimitive.VertexCount = 3;
-                        tri1GenPrimitive.NormalCount = (tri1GenPrimitive.NormalCount >= 4) ? 3 : tri1GenPrimitive.NormalCount;
-
-                        tri2GenPrimitive.Flags = tri1GenPrimitive.Flags;
-                        tri2GenPrimitive.Type = tri1GenPrimitive.Type;
-                        tri2GenPrimitive.VertexCount = tri1GenPrimitive.VertexCount;
-                        tri2GenPrimitive.NormalCount = tri1GenPrimitive.NormalCount;
-                        tri2GenPrimitive.FaceNormal = tri1GenPrimitive.FaceNormal;
-                        tri2GenPrimitive.TPageId = tri1GenPrimitive.TPageId;
-                        tri2GenPrimitive.ClutId = tri1GenPrimitive.ClutId;
-
-                        ClipFlags tri1ClipFlagAndMask = BitwiseAndClipFlags(tri1ClipFlags);
-                        ClipFlags tri2ClipFlagAndMask = BitwiseAndClipFlags(tri2ClipFlags);
-
-                        // Consider the case when a little over half the quad
-                        // intersects the near plane. When triangulated, one
-                        // triangle is now intersecting the near plane while the
-                        // other is completely behind the near plane. At this
-                        // point, we need to cull the triangle completely
-                        if (tri1ClipFlagAndMask != ClipFlags.None) {
-                            GenPrimitive.Discard(tri1GenPrimitive);
-                        } else if ((tri1ClipFlagOrMask & ClipFlags.Near) == ClipFlags.Near) {
-                            ClipTriangleGenPrimitiveNearPlane(render, tri1GenPrimitive);
-                        }
-
-                        if (tri2ClipFlagAndMask != ClipFlags.None) {
-                            GenPrimitive.Discard(tri2GenPrimitive);
-                        } else if ((tri2ClipFlagOrMask & ClipFlags.Near) == ClipFlags.Near) {
-                            ClipTriangleGenPrimitiveNearPlane(render, tri2GenPrimitive);
-                        }
+                    if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) == ClipFlags.Near) {
+                        ClipQuadGenPrimitiveNearPlane(render, genPrimitive);
                     }
                 }
             } else {
@@ -301,7 +259,7 @@ namespace PsyCross.Testing.Rendering {
                         CalculateMidPoint(spa, spc),
                         CalculateMidPoint(spc, spd),
                         CalculateMidPoint(spd, spb),
-                        };
+                };
 
                 SubdivTriple centerPoint = CalculateMidPoint(midPoints[0], midPoints[2]);
 
@@ -317,8 +275,8 @@ namespace PsyCross.Testing.Rendering {
             tri1Points[1] = quadPoints[1];
             tri1Points[2] = quadPoints[2];
 
-            tri2Points[0] = quadPoints[2];
-            tri2Points[1] = quadPoints[1];
+            tri2Points[0] = quadPoints[1];
+            tri2Points[1] = quadPoints[2];
             tri2Points[2] = quadPoints[3];
         }
 
@@ -374,35 +332,243 @@ namespace PsyCross.Testing.Rendering {
             return c;
         }
 
-        private static void ClipTriangleGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
-            Span<int> interiorVertexIndices = stackalloc int[3];
-            Span<int> exteriorVertexIndices = stackalloc int[3];
+        private static void ClipNearPlane(Render render, GenPrimitive genPrimitive) {
+            if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) != ClipFlags.Near) {
+                return;
+            }
 
-            int interiorVertexCount = 0;
+            if (genPrimitive.VertexCount == 3) {
+                ClipTriangleGenPrimitiveNearPlane(render, genPrimitive);
+            } else if (genPrimitive.VertexCount == 4) {
+                ClipQuadGenPrimitiveNearPlane(render, genPrimitive);
+            }
+        }
 
+        public class VertexIndices {
+            public int[] IndexBuffer { get; } = new int[4];
+            public int Count { get; set; }
+
+            public Span<int> Indices => new Span<int>(IndexBuffer, 0, Count);
+        }
+
+        private static void CalculateInteriorExteriorVertices(GenPrimitive genPrimitive, VertexIndices interiorVertices, VertexIndices exteriorVertices) {
             // Determine which case to cover and find the interior/exterior vertices
-            for (int vertexIndex = 0, i = 0, j = 0; vertexIndex < genPrimitive.VertexCount; vertexIndex++) {
-                if ((genPrimitive.ClipFlags[vertexIndex] & ClipFlags.Near) == ClipFlags.Near) {
-                    exteriorVertexIndices[i] = vertexIndex;
-                    i++;
+            int intIndex = 0;
+            int extIndex = 0;
+
+            for (int vIndex = 0; vIndex < genPrimitive.VertexCount; vIndex++) {
+                if ((genPrimitive.ClipFlags[vIndex] & ClipFlags.Near) == ClipFlags.Near) {
+                    exteriorVertices.IndexBuffer[extIndex] = vIndex;
+                    extIndex++;
                 } else {
-                    interiorVertexCount++;
-                    interiorVertexIndices[j] = vertexIndex;
-                    j++;
+                    interiorVertices.IndexBuffer[intIndex] = vIndex;
+                    intIndex++;
                 }
             }
 
-            // XXX: Debugging
-            if ((interiorVertexCount == 0) || (interiorVertexCount == 3)) {
-                throw new Exception("Either no interior vertex found or all vertices are exterior");
+            interiorVertices.Count = intIndex;
+            exteriorVertices.Count = extIndex;
+        }
+
+        private static VertexIndices _InteriorVertexIndices = new VertexIndices();
+        private static VertexIndices _ExteriorVertexIndices = new VertexIndices();
+
+        private static void ClipQuadGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
+            CalculateInteriorExteriorVertices(genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+
+            switch (_InteriorVertexIndices.Count) {
+                case 1:
+                    ClipQuadGenPrimitiveNearPlaneCase1(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    break;
+                case 2:
+                    ClipQuadGenPrimitiveNearPlaneCase2(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    break;
+                case 3:
+                    ClipQuadGenPrimitiveNearPlaneCase3(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    break;
+            }
+        }
+
+        private static Random _GetRandomColorRandom = new Random();
+
+        private static Rgb888[] _HugeTable = new Rgb888[4096];
+        static Renderer() {
+            for (int i = 0; i < _HugeTable.Length; i++) {
+                _HugeTable[i] = new Rgb888((byte)(_GetRandomColorRandom.NextDouble() * 255),
+                                           (byte)(_GetRandomColorRandom.NextDouble() * 255),
+                                           (byte)(_GetRandomColorRandom.NextDouble() * 255));
+            }
+        }
+
+        private static Rgb888 GetRandomColor() =>
+            _HugeTable[System.Math.Abs(_GetRandomColorRandom.Next()) % 4095];
+
+        private static Rgb888 GetColor(int index) =>
+            _HugeTable[System.Math.Abs(index) % 4095];
+
+        private static void ClipQuadGenPrimitiveNearPlaneCase1(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
+            // Console.WriteLine("Clip Quad Case I");
+
+            //     I
+            //    / \
+            //---A---B--- A=Lerp(I,E1); B=Lerp(I,E2) and degenerate to a triangle
+            //  /     \
+            // E1      E2
+            //  \     /
+            //   \   /
+            //    \ /
+            //     E3
+
+            ref Vector3 interiorV1 = ref genPrimitive.ViewPoints[interiorIndices.Indices[0]];
+            ref Vector3 exteriorV1 = ref genPrimitive.ViewPoints[exteriorIndices.Indices[0]];
+            ref Vector3 exteriorV2 = ref genPrimitive.ViewPoints[exteriorIndices.Indices[1]];
+
+            float t1 = FindClipLerpEdgeT(render, interiorV1, exteriorV1);
+            float t2 = FindClipLerpEdgeT(render, interiorV1, exteriorV2);
+
+            exteriorV1 = ClipLerpVertex(render, interiorV1, exteriorV1, t1);
+            exteriorV2 = ClipLerpVertex(render, interiorV1, exteriorV2, t2);
+
+            // ref Rgb888 interiorGsc1 = ref genPrimitive.GouraudShadingColors[interiorIndices.Indices[0]];
+            // ref Rgb888 exteriorGsc1 = ref genPrimitive.GouraudShadingColors[exteriorIndices.Indices[0]];
+            // ref Rgb888 exteriorGsc2 = ref genPrimitive.GouraudShadingColors[exteriorIndices.Indices[1]];
+
+            // exteriorGsc1 = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc1, t1);
+            // exteriorGsc2 = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc2, t2);
+
+            ref Texcoord interiorT1 = ref genPrimitive.Texcoords[interiorIndices.Indices[0]];
+            ref Texcoord exteriorT1 = ref genPrimitive.Texcoords[exteriorIndices.Indices[0]];
+            ref Texcoord exteriorT2 = ref genPrimitive.Texcoords[exteriorIndices.Indices[1]];
+
+            exteriorT1 = ClipLerpTexcoord(render, interiorT1, exteriorT1, t1);
+            exteriorT2 = ClipLerpTexcoord(render, interiorT1, exteriorT2, t2);
+
+            genPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
+            genPrimitive.VertexCount = 3;
+            genPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
+        }
+
+        private static void ClipQuadGenPrimitiveNearPlaneCase2(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
+            // Console.WriteLine("Clip Quad Case II");
+
+            // I1-----I2
+            //  |     |
+            //--A-----B-- A=Lerp(I1,E1); B=Lerp(I2,E2)
+            //  |     |
+            // E1-----E2
+            //
+            //
+            //
+            //
+
+            ref Vector3 interiorV1 = ref genPrimitive.ViewPoints[interiorIndices.Indices[0]];
+            ref Vector3 interiorV2 = ref genPrimitive.ViewPoints[interiorIndices.Indices[1]];
+            ref Vector3 exteriorV1 = ref genPrimitive.ViewPoints[exteriorIndices.Indices[0]];
+            ref Vector3 exteriorV2 = ref genPrimitive.ViewPoints[exteriorIndices.Indices[1]];
+
+            float t1 = FindClipLerpEdgeT(render, interiorV1, exteriorV1);
+            float t2 = FindClipLerpEdgeT(render, interiorV2, exteriorV2);
+
+            exteriorV1 = ClipLerpVertex(render, interiorV1, exteriorV1, t1);
+            exteriorV2 = ClipLerpVertex(render, interiorV2, exteriorV2, t2);
+
+            ref Rgb888 interiorGsc1 = ref genPrimitive.GouraudShadingColors[interiorIndices.Indices[0]];
+            ref Rgb888 interiorGsc2 = ref genPrimitive.GouraudShadingColors[interiorIndices.Indices[1]];
+            ref Rgb888 exteriorGsc1 = ref genPrimitive.GouraudShadingColors[exteriorIndices.Indices[0]];
+            ref Rgb888 exteriorGsc2 = ref genPrimitive.GouraudShadingColors[exteriorIndices.Indices[1]];
+
+            exteriorGsc1 = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc1, t1);
+            exteriorGsc2 = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc2, t2);
+
+            ref Texcoord interiorT1 = ref genPrimitive.Texcoords[interiorIndices.Indices[0]];
+            ref Texcoord interiorT2 = ref genPrimitive.Texcoords[interiorIndices.Indices[1]];
+            ref Texcoord exteriorT1 = ref genPrimitive.Texcoords[exteriorIndices.Indices[0]];
+            ref Texcoord exteriorT2 = ref genPrimitive.Texcoords[exteriorIndices.Indices[1]];
+
+            exteriorT1 = ClipLerpTexcoord(render, interiorT1, exteriorT1, t1);
+            exteriorT2 = ClipLerpTexcoord(render, interiorT2, exteriorT2, t2);
+
+            // Console.WriteLine($"Quad ( after): [1;31m{interiorV1}[m; [1;32m{interiorV2}[m; [1;33m{exteriorV1}[m; [1;34m{exteriorV2}[m {color}");
+        }
+
+        private static void ClipQuadGenPrimitiveNearPlaneCase3(Render render, GenPrimitive genPrimitive, VertexIndices interiorVertices, VertexIndices exteriorVertices) {
+            // Console.WriteLine("Clip Quad Case III");
+
+            Span<ClipFlags> tri1ClipFlags = stackalloc ClipFlags[3];
+            Span<ClipFlags> tri2ClipFlags = stackalloc ClipFlags[3];
+
+            // Before triangulating the quad primitive, first check if
+            // it's at all clipping the near plane
+            TriangulateQuadOrder(genPrimitive.ClipFlags, tri1ClipFlags, tri2ClipFlags);
+
+            ClipFlags tri1ClipFlagOrMask = BitwiseOrClipFlags(tri1ClipFlags);
+            ClipFlags tri2ClipFlagOrMask = BitwiseOrClipFlags(tri2ClipFlags);
+
+            // Have the current generated primitive be the first triangle
+            GenPrimitive tri1GenPrimitive = genPrimitive;
+            GenPrimitive tri2GenPrimitive = render.AcquireGenPrimitive();
+
+            Span<Vector3> tri1ViewPoints = tri1GenPrimitive.ViewPoints;
+            Span<Vector3> tri2ViewPoints = tri2GenPrimitive.ViewPoints;
+
+            Span<Rgb888> tri1GouraudShadingColors = tri1GenPrimitive.GouraudShadingColors;
+            Span<Rgb888> tri2GouraudShadingColors = tri2GenPrimitive.GouraudShadingColors;
+
+            Span<Texcoord> tri1Texcoords = tri1GenPrimitive.Texcoords;
+            Span<Texcoord> tri2Texcoords = tri2GenPrimitive.Texcoords;
+
+            TriangulateQuadOrder(genPrimitive.ViewPoints, tri1ViewPoints, tri2ViewPoints);
+            TriangulateQuadOrder(genPrimitive.GouraudShadingColors, tri1GouraudShadingColors, tri2GouraudShadingColors);
+            TriangulateQuadOrder(genPrimitive.Texcoords, tri1Texcoords, tri2Texcoords);
+
+            tri1ClipFlags.CopyTo(tri1GenPrimitive.ClipFlags);
+            tri2ClipFlags.CopyTo(tri2GenPrimitive.ClipFlags);
+
+            tri1GenPrimitive.Type = (PsyQ.TmdPrimitiveType)(tri1GenPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
+
+            tri1GenPrimitive.VertexCount = 3;
+            tri1GenPrimitive.NormalCount = (tri1GenPrimitive.NormalCount >= 4) ? 3 : tri1GenPrimitive.NormalCount;
+
+            tri2GenPrimitive.Flags = tri1GenPrimitive.Flags;
+            tri2GenPrimitive.Type = tri1GenPrimitive.Type;
+            tri2GenPrimitive.VertexCount = tri1GenPrimitive.VertexCount;
+            tri2GenPrimitive.NormalCount = tri1GenPrimitive.NormalCount;
+            tri2GenPrimitive.FaceNormal = tri1GenPrimitive.FaceNormal;
+            tri2GenPrimitive.TPageId = tri1GenPrimitive.TPageId;
+            tri2GenPrimitive.ClutId = tri1GenPrimitive.ClutId;
+
+            ClipFlags tri1ClipFlagAndMask = BitwiseAndClipFlags(tri1ClipFlags);
+            ClipFlags tri2ClipFlagAndMask = BitwiseAndClipFlags(tri2ClipFlags);
+
+            // Consider the case when a little over half the quad
+            // intersects the near plane. When triangulated, one
+            // triangle is now intersecting the near plane while the
+            // other is completely behind the near plane. At this
+            // point, we need to cull the triangle completely
+            if (tri1ClipFlagAndMask != ClipFlags.None) {
+                GenPrimitive.Discard(tri1GenPrimitive);
+            } else if ((tri1ClipFlagOrMask & ClipFlags.Near) == ClipFlags.Near) {
+                // Console.WriteLine("Clipping Tri1");
+                ClipTriangleGenPrimitiveNearPlane(render, tri1GenPrimitive);
             }
 
+            if (tri2ClipFlagAndMask != ClipFlags.None) {
+                GenPrimitive.Discard(tri2GenPrimitive);
+            } else if ((tri2ClipFlagOrMask & ClipFlags.Near) == ClipFlags.Near) {
+                // Console.WriteLine("Clipping Tri2");
+                ClipTriangleGenPrimitiveNearPlane(render, tri2GenPrimitive);
+            }
+        }
+
+        private static void ClipTriangleGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
+            CalculateInteriorExteriorVertices(genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+
             // Case 1: One interior vertex and two exterior vertices
-            if (interiorVertexCount == 1) {
+            if (_InteriorVertexIndices.Count == 1) {
                 ReadOnlySpan<int> vertexIndices = new int[3] {
-                    interiorVertexIndices[0],
-                    (interiorVertexIndices[0] + 1) % genPrimitive.VertexCount,
-                    (interiorVertexIndices[0] + 2) % genPrimitive.VertexCount
+                     _InteriorVertexIndices.Indices[0],
+                    (_InteriorVertexIndices.Indices[0] + 1) % genPrimitive.VertexCount,
+                    (_InteriorVertexIndices.Indices[0] + 2) % genPrimitive.VertexCount
                 };
 
                 Vector3 interiorVertex = genPrimitive.ViewPoints[vertexIndices[0]];
@@ -425,12 +591,14 @@ namespace PsyCross.Testing.Rendering {
 
                 genPrimitive.Texcoords[vertexIndices[1]] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
                 genPrimitive.Texcoords[vertexIndices[2]] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
+
+                // Console.WriteLine($"Case 1: [1;31m{interiorVertex}[m; [1;32m{exteriorV1}[m; [1;33m{exteriorV2}[m ----> [1;31m{genPrimitive.ViewPoints[vertexIndices[0]]}[m; [1;32m{genPrimitive.ViewPoints[vertexIndices[1]]}[m; [1;33m{genPrimitive.ViewPoints[vertexIndices[2]]}[m");
             } else { // Case 2: Two interior vertices and one exterior vertex
                 ReadOnlySpan<int> vertexIndices = stackalloc int[3] {
-                    exteriorVertexIndices[0],
-                        (exteriorVertexIndices[0] + 1) % genPrimitive.VertexCount,
-                        (exteriorVertexIndices[0] + 2) % genPrimitive.VertexCount
-                        };
+                    _ExteriorVertexIndices.Indices[0],
+                   (_ExteriorVertexIndices.Indices[0] + 1) % genPrimitive.VertexCount,
+                   (_ExteriorVertexIndices.Indices[0] + 2) % genPrimitive.VertexCount
+                };
 
                 GenPrimitive newGenPrimitive = render.AcquireGenPrimitive();
 
@@ -462,6 +630,9 @@ namespace PsyCross.Testing.Rendering {
                 newGenPrimitive.Texcoords[vertexIndices[0]] = genPrimitive.Texcoords[vertexIndices[0]];
                 newGenPrimitive.Texcoords[vertexIndices[1]] = genPrimitive.Texcoords[vertexIndices[2]];
                 newGenPrimitive.Texcoords[vertexIndices[2]] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
+
+                // Console.WriteLine($"Case 2 (1st tri): [1;31m{exteriorVertex}[m; [1;32m{interiorV1}[m; [1;33m{interiorV2}[m ----> [1;31m{genPrimitive.ViewPoints[vertexIndices[0]]}[m; [1;32m{genPrimitive.ViewPoints[vertexIndices[1]]}[m; [1;33m{genPrimitive.ViewPoints[vertexIndices[2]]}[m");
+                // Console.WriteLine($"Case 2 (2nd tri): [1;31m{exteriorVertex}[m; [1;32m{interiorV1}[m; [1;33m{interiorV2}[m ----> [1;31m{newGenPrimitive.ViewPoints[vertexIndices[0]]}[m; [1;32m{newGenPrimitive.ViewPoints[vertexIndices[1]]}[m; [1;33m{newGenPrimitive.ViewPoints[vertexIndices[2]]}[m");
             }
         }
 
@@ -521,6 +692,14 @@ namespace PsyCross.Testing.Rendering {
             lerpedVertex.Z = render.Camera.DepthNear;
 
             return lerpedVertex;
+        }
+
+        private static Rgb888 ClipLerpGouraudShadingColor(Render render, Rgb888 aRgb888, Rgb888 bRgb888, float t) {
+            Vector3 aVector = (Vector3)aRgb888;
+            Vector3 bVector = (Vector3)bRgb888;
+            Vector3 lerpedVertex = Vector3.Lerp(aVector, bVector, t);
+
+            return (Rgb888)lerpedVertex;
         }
 
         private static Texcoord ClipLerpTexcoord(Render render, Texcoord aTexcoord, Texcoord bTexcoord, float t) {
@@ -752,8 +931,11 @@ namespace PsyCross.Testing.Rendering {
             return new Vector3(r, g, b);
         }
 
+        private static bool TestBackFaceCull(Vector3 viewPoint, Vector3 faceNormal) =>
+            (Vector3.Dot(-viewPoint, faceNormal) <= 0f);
+
         private static bool TestBackFaceCull(GenPrimitive genPrimitive) =>
-            (Vector3.Dot(-genPrimitive.ViewPoints[0], genPrimitive.FaceNormal) <= 0f);
+            TestBackFaceCull(genPrimitive.ViewPoints[0], genPrimitive.FaceNormal);
 
         private static bool TestScreenPrimitiveArea(GenPrimitive genPrimitive) {
             Vector2Int a = genPrimitive.ScreenPoints[2] - genPrimitive.ScreenPoints[0];
@@ -1047,9 +1229,12 @@ namespace PsyCross.Testing.Rendering {
             }
         }
 
+        private static Vector3 TransformToView(Render render, Vector3 point) =>
+            Vector3.Transform(point, render.ModelViewMatrix);
+
         private static void TransformToView(Render render, GenPrimitive genPrimitive) {
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
-                genPrimitive.ViewPoints[i] = Vector3.Transform(genPrimitive.PolygonVertices[i], render.ModelViewMatrix);
+                genPrimitive.ViewPoints[i] = TransformToView(render, genPrimitive.PolygonVertices[i]);
             }
         }
 
