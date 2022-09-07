@@ -1,3 +1,5 @@
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PsyCross.Math {
@@ -10,6 +12,12 @@ namespace PsyCross.Math {
             X = x;
             Y = y;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector2(Texcoord v) => new Vector2(v.X, v.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Texcoord(Vector2 v) => new Texcoord((byte)v.X, (byte)v.Y);
 
         public override string ToString() => $"<{X}, {Y}>";
     }

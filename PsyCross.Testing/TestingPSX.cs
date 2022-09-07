@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Numerics;
 using System.Text;
+using System;
 using PsyCross.Devices.Input;
 using PsyCross.Math;
 using PsyCross.ResourceManagement;
@@ -45,11 +44,11 @@ namespace PsyCross.Testing {
             _DispEnv[0].IsRgb24 = true;
             _DispEnv[1].IsRgb24 = true;
 
-            _DrawEnv[0].Color = new Rgb888(0x10, 0x60, 0x10);
+            _DrawEnv[0].Color = Rgb888.Black;
             _DrawEnv[0].IsClear = true;
             _DrawEnv[0].IsDithered = false;
 
-            _DrawEnv[1].Color = new Rgb888(0x10, 0x60, 0x10);
+            _DrawEnv[1].Color = Rgb888.Black;
             _DrawEnv[1].IsClear = true;
             _DrawEnv[1].IsDithered = false;
 
@@ -62,7 +61,7 @@ namespace PsyCross.Testing {
 
             PsyQ.DrawSync();
 
-            PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), Rgb888.Magenta);
+            PsyQ.ClearImage(new RectInt(0, 0, 1024, 512), Rgb888.TextureWhite);
             var timData = ResourceManager.GetBinaryFile("pebles.tim");
             if (PsyQ.TryReadTim(timData, out PsyQ.Tim tim)) {
                 PsyQ.LoadImage(tim.ImageHeader.Rect, tim.Header.Flags.BitDepth, tim.Image);
@@ -86,7 +85,7 @@ namespace PsyCross.Testing {
 
             var kfOptions = new PsyQ.ReadTmdOptions() {
                 Flags = PsyQ.ReadTmdFlags.ApplyKingsField2JpFixes,
-                Scale = 10f / 2048f,
+                Scale = 1f / 2048f,
                 Axis  = new Matrix4x4(-1f,  0f, 0f, 0f,
                                        0f, -1f, 0f, 0f,
                                        0f,  0f, 1f, 0f,
@@ -99,12 +98,23 @@ namespace PsyCross.Testing {
             _model.Material.AmbientColor = new Rgb888(15, 15, 15);
 
             _model.Position = new Vector3(0f, 0f, 0f);
-            _camera.Position = new Vector3(0f, 0f, 0f);
-            _camera.Position = new Vector3(54f, 70f, 64f);
-            _camera.Position = new Vector3(75.36116f, 66.19299f, 75.67318f);
-            _camera.Pitch = 0f;
-            _camera.Yaw = 180f;
-            // _camera.Yaw = -11;
+
+            // Good starting position
+            // _camera.Position = new Vector3(75.36116f, 66.19299f, 75.67318f);
+            // _camera.Pitch = 0f;
+            // _camera.Yaw = 180f;
+
+            // Testing corrupted polys
+            // _camera.Position = new Vector3(16.764767f, 6.2768593f, 3.1472807f);
+            // _camera.Pitch = 0f;
+            // _camera.Yaw = -81.47999f;
+
+            // Testing Quad Case III
+
+            // 2.9214277, 6.794515, 7.8214207>, Pitch, Yaw: -2.9221065, -914.25366
+            _camera.Position = new Vector3(2.9214277f, 6.794515f, 7.8214207f);
+            _camera.Pitch = -2.9221065f;
+            _camera.Yaw = -914.25366f;
 
             _light1 = LightingManager.AllocatePointLight();
             _light1.Color = Rgb888.Blue;
@@ -275,7 +285,7 @@ namespace PsyCross.Testing {
             for (int yy = 0; yy < 10; yy++) {
                 for (int xx = 0; xx < 20; xx++) {
                     NewMethod(yy, xx, yOff, xOff, _layer1);
-                    NewMethod(yy, xx, yOff, xOff, _layer2);
+                    // NewMethod(yy, xx, yOff, xOff, _layer2);
                 }
             }
 
@@ -300,9 +310,9 @@ namespace PsyCross.Testing {
                 // position.X = (tile.Position.X)+40f;
                 // position.Y = -tile.Position.Y;
                 // position.Z = (tile.Position.Z)+40f;
-                position.X = xx * 10;
-                position.Y = -tile.Position.Y * 10;
-                position.Z = yy * 10;
+                position.X = xx * 1;
+                position.Y = -tile.Position.Y * 1;
+                position.Z = yy * 1;
 
                 Matrix4x4 m = Matrix4x4.CreateRotationY(MathHelper.DegreesToRadians(tile.Rotation));
                 Vector3 forward = Vector3.TransformNormal(Vector3.UnitZ, m);

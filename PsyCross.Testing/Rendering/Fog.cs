@@ -20,8 +20,8 @@ namespace PsyCross.Testing.Rendering {
             Func<float, float> CalculateFogIntensity = (z) =>
                 System.Math.Clamp(((FogCoefficient / z) + FogOffset), 0f, 1f);
 
-            Vector3 bgColor = render.DrawEnv.Color;
-            Vector3 ambientColor = Rgb888.White;
+            Vector3 bgColor = (Vector3)render.DrawEnv.Color;
+            Vector3 ambientColor = (Vector3)Rgb888.White;
 
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
                 float z = System.Math.Max(genPrimitive.ViewPoints[i].Z, render.Camera.DepthNear);
@@ -31,7 +31,7 @@ namespace PsyCross.Testing.Rendering {
                 float fogIntensity = CalculateFogIntensity(z);
 
                 Vector3 lerpedColor = Vector3.Lerp(ambientColor, bgColor, fogIntensity);
-                Rgb888 color = lerpedColor;
+                Rgb888 color = (Rgb888)lerpedColor;
 
                 genPrimitive.GouraudShadingColors[i] = color;
             }

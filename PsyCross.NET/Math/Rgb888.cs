@@ -16,10 +16,10 @@ namespace PsyCross.Math {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector3(Rgb888 v) => new Vector3(v.R, v.G, v.B) / 255f;
+        public static explicit operator Vector3(Rgb888 v) => new Vector3(v.R, v.G, v.B) / 255f;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Rgb888(Vector3 v) => new Rgb888((byte)System.Math.Clamp(v.X * 255f, 0, 255),
+        public static explicit operator Rgb888(Vector3 v) => new Rgb888((byte)System.Math.Clamp(v.X * 255f, 0, 255),
                                                                         (byte)System.Math.Clamp(v.Y * 255f, 0, 255),
                                                                         (byte)System.Math.Clamp(v.Z * 255f, 0, 255));
 

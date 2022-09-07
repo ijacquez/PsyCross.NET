@@ -13,9 +13,9 @@ namespace PsyCross.Testing.Rendering {
 
             public static SubdivTriple FromGenPrimitive(GenPrimitive genPrimitive, int index) =>
                 new SubdivTriple {
-                ViewPoint           = genPrimitive.ViewPoints[index],
-                GouraudShadingColor = genPrimitive.GouraudShadingColors[index],
-                Texcoord            = genPrimitive.Texcoords[index]
+                    ViewPoint           = genPrimitive.ViewPoints[index],
+                    GouraudShadingColor = genPrimitive.GouraudShadingColors[index],
+                    Texcoord            = genPrimitive.Texcoords[index]
             };
         }
 
@@ -34,10 +34,10 @@ namespace PsyCross.Testing.Rendering {
             int subdivLevel = 0;
 
             // XXX: Move the 1f value somewhere... Render maybe?
-            if (distance.Z < 10f) {
+            if (distance.Z < 4f) {
                 subdivLevel = 2;
-            } else if (distance.Z < 5f) {
-                subdivLevel = 3;
+            } else if (distance.Z < 10f) {
+                subdivLevel = 1;
             }
 
             if (subdivLevel > 0) {
@@ -71,8 +71,6 @@ namespace PsyCross.Testing.Rendering {
             if (level == 0) {
                 GenPrimitive genPrimitive = render.AcquireGenPrimitive();
 
-                // XXX: Clean this up
-                // XXX: Slow... copies more than what we need
                 GenPrimitive.Copy(baseGenPrimitive, genPrimitive);
 
                 genPrimitive.ViewPoints[0] = spa.ViewPoint;
@@ -91,9 +89,13 @@ namespace PsyCross.Testing.Rendering {
                     genPrimitive.GouraudShadingColors[1] = spb.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
 
-                    genPrimitive.Texcoords[0] = spa.Texcoord;
-                    genPrimitive.Texcoords[1] = spb.Texcoord;
-                    genPrimitive.Texcoords[2] = spc.Texcoord;
+                    if (true) { // XXX: If textured
+                        genPrimitive.Texcoords[0] = spa.Texcoord;
+                        genPrimitive.Texcoords[1] = spb.Texcoord;
+                        genPrimitive.Texcoords[2] = spc.Texcoord;
+
+                        GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
+                    }
 
                     if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) == ClipFlags.Near) {
                         ClipTriangleGenPrimitiveNearPlane(render, genPrimitive);
@@ -125,8 +127,6 @@ namespace PsyCross.Testing.Rendering {
             if (level == 0) {
                 GenPrimitive genPrimitive = render.AcquireGenPrimitive();
 
-                // XXX: Clean this up
-                // XXX: Slow... copies more than what we need
                 GenPrimitive.Copy(baseGenPrimitive, genPrimitive);
 
                 genPrimitive.ViewPoints[0] = spa.ViewPoint;
@@ -147,10 +147,14 @@ namespace PsyCross.Testing.Rendering {
                     genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[3] = spd.GouraudShadingColor;
 
-                    genPrimitive.Texcoords[0] = spa.Texcoord;
-                    genPrimitive.Texcoords[1] = spb.Texcoord;
-                    genPrimitive.Texcoords[2] = spc.Texcoord;
-                    genPrimitive.Texcoords[3] = spd.Texcoord;
+                    if (true) { // XXX: If textured
+                        genPrimitive.Texcoords[0] = spa.Texcoord;
+                        genPrimitive.Texcoords[1] = spb.Texcoord;
+                        genPrimitive.Texcoords[2] = spc.Texcoord;
+                        genPrimitive.Texcoords[3] = spd.Texcoord;
+
+                        GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
+                    }
 
                     if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) == ClipFlags.Near) {
                         ClipQuadGenPrimitiveNearPlane(render, genPrimitive);

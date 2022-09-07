@@ -24,11 +24,7 @@ namespace PsyCross.Testing.Rendering {
 
                 TransformToView(render, genPrimitive);
 
-                // if (genPrimitive.NormalCount == 0) {
-                    genPrimitive.FaceNormal = CalculateScaledFaceNormal(genPrimitive.ViewPoints);
-                // } else {
-                //     genPrimitive.FaceNormal = genPrimitive.PolygonNormals[0];
-                // }
+                genPrimitive.FaceNormal = CalculateScaledFaceNormal(genPrimitive.ViewPoints);
 
                 // Perform backface culling unless it's "double sided"
                 if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Fce) != PsyQ.TmdPrimitiveFlags.Fce) {
@@ -49,47 +45,51 @@ namespace PsyCross.Testing.Rendering {
 
                 CollectRemainingPrimitiveData(render, tmdObject, tmdPacket, genPrimitive);
 
-
+                // XXX: Remove
                 if (genPrimitive.VertexCount == 3) {
                     genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
                 } else {
                     genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
                 }
                 genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
-                genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex+1);
-                genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex+2);
-                genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex+3);
+                genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex + 1);
+                genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex + 2);
+                genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex + 3);
 
                 genPrimitive.FaceNormal = Vector3.Normalize(genPrimitive.FaceNormal);
 
                 TransformToWorld(render, genPrimitive);
 
+                // XXX: Add a flag to check if primitive (object) is affected by fog
                 // CalculateFog(render, genPrimitive);
 
                 // Perform light source calculation
                 // XXX: Change this to check lighting from a property getter
-                if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
-                    // CalculateLighting(render, genPrimitive);
-                }
+                // if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
+                //     CalculateLighting(render, genPrimitive);
+                // }
 
-                SubdivideGenPrimitive(render, genPrimitive);
+                ClipNearPlane(render, genPrimitive);
+
+                // SubdivideGenPrimitive(render, genPrimitive);
 
                 foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
-                    if ((currentGenPrimitive.Flags & GenPrimitiveFlags.Discarded) == GenPrimitiveFlags.Discarded) {
+                    if (GenPrimitive.HasFlag(currentGenPrimitive, GenPrimitiveFlags.Discarded)) {
                         continue;
                     }
 
                     TransformToScreen(render, currentGenPrimitive);
 
+                    CullZeroAreaPrimitives(currentGenPrimitive);
+
+                    if (GenPrimitive.HasFlag(currentGenPrimitive, GenPrimitiveFlags.Discarded)) {
+                        continue;
+                    }
+
                     if (TestScreenPointOverflow(currentGenPrimitive)) {
                         // Console.WriteLine("[1;31mOverflow[m");
                         continue;
                     }
-
-                    // if (TestScreenPrimitiveArea(currentGenPrimitive)) {
-                    //     // Console.WriteLine("[1;31mArea<=0[m");
-                    //     continue;
-                    // }
 
                     DrawGenPrimitive(render, currentGenPrimitive);
                 }
@@ -157,42 +157,32 @@ namespace PsyCross.Testing.Rendering {
         private static bool TestBackFaceCull(GenPrimitive genPrimitive) =>
             TestBackFaceCull(genPrimitive.ViewPoints[0], genPrimitive.FaceNormal);
 
-        private static bool TestScreenPrimitiveArea(GenPrimitive genPrimitive) {
-            Vector2Int a = genPrimitive.ScreenPoints[2] - genPrimitive.ScreenPoints[0];
-            Vector2Int b = genPrimitive.ScreenPoints[1] - genPrimitive.ScreenPoints[0];
+        private static void CullZeroAreaPrimitives(GenPrimitive genPrimitive) {
+            ref Vector2Int aVertex = ref genPrimitive.ScreenPoints[0];
+            ref Vector2Int bVertex = ref genPrimitive.ScreenPoints[1];
+            ref Vector2Int cVertex = ref genPrimitive.ScreenPoints[2];
 
-            int z1 = (a.X * b.Y) - (a.Y * b.X);
+            bool tri1AreaZero = CalculateScreenPointArea(aVertex, bVertex, cVertex);
 
-            if (z1 <= 0) {
-                return true;
+            switch (genPrimitive.VertexCount) {
+                case 3 when tri1AreaZero:
+                    GenPrimitive.Discard(genPrimitive);
+                    break;
+                case 4:
+                    ref Vector2Int dVertex = ref genPrimitive.ScreenPoints[3];
+
+                    bool tri2AreaZero = CalculateScreenPointArea(aVertex, bVertex, cVertex);
+
+                    if (tri1AreaZero && tri2AreaZero) {
+                        GenPrimitive.Discard(genPrimitive);
+                    }
+                    break;
             }
-
-            if (genPrimitive.VertexCount == 4) {
-                // Vertex order for a quad:
-                //   D--B
-                //   |  |
-                //   C--A
-                //
-                //      B
-                //      |
-                //   C--A First test
-                //
-                //   D--B Second test
-                //   |
-                //   C
-
-                Vector2Int c = genPrimitive.ScreenPoints[2] - genPrimitive.ScreenPoints[3];
-                Vector2Int d = genPrimitive.ScreenPoints[1] - genPrimitive.ScreenPoints[3];
-
-                int z2 = (a.X * b.Y) - (a.Y * b.X);
-
-                if (z2 <= 0) {
-                    return true;
-                }
-            }
-
-            return false;
         }
+
+        private static bool CalculateScreenPointArea(Vector2Int a, Vector2Int b, Vector2Int c) =>
+            // Remember that Y is inverted here
+            ((b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X) == 0);
 
         private static bool TestScreenPointOverflow(GenPrimitive genPrimitive) {
             // Vertices have a range of [-1024,1023] even though each component
@@ -226,7 +216,7 @@ namespace PsyCross.Testing.Rendering {
 
         private static void TransformToWorld(Render render, GenPrimitive genPrimitive) {
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
-                genPrimitive.WorldPoints[i] = Vector3.Transform(genPrimitive.PolygonVertices[i], render.ModelMatrix);
+                genPrimitive.WorldPoints[i] = Vector3.Transform(genPrimitive.Vertices[i], render.ModelMatrix);
             }
         }
 
@@ -235,7 +225,7 @@ namespace PsyCross.Testing.Rendering {
 
         private static void TransformToView(Render render, GenPrimitive genPrimitive) {
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
-                genPrimitive.ViewPoints[i] = TransformToView(render, genPrimitive.PolygonVertices[i]);
+                genPrimitive.ViewPoints[i] = TransformToView(render, genPrimitive.Vertices[i]);
             }
         }
 

@@ -30,7 +30,7 @@ namespace PsyCross.Testing {
 
         public int ScreenHeight { get; }
 
-        public float DepthNear { get; set; } = 1f;
+        public float DepthNear { get; set; } = 0.5f;
 
         public float DepthFar => ViewDistance / 2f;
 
@@ -96,14 +96,9 @@ namespace PsyCross.Testing {
             Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
         private void UpdateViewDistance() {
-            // This is 2x2 for normalized projection, or the exact same size as
-            // the view port or screen window if you want to merge the
-            // perspective transform and screen transform together (faster)
-            const float NormalizedWidth = 320.0f;
-
             // This calculation will give us the correct d value if we want to
             // merge the perspective transform and screen transform into one
-            ViewDistance = 0.5f * NormalizedWidth * MathF.Tan(_fov * 0.5f);
+            ViewDistance = System.MathF.Round(0.5f * (float)ScreenWidth * MathF.Tan(_fov * 0.5f));
         }
 
         private void UpdateVectors() {

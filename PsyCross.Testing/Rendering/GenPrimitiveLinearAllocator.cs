@@ -22,7 +22,8 @@ namespace PsyCross.Testing.Rendering.Internal {
                 throw new OutOfMemoryException("GenPrimitiveLinearAllocator: Out of memory.");
             }
 
-            genPrimitive.Flags = GenPrimitiveFlags.None;
+            GenPrimitive.ClearFlags(genPrimitive);
+            GenPrimitive.ClearTags(genPrimitive);
 
             return genPrimitive;
         }

@@ -1,3 +1,5 @@
+using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace PsyCross.Math {
@@ -6,6 +8,10 @@ namespace PsyCross.Math {
         private const float _Rad2Deg     = 180f / System.MathF.PI;
         private const float _FixedPoint  = 4096f;
         private const float _Fixed2Float = 1f / _FixedPoint;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Approximately(float a, float b, float epsilon = 0.001f) =>
+            (System.Math.Abs(b - a) < epsilon);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float DegreesToRadians(float degrees) => (degrees * _Deg2Rad);
@@ -22,5 +28,9 @@ namespace PsyCross.Math {
 
             return (short)((value * shiftValue));
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Lerp(float value1, float value2, float amount) =>
+            (value1 + ((value2 - value1) * amount));
     }
 }
