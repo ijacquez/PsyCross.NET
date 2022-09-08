@@ -43,27 +43,23 @@ namespace PsyCross.Testing.Rendering {
                 return;
             }
 
-            GenPrimitive.ClearTags(genPrimitive);
+            CalculateInteriorExteriorVertices(genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
 
             if (genPrimitive.VertexCount == 3) {
-                ClipTriangleGenPrimitiveNearPlane(render, genPrimitive);
+                ClipTriangleGenPrimitiveNearPlane(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
             } else if (genPrimitive.VertexCount == 4) {
-                ClipQuadGenPrimitiveNearPlane(render, genPrimitive);
+                ClipQuadGenPrimitiveNearPlane(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
             }
         }
 
-        private static void ClipTriangleGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
-            CalculateInteriorExteriorVertices(genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
-
+        private static void ClipTriangleGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
             switch (_InteriorVertexIndices.Count) {
                 case 1 when (_ExteriorVertexIndices.Count == 2):
-                    ClipTriangleGenPrimitiveNearPlaneCase1(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    ClipTriangleGenPrimitiveNearPlaneCase1(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
                 case 2 when (_ExteriorVertexIndices.Count == 1):
-                    ClipTriangleGenPrimitiveNearPlaneCase2(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    ClipTriangleGenPrimitiveNearPlaneCase2(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
-                default:
-                    throw new Exception("Unknown case");
             }
         }
 
@@ -87,18 +83,23 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.ViewPoints[exteriorIndex1] = ClipLerpVertex(render, interiorVertex, exteriorV1, t1);
             genPrimitive.ViewPoints[exteriorIndex2] = ClipLerpVertex(render, interiorVertex, exteriorV2, t2);
 
-            Texcoord interiorTexcoord = genPrimitive.Texcoords[interiorIndex];
-            Texcoord exteriorT1 = genPrimitive.Texcoords[exteriorIndex1];
-            Texcoord exteriorT2 = genPrimitive.Texcoords[exteriorIndex2];
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
+                Rgb888 interiorGsc = genPrimitive.GouraudShadingColors[interiorIndex];
+                Rgb888 exteriorGsc1 = genPrimitive.GouraudShadingColors[exteriorIndex1];
+                Rgb888 exteriorGsc2 = genPrimitive.GouraudShadingColors[exteriorIndex2];
 
-            genPrimitive.Texcoords[exteriorIndex1] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
-            genPrimitive.Texcoords[exteriorIndex2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
+                genPrimitive.GouraudShadingColors[exteriorIndex1] = ClipLerpGouraudShadingColor(render, interiorGsc, exteriorGsc1, t1);
+                genPrimitive.GouraudShadingColors[exteriorIndex2] = ClipLerpGouraudShadingColor(render, interiorGsc, exteriorGsc2, t2);
+            }
 
-            genPrimitive.GouraudShadingColorBuffer[0] = Rgb888.Yellow;
-            genPrimitive.GouraudShadingColorBuffer[1] = Rgb888.Yellow;
-            genPrimitive.GouraudShadingColorBuffer[2] = Rgb888.Yellow;
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                Texcoord interiorTexcoord = genPrimitive.Texcoords[interiorIndex];
+                Texcoord exteriorT1 = genPrimitive.Texcoords[exteriorIndex1];
+                Texcoord exteriorT2 = genPrimitive.Texcoords[exteriorIndex2];
 
-            GenPrimitive.SetTags(genPrimitive, GenPrimitiveTags.ClipTriCase1);
+                genPrimitive.Texcoords[exteriorIndex1] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
+                genPrimitive.Texcoords[exteriorIndex2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
+            }
 
             // Console.WriteLine($"Case 1: [1;31m{interiorVertex}[m; [1;32m{exteriorV1}[m; [1;33m{exteriorV2}[m ----> [1;31m{genPrimitive.ViewPoints[vertexIndices[0]]}[m; [1;32m{genPrimitive.ViewPoints[vertexIndices[1]]}[m; [1;33m{genPrimitive.ViewPoints[vertexIndices[2]]}[m");
         }
@@ -132,61 +133,59 @@ namespace PsyCross.Testing.Rendering {
             newGenPrimitive.ViewPoints[interiorIndex1] = interiorV2;
             newGenPrimitive.ViewPoints[interiorIndex2] = lerpedV2;
 
-            Texcoord exteriorTexcoord = genPrimitive.Texcoords[exteriorIndex];
-            Texcoord interiorT1 = genPrimitive.Texcoords[interiorIndex1];
-            Texcoord interiorT2 = genPrimitive.Texcoords[interiorIndex2];
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
+                Rgb888 exteriorGsc = genPrimitive.GouraudShadingColors[exteriorIndex];
+                Rgb888 interiorGsc1 = genPrimitive.GouraudShadingColors[interiorIndex1];
+                Rgb888 interiorGsc2 = genPrimitive.GouraudShadingColors[interiorIndex2];
 
-            genPrimitive.Texcoords[exteriorIndex] = ClipLerpTexcoord(render, interiorT1, exteriorTexcoord, t1);
+                Rgb888 lerpedGsc2 = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc, t2);
 
-            newGenPrimitive.Texcoords[exteriorIndex] = genPrimitive.Texcoords[exteriorIndex];
-            newGenPrimitive.Texcoords[interiorIndex1] = genPrimitive.Texcoords[interiorIndex2];
-            newGenPrimitive.Texcoords[interiorIndex2] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
+                genPrimitive.GouraudShadingColors[exteriorIndex] = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc, t1);
 
-            genPrimitive.GouraudShadingColorBuffer[0] = Rgb888.Orange;
-            genPrimitive.GouraudShadingColorBuffer[1] = Rgb888.Orange;
-            genPrimitive.GouraudShadingColorBuffer[2] = Rgb888.Orange;
+                newGenPrimitive.GouraudShadingColors[exteriorIndex] = genPrimitive.GouraudShadingColors[exteriorIndex];
+                newGenPrimitive.GouraudShadingColors[interiorIndex1] = genPrimitive.GouraudShadingColors[interiorIndex2];
+                newGenPrimitive.GouraudShadingColors[interiorIndex2] = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc, t2);
+            }
 
-            newGenPrimitive.GouraudShadingColorBuffer[0] = Rgb888.Cyan;
-            newGenPrimitive.GouraudShadingColorBuffer[1] = Rgb888.Cyan;
-            newGenPrimitive.GouraudShadingColorBuffer[2] = Rgb888.Cyan;
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                Texcoord exteriorTexcoord = genPrimitive.Texcoords[exteriorIndex];
+                Texcoord interiorT1 = genPrimitive.Texcoords[interiorIndex1];
+                Texcoord interiorT2 = genPrimitive.Texcoords[interiorIndex2];
 
-            GenPrimitive.SetTags(genPrimitive, GenPrimitiveTags.ClipTriCase2);
-            GenPrimitive.SetTags(newGenPrimitive, GenPrimitiveTags.ClipTriCase2);
+                genPrimitive.Texcoords[exteriorIndex] = ClipLerpTexcoord(render, interiorT1, exteriorTexcoord, t1);
 
-            // Console.WriteLine($"Case 2 (1st tri): [1;31m{exteriorVertex}[m; [1;32m{interiorV1}[m; [1;33m{interiorV2}[m ----> [1;31m{genPrimitive.ViewPoints[exteriorIndex]}[m; [1;32m{genPrimitive.ViewPoints[interiorIndex1]}[m; [1;33m{genPrimitive.ViewPoints[interiorIndex2]}[m");
-            // Console.WriteLine($"Case 2 (2nd tri): [1;31m{exteriorVertex}[m; [1;32m{interiorV1}[m; [1;33m{interiorV2}[m ----> [1;31m{newGenPrimitive.ViewPoints[exteriorIndex]}[m; [1;32m{newGenPrimitive.ViewPoints[interiorIndex1]}[m; [1;33m{newGenPrimitive.ViewPoints[interiorIndex2]}[m");
+                newGenPrimitive.Texcoords[exteriorIndex] = genPrimitive.Texcoords[exteriorIndex];
+                newGenPrimitive.Texcoords[interiorIndex1] = genPrimitive.Texcoords[interiorIndex2];
+                newGenPrimitive.Texcoords[interiorIndex2] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
+            }
         }
 
-        private static void ClipQuadGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive) {
+        private static void ClipQuadGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
             CalculateInteriorExteriorVertices(genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
 
             switch (_InteriorVertexIndices.Count) {
                 case 1 when (_ExteriorVertexIndices.Count == 3):
-                    ClipQuadGenPrimitiveNearPlaneCase1(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    ClipQuadGenPrimitiveNearPlaneCase1(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
                 case 2 when (_ExteriorVertexIndices.Count == 2):
-                    ClipQuadGenPrimitiveNearPlaneCase2(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    ClipQuadGenPrimitiveNearPlaneCase2(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
                 case 3 when (_ExteriorVertexIndices.Count == 1):
-                    ClipQuadGenPrimitiveNearPlaneCase3(render, genPrimitive, _InteriorVertexIndices, _ExteriorVertexIndices);
+                    ClipQuadGenPrimitiveNearPlaneCase3(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
-                default:
-                    throw new Exception("Unknown case");
             }
         }
 
         private static void ClipQuadGenPrimitiveNearPlaneCase1(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
-            // Console.WriteLine("Clip Quad Case I");
-
-            //     I
-            //    / \
-            //---A---B--- A=Lerp(I,E1); B=Lerp(I,E2) and degenerate to a triangle
-            //  /     \
-            // E1      E2
-            //  \     /
-            //   \   /
-            //    \ /
-            //     E3
+            //      I
+            //     / \
+            // ---A---B--- A=Lerp(I,E1); B=Lerp(I,E2) and degenerate to a triangle
+            //   /     \
+            //  E1      E2
+            //   \     /
+            //    \   /
+            //     \ /
+            //      E3
 
             int interiorIndex = interiorIndices.Indices[0];
             AdjacencyList adjacencyList = _QuadAdjacencyTable[interiorIndex];
@@ -224,18 +223,14 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
             genPrimitive.VertexCount = 3;
             genPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
-
-            GenPrimitive.SetTags(genPrimitive, GenPrimitiveTags.ClipQuadCase1);
         }
 
         private static void ClipQuadGenPrimitiveNearPlaneCase2(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
-            // Console.WriteLine("Clip Quad Case II");
-
-            // I1-----I2
-            //  |     |
-            //--A-----B-- A=Lerp(I1,E1); B=Lerp(I2,E2)
-            //  |     |
-            // E1-----E2
+            //  I1-----I2
+            //   |     |
+            // --A-----B-- A=Lerp(I1,E1); B=Lerp(I2,E2)
+            //   |     |
+            //  E1-----E2
             //
             //
             //
@@ -275,14 +270,10 @@ namespace PsyCross.Testing.Rendering {
             exteriorT1 = ClipLerpTexcoord(render, interiorT1, exteriorT1, t1);
             exteriorT2 = ClipLerpTexcoord(render, interiorT2, exteriorT2, t2);
 
-            GenPrimitive.SetTags(genPrimitive, GenPrimitiveTags.ClipQuadCase2);
-
             // Console.WriteLine($"Quad ( after): [1;31m{interiorV1}[m; [1;32m{interiorV2}[m; [1;33m{exteriorV1}[m; [1;34m{exteriorV2}[m {color}");
         }
 
         private static void ClipQuadGenPrimitiveNearPlaneCase3(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
-            // Console.WriteLine("Clip Quad Case III");
-
             // We really only need one exterior vertex to find everything else
             int exteriorIndex = exteriorIndices.Indices[0];
             AdjacencyList exteriorAdjList = _QuadAdjacencyTable[exteriorIndex];
@@ -355,13 +346,9 @@ namespace PsyCross.Testing.Rendering {
             triGenPrimitive.Texcoords[0] = interiorTexcoord;
             triGenPrimitive.Texcoords[1] = opposingInteriorTexcoord;
             triGenPrimitive.Texcoords[2] = middleInteriorTexcoord;
-
-            GenPrimitive.SetTags(genPrimitive, GenPrimitiveTags.ClipQuadCase3);
-            GenPrimitive.SetTags(triGenPrimitive, GenPrimitiveTags.ClipQuadCase3);
         }
 
         private static void CalculateInteriorExteriorVertices(GenPrimitive genPrimitive, VertexIndices interiorVertices, VertexIndices exteriorVertices) {
-            // Determine which case to cover and find the interior/exterior vertices
             int intIndex = 0;
             int extIndex = 0;
 

@@ -66,12 +66,21 @@ namespace PsyCross.Testing {
             if (PsyQ.TryReadTim(timData, out PsyQ.Tim tim)) {
                 PsyQ.LoadImage(tim.ImageHeader.Rect, tim.Header.Flags.BitDepth, tim.Image);
 
-                int _tPageId = PsyQ.GetTPage(tim.Header.Flags.BitDepth,
-                                             (ushort)tim.ImageHeader.Rect.X,
-                                             (ushort)tim.ImageHeader.Rect.Y);
+                for (int y = 0; y < (Psx.Gpu.Vram.Height / tim.ImageHeader.Rect.Width); y++) {
+                    short ry = (short)(y * tim.ImageHeader.Rect.Height);
+                    for (int x = 0; x < (Psx.Gpu.Vram.Width / tim.ImageHeader.Rect.Width); x++) {
+                        short rx = (short)(_camera.ScreenWidth + (x * tim.ImageHeader.Rect.Width));
+
+                        RectShort rect = tim.ImageHeader.Rect;
+                        rect.X = rx;
+                        rect.Y = ry;
+
+                        PsyQ.LoadImage(rect, tim.Header.Flags.BitDepth, tim.Image);
+                    }
+                }
 
                 if (tim.Header.Flags.HasClut) {
-                    int _clutId = PsyQ.LoadClut(tim.Cluts[0].Clut, (uint)tim.ClutHeader.P.X, (uint)tim.ClutHeader.P.Y);
+                    PsyQ.LoadClut(tim.Cluts[0].Clut, (uint)tim.ClutHeader.P.X, (uint)tim.ClutHeader.P.Y);
                 }
             }
 
@@ -110,11 +119,9 @@ namespace PsyCross.Testing {
             // _camera.Yaw = -81.47999f;
 
             // Testing Quad Case III
-
-            // 2.9214277, 6.794515, 7.8214207>, Pitch, Yaw: -2.9221065, -914.25366
-            _camera.Position = new Vector3(2.9214277f, 6.794515f, 7.8214207f);
-            _camera.Pitch = -2.9221065f;
-            _camera.Yaw = -914.25366f;
+            _camera.Position = new Vector3(7.6395535f, 6.6300645f, 0.95493937f);
+            _camera.Pitch = 6.66668f;
+            _camera.Yaw = -988.87683f;
 
             _light1 = LightingManager.AllocatePointLight();
             _light1.Color = Rgb888.Blue;
@@ -149,9 +156,9 @@ namespace PsyCross.Testing {
                 Tile.Layer layer = null;
                 bool eof = false;
 
+                Span<char> buffer = stackalloc char[1];
                 while (!eof) {
                     stringBuilder.Clear();
-                    Span<char> buffer = stackalloc char[1];
 
                     while (true) {
                         int ret = stringReader.Read(buffer);
@@ -169,13 +176,9 @@ namespace PsyCross.Testing {
                     }
 
                     if ((memberIndex > 0) && ((memberIndex % 6) == 0)) {
-                        // Console.WriteLine($"{layer.TileId} {layer.Position.X} {layer.Position.Y} {layer.Position.Z} {layer.Rotation} >>> {memberIndex}");
-
                         int mx = (int)(layer.Position.X + 40f);
                         int my = (int)(layer.Position.Z + 40f);
-                        if ((layer.TileId == 1) && (mx >= 30) && (mx < 80) && (my >= 0) && (my < 80)) {
-                            Console.WriteLine($"{mx},{my} => {layer.TileId} => {layer.Rotation}");
-                        }
+
                         if (layer.LayerId == 1) {
                             _layer1[mx + (my * 80)] = layer;
                         } else if (layer.LayerId == 2) {
@@ -200,7 +203,6 @@ namespace PsyCross.Testing {
                             case 3:  case 9: layer.Position.Y = value/2048f; memberIndex++; break;
                             case 4: case 10: layer.Position.Z = value/2048f; memberIndex++; break;
                             case 5: case 11: layer.Rotation = value; memberIndex++; break;
-                            // case 5: case 11: layer.Rotation = (4-(((int)value - 180) / -90)) * 90; memberIndex++; break;
                         }
 
                         // Console.WriteLine($"[1;36mmemberIndex: {memberIndex}[m");
@@ -221,11 +223,11 @@ namespace PsyCross.Testing {
 
         private Model _model;
         private PointLight _light1;
-        private DirectionalLight _light2;
+        // private DirectionalLight _light2;
 
         int _tmdObjectIndex = 0;
 
-        Vector3 XXX = new Vector3(3.5f, 3.3f, 0f);
+        Vector3 mapPos = new Vector3(3.5f, 3.3f, 0f);
 
         public void Update() {
             _commandBuffer.Reset();
@@ -235,32 +237,32 @@ namespace PsyCross.Testing {
                 _flyCamera.Update();
                 _light1.Position = _camera.Position;
             } else {
-                Console.WriteLine($"[1;34m{XXX}[m");
+                Console.WriteLine($"[1;34m{mapPos}[m");
 
                 if (Psx.Input.HasFlag(JoyPad.Triangle)) {
                     if ((Psx.Input & JoyPad.Up) == JoyPad.Up) {
-                        XXX += Vector3.UnitY * Psx.Time.DeltaTime;
+                        mapPos += Vector3.UnitY * Psx.Time.DeltaTime;
                     }
 
                     if ((Psx.Input & JoyPad.Down) == JoyPad.Down) {
-                        XXX += -Vector3.UnitY * Psx.Time.DeltaTime;
+                        mapPos += -Vector3.UnitY * Psx.Time.DeltaTime;
                     }
                 } else {
                     if ((Psx.Input & JoyPad.Up) == JoyPad.Up) {
-                        XXX += Vector3.UnitZ * Psx.Time.DeltaTime;
+                        mapPos += Vector3.UnitZ * Psx.Time.DeltaTime;
                     }
 
                     if ((Psx.Input & JoyPad.Down) == JoyPad.Down) {
-                        XXX += -Vector3.UnitZ * Psx.Time.DeltaTime;
+                        mapPos += -Vector3.UnitZ * Psx.Time.DeltaTime;
                     }
                 }
 
                 if ((Psx.Input & JoyPad.Left) == JoyPad.Left) {
-                    XXX += -Vector3.UnitX * Psx.Time.DeltaTime;
+                    mapPos += -Vector3.UnitX * Psx.Time.DeltaTime;
                 }
 
                 if ((Psx.Input & JoyPad.Right) == JoyPad.Right) {
-                    XXX += Vector3.UnitX * Psx.Time.DeltaTime;
+                    mapPos += Vector3.UnitX * Psx.Time.DeltaTime;
                 }
             }
 
@@ -280,8 +282,8 @@ namespace PsyCross.Testing {
 
             Console.WriteLine($"_camera.Position: [1;32m{_camera.Position}, Pitch, Yaw: {_camera.Pitch}, {_camera.Yaw}[m");
 
-            int xOff=(int)(10f*XXX.X);
-            int yOff=(int)(10f*XXX.Y);
+            int xOff=(int)(10f*mapPos.X);
+            int yOff=(int)(10f*mapPos.Y);
             for (int yy = 0; yy < 10; yy++) {
                 for (int xx = 0; xx < 20; xx++) {
                     NewMethod(yy, xx, yOff, xOff, _layer1);

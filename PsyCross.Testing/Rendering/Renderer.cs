@@ -27,7 +27,7 @@ namespace PsyCross.Testing.Rendering {
                 genPrimitive.FaceNormal = CalculateScaledFaceNormal(genPrimitive.ViewPoints);
 
                 // Perform backface culling unless it's "double sided"
-                if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Fce) != PsyQ.TmdPrimitiveFlags.Fce) {
+                if (!GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.DoubleSided)) {
                     if (TestBackFaceCull(genPrimitive)) {
                         // Console.WriteLine("---------------- Backface Cull ----------------");
                         continue;
@@ -37,7 +37,6 @@ namespace PsyCross.Testing.Rendering {
                 GenerateClipFlags(render, genPrimitive);
 
                 // Cull primitive if it's outside of any of the six planes
-
                 if (TestOutsideFustrum(genPrimitive)) {
                     // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     continue;
@@ -45,33 +44,32 @@ namespace PsyCross.Testing.Rendering {
 
                 CollectRemainingPrimitiveData(render, tmdObject, tmdPacket, genPrimitive);
 
-                // XXX: Remove
-                if (genPrimitive.VertexCount == 3) {
-                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
-                } else {
-                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
-                }
-                genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
-                genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex + 1);
-                genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex + 2);
-                genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex + 3);
+                // // XXX: Remove
+                // if (genPrimitive.VertexCount == 3) {
+                //     genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
+                // } else {
+                //     genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
+                // }
+                // genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
+                // genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex + 1);
+                // genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex + 2);
+                // genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex + 3);
 
+                genPrimitive.FaceArea = 0.5f * genPrimitive.FaceNormal.Length();
                 genPrimitive.FaceNormal = Vector3.Normalize(genPrimitive.FaceNormal);
-
-                TransformToWorld(render, genPrimitive);
 
                 // XXX: Add a flag to check if primitive (object) is affected by fog
                 // CalculateFog(render, genPrimitive);
 
                 // Perform light source calculation
-                // XXX: Change this to check lighting from a property getter
-                // if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) != PsyQ.TmdPrimitiveFlags.Lgt) {
+                // if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Lit)) {
+                //     TransformToWorld(render, genPrimitive);
                 //     CalculateLighting(render, genPrimitive);
                 // }
 
                 ClipNearPlane(render, genPrimitive);
 
-                // SubdivideGenPrimitive(render, genPrimitive);
+                SubdivideGenPrimitive(render, genPrimitive);
 
                 foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
                     if (GenPrimitive.HasFlag(currentGenPrimitive, GenPrimitiveFlags.Discarded)) {
@@ -130,6 +128,8 @@ namespace PsyCross.Testing.Rendering {
             }
 
             if ((tmdPacket.PrimitiveHeader.Mode & PsyQ.TmdPrimitiveMode.Tme) == PsyQ.TmdPrimitiveMode.Tme) {
+                genPrimitive.Flags |= GenPrimitiveFlags.Textured;
+
                 genPrimitive.TexcoordBuffer[0] = tmdPacket.Primitive.T0;
                 genPrimitive.TexcoordBuffer[1] = tmdPacket.Primitive.T1;
                 genPrimitive.TexcoordBuffer[2] = tmdPacket.Primitive.T2;
@@ -140,9 +140,26 @@ namespace PsyCross.Testing.Rendering {
             }
 
             genPrimitive.GouraudShadingColorBuffer[0] = tmdPacket.Primitive.C0;
-            genPrimitive.GouraudShadingColorBuffer[1] = tmdPacket.Primitive.C1;
-            genPrimitive.GouraudShadingColorBuffer[2] = tmdPacket.Primitive.C2;
-            genPrimitive.GouraudShadingColorBuffer[3] = tmdPacket.Primitive.C3;
+
+            if ((tmdPacket.PrimitiveHeader.Mode & PsyQ.TmdPrimitiveMode.Iip) == PsyQ.TmdPrimitiveMode.Iip) {
+                genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
+
+                genPrimitive.GouraudShadingColorBuffer[1] = tmdPacket.Primitive.C1;
+                genPrimitive.GouraudShadingColorBuffer[2] = tmdPacket.Primitive.C2;
+                genPrimitive.GouraudShadingColorBuffer[3] = tmdPacket.Primitive.C3;
+            }
+
+            if ((tmdPacket.PrimitiveHeader.Mode & PsyQ.TmdPrimitiveMode.Abe) == PsyQ.TmdPrimitiveMode.Abe) {
+                genPrimitive.Flags |= GenPrimitiveFlags.SemiTransparent;
+            }
+
+            if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Fce) == PsyQ.TmdPrimitiveFlags.Fce) {
+                genPrimitive.Flags |= GenPrimitiveFlags.DoubleSided;
+            }
+
+            if ((tmdPacket.PrimitiveHeader.Flags & PsyQ.TmdPrimitiveFlags.Lgt) == PsyQ.TmdPrimitiveFlags.Lgt) {
+                genPrimitive.Flags |= GenPrimitiveFlags.Lit;
+            }
         }
 
         private static bool TestAnyOutsideFustrum(GenPrimitive genPrimitive) =>
@@ -203,9 +220,6 @@ namespace PsyCross.Testing.Rendering {
 
             return false;
         }
-
-        private static Vector3 CalculateFaceNormal(Vector3[] points) =>
-            Vector3.Normalize(CalculateScaledFaceNormal(points));
 
         private static Vector3 CalculateScaledFaceNormal(ReadOnlySpan<Vector3> points) {
             Vector3 a = points[2] - points[0];

@@ -34,9 +34,9 @@ namespace PsyCross.Testing.Rendering {
             int subdivLevel = 0;
 
             // XXX: Move the 1f value somewhere... Render maybe?
-            if (distance.Z < 4f) {
+            if (distance.Z < 1f) {
                 subdivLevel = 2;
-            } else if (distance.Z < 10f) {
+            } else if (distance.Z < 2f) {
                 subdivLevel = 1;
             }
 
@@ -77,29 +77,19 @@ namespace PsyCross.Testing.Rendering {
                 genPrimitive.ViewPoints[1] = spb.ViewPoint;
                 genPrimitive.ViewPoints[2] = spc.ViewPoint;
 
-                GenPrimitive.ClearClipFlags(genPrimitive);
+                genPrimitive.GouraudShadingColors[0] = spa.GouraudShadingColor;
 
-                GenerateNearPlaneClipFlags(render, genPrimitive);
-
-                if (TestOutsideFustrum(genPrimitive)) {
-                    // Console.WriteLine($"---------------- Subdiv Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
-                    GenPrimitive.Discard(genPrimitive);
-                } else {
-                    genPrimitive.GouraudShadingColors[0] = spa.GouraudShadingColor;
+                if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
                     genPrimitive.GouraudShadingColors[1] = spb.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
+                }
 
-                    if (true) { // XXX: If textured
-                        genPrimitive.Texcoords[0] = spa.Texcoord;
-                        genPrimitive.Texcoords[1] = spb.Texcoord;
-                        genPrimitive.Texcoords[2] = spc.Texcoord;
+                if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                    genPrimitive.Texcoords[0] = spa.Texcoord;
+                    genPrimitive.Texcoords[1] = spb.Texcoord;
+                    genPrimitive.Texcoords[2] = spc.Texcoord;
 
-                        GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
-                    }
-
-                    if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) == ClipFlags.Near) {
-                        ClipTriangleGenPrimitiveNearPlane(render, genPrimitive);
-                    }
+                    GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
                 }
             } else {
                 // Get the midpoints of each edge of the triangle. From that,
@@ -134,31 +124,21 @@ namespace PsyCross.Testing.Rendering {
                 genPrimitive.ViewPoints[2] = spc.ViewPoint;
                 genPrimitive.ViewPoints[3] = spd.ViewPoint;
 
-                GenPrimitive.ClearClipFlags(genPrimitive);
+                genPrimitive.GouraudShadingColors[0] = spa.GouraudShadingColor;
 
-                GenerateNearPlaneClipFlags(render, genPrimitive);
-
-                if (TestOutsideFustrum(genPrimitive)) {
-                    // Console.WriteLine($"---------------- Subdiv Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
-                    GenPrimitive.Discard(genPrimitive);
-                } else {
-                    genPrimitive.GouraudShadingColors[0] = spa.GouraudShadingColor;
+                if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
                     genPrimitive.GouraudShadingColors[1] = spb.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
                     genPrimitive.GouraudShadingColors[3] = spd.GouraudShadingColor;
+                }
 
-                    if (true) { // XXX: If textured
-                        genPrimitive.Texcoords[0] = spa.Texcoord;
-                        genPrimitive.Texcoords[1] = spb.Texcoord;
-                        genPrimitive.Texcoords[2] = spc.Texcoord;
-                        genPrimitive.Texcoords[3] = spd.Texcoord;
+                if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                    genPrimitive.Texcoords[0] = spa.Texcoord;
+                    genPrimitive.Texcoords[1] = spb.Texcoord;
+                    genPrimitive.Texcoords[2] = spc.Texcoord;
+                    genPrimitive.Texcoords[3] = spd.Texcoord;
 
-                        GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
-                    }
-
-                    if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) == ClipFlags.Near) {
-                        ClipQuadGenPrimitiveNearPlane(render, genPrimitive);
-                    }
+                    GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
                 }
             } else {
                 // Vertex order for a quad:

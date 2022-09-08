@@ -23,6 +23,7 @@ namespace PsyCross.Testing.Rendering {
         public Span<Texcoord> Texcoords => TexcoordBuffer.AsSpan(0, VertexCount);
 
         public Vector3 FaceNormal { get; set; }
+        public float FaceArea { get; set; }
 
         public ClipFlags[] ClipFlagBuffer { get; } = new ClipFlags[4];
         public Span<ClipFlags> ClipFlags => ClipFlagBuffer.AsSpan(0, VertexCount);
