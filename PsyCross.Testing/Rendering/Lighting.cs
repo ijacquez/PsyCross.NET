@@ -13,7 +13,7 @@ namespace PsyCross.Testing.Rendering {
 
             // Take into account flat or vertex shading
             for (int index = 0; index < genPrimitive.NormalCount; index++) {
-                Vector3 normal = genPrimitive.PolygonNormals[index];
+                Vector3 normal = genPrimitive.VertexNormals[index];
 
                 Vector3 pointLightVector = Vector3.Zero;
 

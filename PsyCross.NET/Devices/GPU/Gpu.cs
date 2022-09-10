@@ -1243,20 +1243,26 @@ namespace ProjectPSX.Devices {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ClampToZero(int v) {
-            if (v < 0) return 0;
-            else return (byte)v;
+            if (v < 0) {
+                return 0;
+            }
+
+            return (byte)v;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ClampTo255(int v) {
-            if (v > 0xFF) return 0xFF;
-            else return (byte)v;
+            if (v > 0xFF) {
+                return 0xFF;
+            }
+
+            return (byte)v;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint GetRgbColor(uint value) {
             _color0.Value = value;
-            return (uint)(_color0.Msb << 24 | _color0.R << 16 | _color0.G << 8 | _color0.B);
+            return (uint)(((uint)_color0.Msb << 24) | ((uint)_color0.R << 16) | ((uint)_color0.G << 8) | (uint)_color0.B);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1271,7 +1277,7 @@ namespace ProjectPSX.Devices {
             byte g = (byte)(_color2.G * ratio + _color1.G * (1 - ratio));
             byte b = (byte)(_color2.B * ratio + _color1.B * (1 - ratio));
 
-            return (uint)(r << 16 | g << 8 | b);
+            return (uint)((uint)r << 16 | (uint)g << 8 | b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -10,11 +10,11 @@ namespace PsyCross.Testing.Rendering {
         public int VertexCount { get; set; } = 3;
         public int NormalCount { get; set; }
 
-        public Vector3[] PolygonVertexBuffer { get; } = new Vector3[4];
-        public Span<Vector3> Vertices => PolygonVertexBuffer.AsSpan(0, VertexCount);
+        public Vector3[] VertexBuffer { get; } = new Vector3[4];
+        public Span<Vector3> Vertices => VertexBuffer.AsSpan(0, VertexCount);
 
-        public Vector3[] PolygonNormalBuffer { get; } = new Vector3[4];
-        public Span<Vector3> PolygonNormals => PolygonNormalBuffer.AsSpan(0, VertexCount);
+        public Vector3[] VertexNormalBuffer { get; } = new Vector3[4];
+        public Span<Vector3> VertexNormals => VertexNormalBuffer.AsSpan(0, VertexCount);
 
         public Rgb888[] GouraudShadingColorBuffer { get; } = new Rgb888[4];
         public Span<Rgb888> GouraudShadingColors => GouraudShadingColorBuffer.AsSpan(0, VertexCount);
@@ -58,10 +58,10 @@ namespace PsyCross.Testing.Rendering {
         }
 
         public static void ClearClipFlags(GenPrimitive genPrimitive) {
-            genPrimitive.ClipFlags[0] = PsyCross.Testing.Rendering.ClipFlags.None;
-            genPrimitive.ClipFlags[1] = PsyCross.Testing.Rendering.ClipFlags.None;
-            genPrimitive.ClipFlags[2] = PsyCross.Testing.Rendering.ClipFlags.None;
-            genPrimitive.ClipFlags[genPrimitive.ClipFlags.Length - 1] = PsyCross.Testing.Rendering.ClipFlags.None;
+            genPrimitive.ClipFlagBuffer[0] = Rendering.ClipFlags.None;
+            genPrimitive.ClipFlagBuffer[1] = Rendering.ClipFlags.None;
+            genPrimitive.ClipFlagBuffer[2] = Rendering.ClipFlags.None;
+            genPrimitive.ClipFlagBuffer[3] = Rendering.ClipFlags.None;
         }
 
         public static void Copy(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
@@ -80,7 +80,7 @@ namespace PsyCross.Testing.Rendering {
         public static void CopyNormals(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
             toGenPrimitive.FaceNormal = fromGenPrimitive.FaceNormal;
 
-            fromGenPrimitive.PolygonNormals.CopyTo(toGenPrimitive.PolygonNormals);
+            fromGenPrimitive.VertexNormals.CopyTo(toGenPrimitive.VertexNormals);
         }
 
         public static void CopyViewPoints(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) =>

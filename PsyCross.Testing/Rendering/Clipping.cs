@@ -38,6 +38,12 @@ namespace PsyCross.Testing.Rendering {
         private static readonly VertexIndices _InteriorVertexIndices = new VertexIndices();
         private static readonly VertexIndices _ExteriorVertexIndices = new VertexIndices();
 
+        private static float _ZClipFactor = 0f;
+
+        private static void ClipRenderInit(Render render) {
+            _ZClipFactor = (0.5f * render.Camera.ScreenWidth) / render.Camera.ViewDistance;
+        }
+
         private static void ClipNearPlane(Render render, GenPrimitive genPrimitive) {
             if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) != ClipFlags.Near) {
                 return;
@@ -395,10 +401,7 @@ namespace PsyCross.Testing.Rendering {
             return (Texcoord)lerpedVertex;
         }
 
-        private static void GenerateClipFlags(Render render, GenPrimitive genPrimitive) {
-            // XXX: This should be using render.Camera.ViewDistance
-            float zFactor = 1f / System.MathF.Tan(MathHelper.DegreesToRadians(render.Camera.Fov * 0.5f));
-
+        private static void CalculateClipFlags(Render render, GenPrimitive genPrimitive) {
             GenPrimitive.ClearClipFlags(genPrimitive);
 
             for (int i = 0; i < genPrimitive.VertexCount; i++) {
@@ -414,7 +417,7 @@ namespace PsyCross.Testing.Rendering {
                 // of the right plane (on XZ-axis) is 1. Taking into account
                 // a FOV less than 90, we must take tan(theta/2) into
                 // account (half-FOV). So: X=tan(theta/2)*Z
-                float zTest = zFactor * genPrimitive.ViewPoints[i].Z;
+                float zTest = _ZClipFactor * genPrimitive.ViewPoints[i].Z;
 
                 if (genPrimitive.ViewPoints[i].X > zTest) {
                     genPrimitive.ClipFlags[i] |= ClipFlags.Right;
@@ -426,14 +429,6 @@ namespace PsyCross.Testing.Rendering {
                     genPrimitive.ClipFlags[i] |= ClipFlags.Top;
                 } else if (genPrimitive.ViewPoints[i].Y < -zTest) {
                     genPrimitive.ClipFlags[i] |= ClipFlags.Bottom;
-                }
-            }
-        }
-
-        private static void GenerateNearPlaneClipFlags(Render render, GenPrimitive genPrimitive) {
-            for (int i = 0; i < genPrimitive.VertexCount; i++) {
-                if (genPrimitive.ViewPoints[i].Z < render.Camera.DepthNear) {
-                    genPrimitive.ClipFlags[i] |= ClipFlags.Near;
                 }
             }
         }
