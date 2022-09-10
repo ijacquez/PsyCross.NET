@@ -32,5 +32,17 @@ namespace PsyCross.Math {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Lerp(float value1, float value2, float amount) =>
             (value1 + ((value2 - value1) * amount));
+
+        public static float Min(float value1, float value2) =>
+            System.Math.Min(value1, value2);
+
+        public static float Min(float value1, float value2, float value3) =>
+            System.Math.Min(value1, System.Math.Min(value2, value3));
+
+        public static float Min(float value1, float value2, float value3, float value4) =>
+            System.Math.Min(value1, System.Math.Min(value2, System.Math.Min(value3, value4)));
+
+        public static Vector3 CenterPoint(Vector3 a, Vector3 b, Vector3 c) =>
+            ((a + b + c) * 0.33333333f);
     }
 }

@@ -40,6 +40,12 @@ namespace PsyCross.Testing.Rendering {
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
 
+        public static void Degenerate(GenPrimitive genPrimitive) {
+            genPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
+            genPrimitive.VertexCount = 3;
+            genPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
+        }
+
         public static void Discard(GenPrimitive genPrimitive) {
             genPrimitive.Flags |= GenPrimitiveFlags.Discarded;
         }

@@ -14,9 +14,7 @@ namespace PsyCross.Testing.Rendering {
             for (int packetIndex = 0; packetIndex < tmdObject.Packets.Length; packetIndex++) {
                 PsyQ.TmdPacket tmdPacket = tmdObject.Packets[packetIndex];
 
-                // Release all gen primitives here as any culled primitives
-                // won't be released (due to continue(s) in loop)
-                render.ReleaseGenPrimitives();
+                Render.Reset(render);
 
                 GenPrimitive genPrimitive = render.AcquireGenPrimitive();
 
@@ -37,7 +35,7 @@ namespace PsyCross.Testing.Rendering {
                 GenerateClipFlags(render, genPrimitive);
 
                 // Cull primitive if it's outside of any of the six planes
-                if (TestOutsideFustrum(genPrimitive)) {
+                if (TestOutsideFrustum(genPrimitive)) {
                     // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     continue;
                 }
@@ -62,34 +60,36 @@ namespace PsyCross.Testing.Rendering {
                 // CalculateFog(render, genPrimitive);
 
                 // Perform light source calculation
-                // if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Lit)) {
-                //     TransformToWorld(render, genPrimitive);
-                //     CalculateLighting(render, genPrimitive);
-                // }
+                if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Lit)) {
+                    // TransformToWorld(render, genPrimitive);
+                    // CalculateLighting(render, genPrimitive);
+                }
 
                 ClipNearPlane(render, genPrimitive);
 
-                SubdivideGenPrimitive(render, genPrimitive);
+                if (render.ClippedGenPrimitives.Count == 0) {
+                    SubdivideGenPrimitive(render, genPrimitive);
+                } else {
+                    foreach (GenPrimitive clippedGenPrimitive in render.ClippedGenPrimitives) {
+                        SubdivideGenPrimitive(render, clippedGenPrimitive);
+                    }
+                }
 
-                foreach (GenPrimitive currentGenPrimitive in render.GenPrimitives) {
-                    if (GenPrimitive.HasFlag(currentGenPrimitive, GenPrimitiveFlags.Discarded)) {
+                foreach (GenPrimitive subdividedGenPrimitive in render.SubdividedGenPrimitives) {
+                    TransformToScreen(render, subdividedGenPrimitive);
+
+                    CullZeroAreaPrimitives(subdividedGenPrimitive);
+
+                    if (GenPrimitive.HasFlag(subdividedGenPrimitive, GenPrimitiveFlags.Discarded)) {
                         continue;
                     }
 
-                    TransformToScreen(render, currentGenPrimitive);
-
-                    CullZeroAreaPrimitives(currentGenPrimitive);
-
-                    if (GenPrimitive.HasFlag(currentGenPrimitive, GenPrimitiveFlags.Discarded)) {
-                        continue;
-                    }
-
-                    if (TestScreenPointOverflow(currentGenPrimitive)) {
+                    if (TestScreenPointOverflow(subdividedGenPrimitive)) {
                         // Console.WriteLine("[1;31mOverflow[m");
                         continue;
                     }
 
-                    DrawGenPrimitive(render, currentGenPrimitive);
+                    DrawGenPrimitive(render, subdividedGenPrimitive);
                 }
             }
         }
@@ -162,10 +162,10 @@ namespace PsyCross.Testing.Rendering {
             }
         }
 
-        private static bool TestAnyOutsideFustrum(GenPrimitive genPrimitive) =>
+        private static bool TestAnyOutsideFrustum(GenPrimitive genPrimitive) =>
             (BitwiseOrClipFlags(genPrimitive.ClipFlags) != ClipFlags.None);
 
-        private static bool TestOutsideFustrum(GenPrimitive genPrimitive) =>
+        private static bool TestOutsideFrustum(GenPrimitive genPrimitive) =>
             (BitwiseAndClipFlags(genPrimitive.ClipFlags) != ClipFlags.None);
 
         private static bool TestBackFaceCull(Vector3 viewPoint, Vector3 faceNormal) =>

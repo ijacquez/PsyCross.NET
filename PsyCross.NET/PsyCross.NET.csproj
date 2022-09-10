@@ -7,17 +7,17 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="JeremyAnsel.Media.WavefrontObj" Version="2.0.19" />
-    <PackageReference Include="JonSkeet.MiscUtil" Version="0.2.0">
-      <NoWarn>NU1701</NoWarn>
-    </PackageReference>
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+  </PropertyGroup>
 
-  <!-- <ItemGroup> -->
-  <!--   <Content Include="Resources\**\*.*"> -->
-  <!--     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> -->
-  <!--   </Content> -->
-  <!-- </ItemGroup> -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <Optimize>false</Optimize>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
 
 </Project>

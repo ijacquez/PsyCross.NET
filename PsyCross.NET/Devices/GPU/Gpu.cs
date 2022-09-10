@@ -479,7 +479,7 @@ namespace ProjectPSX.Devices {
 
                 if (isTextured) {
                     uint textureData = buffer[_commandPointer++];
-                    t[i].Value = (ushort)textureData;
+                    t[i].Value = (ushort)(textureData & 0xFFFF);
                     if (i == 0) {
                         uint palette = textureData >> 16;
 

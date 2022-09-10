@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using PsyCross.Testing.Rendering.Internal;
 
 namespace PsyCross.Testing.Rendering {
     public class Render {
         private readonly GenPrimitiveLinearAllocator _genPrimitiveAllocator =
-            new GenPrimitiveLinearAllocator(65536);
+            new GenPrimitiveLinearAllocator(8192);
 
         public Material Material { get; set; }
         public Matrix4x4 ModelMatrix { get; set; }
@@ -16,13 +17,23 @@ namespace PsyCross.Testing.Rendering {
         public CommandBuffer CommandBuffer { get; set; }
         public PrimitiveSort PrimitiveSort { get; set; }
 
-        public ReadOnlySpan<GenPrimitive> GenPrimitives =>
-            _genPrimitiveAllocator.GenPrimitives;
+        public IList<GenPrimitive> ClippedGenPrimitives { get; } =
+            new List<GenPrimitive>(2);
+
+        public IList<GenPrimitive> SubdividedGenPrimitives { get; } =
+            new List<GenPrimitive>(2 * 16);
 
         public GenPrimitive AcquireGenPrimitive() =>
             _genPrimitiveAllocator.AllocatePrimitive();
 
-        public void ReleaseGenPrimitives() =>
+        private void ReleaseGenPrimitives() =>
             _genPrimitiveAllocator.Reset();
+
+        public static void Reset(Render render) {
+            render.ClippedGenPrimitives.Clear();
+            render.SubdividedGenPrimitives.Clear();
+
+            render.ReleaseGenPrimitives();
+        }
     }
 }

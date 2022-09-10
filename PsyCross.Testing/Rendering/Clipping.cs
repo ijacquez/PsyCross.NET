@@ -35,8 +35,8 @@ namespace PsyCross.Testing.Rendering {
             new AdjacencyList(2, 1)  // 3
         };
 
-        private static VertexIndices _InteriorVertexIndices = new VertexIndices();
-        private static VertexIndices _ExteriorVertexIndices = new VertexIndices();
+        private static readonly VertexIndices _InteriorVertexIndices = new VertexIndices();
+        private static readonly VertexIndices _ExteriorVertexIndices = new VertexIndices();
 
         private static void ClipNearPlane(Render render, GenPrimitive genPrimitive) {
             if ((BitwiseOrClipFlags(genPrimitive.ClipFlags) & ClipFlags.Near) != ClipFlags.Near) {
@@ -101,6 +101,8 @@ namespace PsyCross.Testing.Rendering {
                 genPrimitive.Texcoords[exteriorIndex2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
             }
 
+            render.ClippedGenPrimitives.Add(genPrimitive);
+
             // Console.WriteLine($"Case 1: [1;31m{interiorVertex}[m; [1;32m{exteriorV1}[m; [1;33m{exteriorV2}[m ----> [1;31m{genPrimitive.ViewPoints[vertexIndices[0]]}[m; [1;32m{genPrimitive.ViewPoints[vertexIndices[1]]}[m; [1;33m{genPrimitive.ViewPoints[vertexIndices[2]]}[m");
         }
 
@@ -158,6 +160,9 @@ namespace PsyCross.Testing.Rendering {
                 newGenPrimitive.Texcoords[interiorIndex1] = genPrimitive.Texcoords[interiorIndex2];
                 newGenPrimitive.Texcoords[interiorIndex2] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
             }
+
+            render.ClippedGenPrimitives.Add(genPrimitive);
+            render.ClippedGenPrimitives.Add(newGenPrimitive);
         }
 
         private static void ClipQuadGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
@@ -220,9 +225,9 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.Texcoords[1] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
             genPrimitive.Texcoords[2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
 
-            genPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
-            genPrimitive.VertexCount = 3;
-            genPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
+            GenPrimitive.Degenerate(genPrimitive);
+
+            render.ClippedGenPrimitives.Add(genPrimitive);
         }
 
         private static void ClipQuadGenPrimitiveNearPlaneCase2(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
@@ -231,10 +236,6 @@ namespace PsyCross.Testing.Rendering {
             // --A-----B-- A=Lerp(I1,E1); B=Lerp(I2,E2)
             //   |     |
             //  E1-----E2
-            //
-            //
-            //
-            //
 
             int interiorIndex1 = interiorIndices.Indices[0];
             int interiorIndex2 = interiorIndices.Indices[1];
@@ -269,6 +270,8 @@ namespace PsyCross.Testing.Rendering {
 
             exteriorT1 = ClipLerpTexcoord(render, interiorT1, exteriorT1, t1);
             exteriorT2 = ClipLerpTexcoord(render, interiorT2, exteriorT2, t2);
+
+            render.ClippedGenPrimitives.Add(genPrimitive);
 
             // Console.WriteLine($"Quad ( after): [1;31m{interiorV1}[m; [1;32m{interiorV2}[m; [1;33m{exteriorV1}[m; [1;34m{exteriorV2}[m {color}");
         }
@@ -328,24 +331,26 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.Texcoords[3] = lerpedT2;
 
             // Build the triangle above the near plane
-            GenPrimitive triGenPrimitive = render.AcquireGenPrimitive();
-            GenPrimitive.CopyTextureAttribs(genPrimitive, triGenPrimitive);
+            GenPrimitive newGenPrimitive = render.AcquireGenPrimitive();
+            GenPrimitive.Copy(genPrimitive, newGenPrimitive);
+            GenPrimitive.CopyTextureAttribs(genPrimitive, newGenPrimitive);
 
-            triGenPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
-            triGenPrimitive.VertexCount = 3;
-            triGenPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
+            GenPrimitive.Degenerate(newGenPrimitive);
 
-            triGenPrimitive.ViewPoints[0] = interiorVertex;
-            triGenPrimitive.ViewPoints[1] = opposingInteriorVertex;
-            triGenPrimitive.ViewPoints[2] = middleInteriorVertex;
+            newGenPrimitive.ViewPoints[0] = interiorVertex;
+            newGenPrimitive.ViewPoints[1] = opposingInteriorVertex;
+            newGenPrimitive.ViewPoints[2] = middleInteriorVertex;
 
-            triGenPrimitive.GouraudShadingColors[0] = interiorGsc;
-            triGenPrimitive.GouraudShadingColors[1] = opposingInteriorGsc;
-            triGenPrimitive.GouraudShadingColors[2] = middleInteriorGsc;
+            newGenPrimitive.GouraudShadingColors[0] = interiorGsc;
+            newGenPrimitive.GouraudShadingColors[1] = opposingInteriorGsc;
+            newGenPrimitive.GouraudShadingColors[2] = middleInteriorGsc;
 
-            triGenPrimitive.Texcoords[0] = interiorTexcoord;
-            triGenPrimitive.Texcoords[1] = opposingInteriorTexcoord;
-            triGenPrimitive.Texcoords[2] = middleInteriorTexcoord;
+            newGenPrimitive.Texcoords[0] = interiorTexcoord;
+            newGenPrimitive.Texcoords[1] = opposingInteriorTexcoord;
+            newGenPrimitive.Texcoords[2] = middleInteriorTexcoord;
+
+            render.ClippedGenPrimitives.Add(genPrimitive);
+            render.ClippedGenPrimitives.Add(newGenPrimitive);
         }
 
         private static void CalculateInteriorExteriorVertices(GenPrimitive genPrimitive, VertexIndices interiorVertices, VertexIndices exteriorVertices) {
