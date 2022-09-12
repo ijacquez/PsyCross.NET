@@ -32,7 +32,7 @@ namespace PsyCross.Testing.Rendering {
             new AdjacencyList(1, 2), // 0
             new AdjacencyList(0, 3), // 1
             new AdjacencyList(0, 3), // 2
-            new AdjacencyList(2, 1)  // 3
+            new AdjacencyList(1, 2)  // 3
         };
 
         private static readonly VertexIndices _InteriorVertexIndices = new VertexIndices();
@@ -60,10 +60,10 @@ namespace PsyCross.Testing.Rendering {
 
         private static void ClipTriangleGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
             switch (_InteriorVertexIndices.Count) {
-                case 1 when (_ExteriorVertexIndices.Count == 2):
+                case 1:
                     ClipTriangleGenPrimitiveNearPlaneCase1(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
-                case 2 when (_ExteriorVertexIndices.Count == 1):
+                case 2:
                     ClipTriangleGenPrimitiveNearPlaneCase2(render, genPrimitive, interiorIndices, exteriorIndices);
                     break;
             }
@@ -107,9 +107,15 @@ namespace PsyCross.Testing.Rendering {
                 genPrimitive.Texcoords[exteriorIndex2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
             }
 
-            render.ClippedGenPrimitives.Add(genPrimitive);
+            // Recalculate the scaled normal as the area of the triangle has
+            // changed
+            Vector3 faceNormal = MathHelper.CalculateScaledNormal(genPrimitive.ViewPoints[0],
+                                                                  genPrimitive.ViewPoints[1],
+                                                                  genPrimitive.ViewPoints[2]);
 
-            // Console.WriteLine($"Case 1: [1;31m{interiorVertex}[m; [1;32m{exteriorV1}[m; [1;33m{exteriorV2}[m ----> [1;31m{genPrimitive.ViewPoints[vertexIndices[0]]}[m; [1;32m{genPrimitive.ViewPoints[vertexIndices[1]]}[m; [1;33m{genPrimitive.ViewPoints[vertexIndices[2]]}[m");
+            genPrimitive.FaceArea = MathHelper.CalculateFaceArea(faceNormal);
+
+            render.ClippedGenPrimitives.Add(genPrimitive);
         }
 
         private static void ClipTriangleGenPrimitiveNearPlaneCase2(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
@@ -119,10 +125,8 @@ namespace PsyCross.Testing.Rendering {
             int interiorIndex1 = adjacencyList.Vertices[0];
             int interiorIndex2 = adjacencyList.Vertices[1];
 
-            GenPrimitive newGenPrimitive = render.AcquireGenPrimitive();
-
-            GenPrimitive.Copy(genPrimitive, newGenPrimitive);
-            GenPrimitive.CopyTextureAttribs(genPrimitive, newGenPrimitive);
+            GenPrimitive tri1GenPrimitive = render.AcquireGenPrimitive();
+            GenPrimitive.Copy(genPrimitive, tri1GenPrimitive);
 
             Vector3 exteriorVertex = genPrimitive.ViewPoints[exteriorIndex];
             Vector3 interiorV1 = genPrimitive.ViewPoints[interiorIndex1];
@@ -137,9 +141,9 @@ namespace PsyCross.Testing.Rendering {
             // Generate two points and from that, pass in the quad
             genPrimitive.ViewPoints[exteriorIndex] = lerpedV1;
 
-            newGenPrimitive.ViewPoints[exteriorIndex] = lerpedV1;
-            newGenPrimitive.ViewPoints[interiorIndex1] = interiorV2;
-            newGenPrimitive.ViewPoints[interiorIndex2] = lerpedV2;
+            tri1GenPrimitive.ViewPoints[exteriorIndex] = lerpedV1;
+            tri1GenPrimitive.ViewPoints[interiorIndex1] = interiorV2;
+            tri1GenPrimitive.ViewPoints[interiorIndex2] = lerpedV2;
 
             if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
                 Rgb888 exteriorGsc = genPrimitive.GouraudShadingColors[exteriorIndex];
@@ -150,25 +154,46 @@ namespace PsyCross.Testing.Rendering {
 
                 genPrimitive.GouraudShadingColors[exteriorIndex] = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc, t1);
 
-                newGenPrimitive.GouraudShadingColors[exteriorIndex] = genPrimitive.GouraudShadingColors[exteriorIndex];
-                newGenPrimitive.GouraudShadingColors[interiorIndex1] = genPrimitive.GouraudShadingColors[interiorIndex2];
-                newGenPrimitive.GouraudShadingColors[interiorIndex2] = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc, t2);
+                tri1GenPrimitive.GouraudShadingColors[exteriorIndex] = genPrimitive.GouraudShadingColors[exteriorIndex];
+                tri1GenPrimitive.GouraudShadingColors[interiorIndex1] = genPrimitive.GouraudShadingColors[interiorIndex2];
+                tri1GenPrimitive.GouraudShadingColors[interiorIndex2] = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc, t2);
+            } else {
+                // In the case that the primitive is not shaded, we still need
+                // to copy the first color. But here, we don't exactly know
+                // which is the first color so the easiest approach is to simply
+                // copy the entire gouraud shading color buffer
+                GenPrimitive.CopyGouraudShadingColors(genPrimitive, tri1GenPrimitive);
             }
 
             if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                GenPrimitive.CopyTextureAttribs(genPrimitive, tri1GenPrimitive);
+
                 Texcoord exteriorTexcoord = genPrimitive.Texcoords[exteriorIndex];
                 Texcoord interiorT1 = genPrimitive.Texcoords[interiorIndex1];
                 Texcoord interiorT2 = genPrimitive.Texcoords[interiorIndex2];
 
                 genPrimitive.Texcoords[exteriorIndex] = ClipLerpTexcoord(render, interiorT1, exteriorTexcoord, t1);
 
-                newGenPrimitive.Texcoords[exteriorIndex] = genPrimitive.Texcoords[exteriorIndex];
-                newGenPrimitive.Texcoords[interiorIndex1] = genPrimitive.Texcoords[interiorIndex2];
-                newGenPrimitive.Texcoords[interiorIndex2] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
+                tri1GenPrimitive.Texcoords[exteriorIndex] = genPrimitive.Texcoords[exteriorIndex];
+                tri1GenPrimitive.Texcoords[interiorIndex1] = genPrimitive.Texcoords[interiorIndex2];
+                tri1GenPrimitive.Texcoords[interiorIndex2] = ClipLerpTexcoord(render, interiorT2, exteriorTexcoord, t2);
             }
 
+            Vector3 faceNormal = MathHelper.CalculateScaledNormal(genPrimitive.ViewPoints[0],
+                                                                  genPrimitive.ViewPoints[1],
+                                                                  genPrimitive.ViewPoints[2]);
+
+            genPrimitive.FaceArea = MathHelper.CalculateFaceArea(faceNormal);
+
+            Vector3 tri1FaceNormal = MathHelper.CalculateScaledNormal(tri1GenPrimitive.ViewPoints[0],
+                                                                      tri1GenPrimitive.ViewPoints[1],
+                                                                      tri1GenPrimitive.ViewPoints[2]);
+
+            tri1GenPrimitive.FaceArea = MathHelper.CalculateFaceArea(tri1FaceNormal);
+            tri1GenPrimitive.FaceNormal = genPrimitive.FaceNormal;
+
             render.ClippedGenPrimitives.Add(genPrimitive);
-            render.ClippedGenPrimitives.Add(newGenPrimitive);
+            render.ClippedGenPrimitives.Add(tri1GenPrimitive);
         }
 
         private static void ClipQuadGenPrimitiveNearPlane(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
@@ -215,23 +240,33 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.ViewPoints[1] = ClipLerpVertex(render, interiorVertex, exteriorV1, t1);
             genPrimitive.ViewPoints[2] = ClipLerpVertex(render, interiorVertex, exteriorV2, t2);
 
-            Rgb888 interiorGsc = genPrimitive.GouraudShadingColors[interiorIndex];
-            Rgb888 exteriorGsc1 = genPrimitive.GouraudShadingColors[exteriorIndex1];
-            Rgb888 exteriorGsc2 = genPrimitive.GouraudShadingColors[exteriorIndex2];
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
+                Rgb888 interiorGsc = genPrimitive.GouraudShadingColors[interiorIndex];
+                Rgb888 exteriorGsc1 = genPrimitive.GouraudShadingColors[exteriorIndex1];
+                Rgb888 exteriorGsc2 = genPrimitive.GouraudShadingColors[exteriorIndex2];
 
-            genPrimitive.GouraudShadingColors[0] = interiorGsc;
-            genPrimitive.GouraudShadingColors[1] = ClipLerpGouraudShadingColor(render, interiorGsc, exteriorGsc1, t1);
-            genPrimitive.GouraudShadingColors[2] = ClipLerpGouraudShadingColor(render, interiorGsc, exteriorGsc2, t2);
+                genPrimitive.GouraudShadingColors[0] = interiorGsc;
+                genPrimitive.GouraudShadingColors[1] = ClipLerpGouraudShadingColor(render, interiorGsc, exteriorGsc1, t1);
+                genPrimitive.GouraudShadingColors[2] = ClipLerpGouraudShadingColor(render, interiorGsc, exteriorGsc2, t2);
+            }
 
-            Texcoord interiorTexcoord = genPrimitive.Texcoords[interiorIndex];
-            Texcoord exteriorT1 = genPrimitive.Texcoords[exteriorIndex1];
-            Texcoord exteriorT2 = genPrimitive.Texcoords[exteriorIndex2];
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                Texcoord interiorTexcoord = genPrimitive.Texcoords[interiorIndex];
+                Texcoord exteriorT1 = genPrimitive.Texcoords[exteriorIndex1];
+                Texcoord exteriorT2 = genPrimitive.Texcoords[exteriorIndex2];
 
-            genPrimitive.Texcoords[0] = interiorTexcoord;
-            genPrimitive.Texcoords[1] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
-            genPrimitive.Texcoords[2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
+                genPrimitive.Texcoords[0] = interiorTexcoord;
+                genPrimitive.Texcoords[1] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT1, t1);
+                genPrimitive.Texcoords[2] = ClipLerpTexcoord(render, interiorTexcoord, exteriorT2, t2);
+            }
 
-            GenPrimitive.Degenerate(genPrimitive);
+            GenPrimitive.Decompose(genPrimitive);
+
+            Vector3 faceNormal = MathHelper.CalculateScaledNormal(genPrimitive.ViewPoints[0],
+                                                                  genPrimitive.ViewPoints[1],
+                                                                  genPrimitive.ViewPoints[2]);
+
+            genPrimitive.FaceArea = MathHelper.CalculateFaceArea(faceNormal);
 
             render.ClippedGenPrimitives.Add(genPrimitive);
         }
@@ -261,25 +296,33 @@ namespace PsyCross.Testing.Rendering {
             exteriorV1 = ClipLerpVertex(render, interiorV1, exteriorV1, t1);
             exteriorV2 = ClipLerpVertex(render, interiorV2, exteriorV2, t2);
 
-            ref Rgb888 interiorGsc1 = ref genPrimitive.GouraudShadingColors[interiorIndex1];
-            ref Rgb888 interiorGsc2 = ref genPrimitive.GouraudShadingColors[interiorIndex2];
-            ref Rgb888 exteriorGsc1 = ref genPrimitive.GouraudShadingColors[exteriorIndex1];
-            ref Rgb888 exteriorGsc2 = ref genPrimitive.GouraudShadingColors[exteriorIndex2];
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded)) {
+                ref Rgb888 interiorGsc1 = ref genPrimitive.GouraudShadingColors[interiorIndex1];
+                ref Rgb888 interiorGsc2 = ref genPrimitive.GouraudShadingColors[interiorIndex2];
+                ref Rgb888 exteriorGsc1 = ref genPrimitive.GouraudShadingColors[exteriorIndex1];
+                ref Rgb888 exteriorGsc2 = ref genPrimitive.GouraudShadingColors[exteriorIndex2];
 
-            exteriorGsc1 = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc1, t1);
-            exteriorGsc2 = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc2, t2);
+                exteriorGsc1 = ClipLerpGouraudShadingColor(render, interiorGsc1, exteriorGsc1, t1);
+                exteriorGsc2 = ClipLerpGouraudShadingColor(render, interiorGsc2, exteriorGsc2, t2);
+            }
 
-            ref Texcoord interiorT1 = ref genPrimitive.Texcoords[interiorIndex1];
-            ref Texcoord interiorT2 = ref genPrimitive.Texcoords[interiorIndex2];
-            ref Texcoord exteriorT1 = ref genPrimitive.Texcoords[exteriorIndex1];
-            ref Texcoord exteriorT2 = ref genPrimitive.Texcoords[exteriorIndex2];
+            if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
+                ref Texcoord interiorT1 = ref genPrimitive.Texcoords[interiorIndex1];
+                ref Texcoord interiorT2 = ref genPrimitive.Texcoords[interiorIndex2];
+                ref Texcoord exteriorT1 = ref genPrimitive.Texcoords[exteriorIndex1];
+                ref Texcoord exteriorT2 = ref genPrimitive.Texcoords[exteriorIndex2];
 
-            exteriorT1 = ClipLerpTexcoord(render, interiorT1, exteriorT1, t1);
-            exteriorT2 = ClipLerpTexcoord(render, interiorT2, exteriorT2, t2);
+                exteriorT1 = ClipLerpTexcoord(render, interiorT1, exteriorT1, t1);
+                exteriorT2 = ClipLerpTexcoord(render, interiorT2, exteriorT2, t2);
+            }
+
+            Vector3 faceNormal = MathHelper.CalculateScaledNormal(genPrimitive.ViewPoints[0],
+                                                                  genPrimitive.ViewPoints[1],
+                                                                  genPrimitive.ViewPoints[2]);
+
+            genPrimitive.FaceArea = MathHelper.CalculateFaceArea(faceNormal);
 
             render.ClippedGenPrimitives.Add(genPrimitive);
-
-            // Console.WriteLine($"Quad ( after): [1;31m{interiorV1}[m; [1;32m{interiorV2}[m; [1;33m{exteriorV1}[m; [1;34m{exteriorV2}[m {color}");
         }
 
         private static void ClipQuadGenPrimitiveNearPlaneCase3(Render render, GenPrimitive genPrimitive, VertexIndices interiorIndices, VertexIndices exteriorIndices) {
@@ -315,48 +358,187 @@ namespace PsyCross.Testing.Rendering {
             Vector3 lerpedV1 = ClipLerpVertex(render, exteriorVertex, interiorVertex, t1);
             Vector3 lerpedV2 = ClipLerpVertex(render, exteriorVertex, opposingInteriorVertex, t2);
 
-            Rgb888 lerpedGsc1 = ClipLerpGouraudShadingColor(render, exteriorGsc, interiorGsc, t1);
-            Rgb888 lerpedGsc2 = ClipLerpGouraudShadingColor(render, exteriorGsc, opposingInteriorGsc, t2);
+            bool isShaded = GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Shaded);
 
-            Texcoord lerpedT1 = ClipLerpTexcoord(render, exteriorTexcoord, interiorTexcoord, t1);
-            Texcoord lerpedT2 = ClipLerpTexcoord(render, exteriorTexcoord, opposingInteriorTexcoord, t2);
+            Rgb888 lerpedGsc1 = default;
+            Rgb888 lerpedGsc2 = default;
 
-            genPrimitive.ViewPoints[0] = interiorVertex;
-            genPrimitive.ViewPoints[1] = opposingInteriorVertex;
-            genPrimitive.ViewPoints[2] = lerpedV1;
-            genPrimitive.ViewPoints[3] = lerpedV2;
+            if (isShaded) {
+                lerpedGsc1 = ClipLerpGouraudShadingColor(render, exteriorGsc, interiorGsc, t1);
+                lerpedGsc2 = ClipLerpGouraudShadingColor(render, exteriorGsc, opposingInteriorGsc, t2);
+            }
 
-            genPrimitive.GouraudShadingColors[0] = interiorGsc;
-            genPrimitive.GouraudShadingColors[1] = opposingInteriorGsc;
-            genPrimitive.GouraudShadingColors[2] = lerpedGsc1;
-            genPrimitive.GouraudShadingColors[3] = lerpedGsc2;
+            bool isTextured = GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured);
 
-            genPrimitive.Texcoords[0] = interiorTexcoord;
-            genPrimitive.Texcoords[1] = opposingInteriorTexcoord;
-            genPrimitive.Texcoords[2] = lerpedT1;
-            genPrimitive.Texcoords[3] = lerpedT2;
+            Texcoord lerpedTexcoord1 = default;
+            Texcoord lerpedTexcoord2 = default;
 
-            // Build the triangle above the near plane
-            GenPrimitive newGenPrimitive = render.AcquireGenPrimitive();
-            GenPrimitive.Copy(genPrimitive, newGenPrimitive);
-            GenPrimitive.CopyTextureAttribs(genPrimitive, newGenPrimitive);
+            if (isTextured) {
+                lerpedTexcoord1 = ClipLerpTexcoord(render, exteriorTexcoord, interiorTexcoord, t1);
+                lerpedTexcoord2 = ClipLerpTexcoord(render, exteriorTexcoord, opposingInteriorTexcoord, t2);
+            }
 
-            GenPrimitive.Degenerate(newGenPrimitive);
+            // Case 1: The shared edge between the two triangles that make up
+            //         this quad primitive intersects with the near plane
+            if ((exteriorAdjList.Vertices[0] == 0) || (exteriorAdjList.Vertices[1] == 0)) {
+                //         I2
+                //        /|\
+                //       / | \
+                //      /  |  \
+                //     I0  |  I3
+                //      \  |  /
+                // ------A-C-B------ Notice that E makes an edge with the first vertex
+                //        \|/
+                //         E
+                //
+                // Three lerped points are needed: A, B, and C
+                //
+                // From this, two quads are generated
 
-            newGenPrimitive.ViewPoints[0] = interiorVertex;
-            newGenPrimitive.ViewPoints[1] = opposingInteriorVertex;
-            newGenPrimitive.ViewPoints[2] = middleInteriorVertex;
+                float t3 = FindClipLerpEdgeT(render, exteriorVertex, middleInteriorVertex);
 
-            newGenPrimitive.GouraudShadingColors[0] = interiorGsc;
-            newGenPrimitive.GouraudShadingColors[1] = opposingInteriorGsc;
-            newGenPrimitive.GouraudShadingColors[2] = middleInteriorGsc;
+                Vector3 lerpedV3 = ClipLerpVertex(render, exteriorVertex, middleInteriorVertex, t3);
 
-            newGenPrimitive.Texcoords[0] = interiorTexcoord;
-            newGenPrimitive.Texcoords[1] = opposingInteriorTexcoord;
-            newGenPrimitive.Texcoords[2] = middleInteriorTexcoord;
+                // Quad 1 points: V0, L1, V2, L3
+                // Quad 2 points: V2, L3, L2, V3
+                //
+                // Where Ln is the lerped vertex.
 
-            render.ClippedGenPrimitives.Add(genPrimitive);
-            render.ClippedGenPrimitives.Add(newGenPrimitive);
+                // Recall that the triangulated quad:
+                //
+                //  v0--v2
+                //  |  / |
+                //  | /  |
+                //  v1--v3
+                //
+                //  Vertices passed to GPU: v0, v1, v2, v3
+                //
+                //  Triangulated within the GPU: v0, v1, v2
+                //                               v1, v2, v3
+                genPrimitive.ViewPoints[0] = interiorVertex;
+                genPrimitive.ViewPoints[1] = lerpedV1;
+                genPrimitive.ViewPoints[2] = middleInteriorVertex;
+                genPrimitive.ViewPoints[3] = lerpedV3;
+
+                GenPrimitive quad1GenPrimitive = render.AcquireGenPrimitive();
+                GenPrimitive.Copy(genPrimitive, quad1GenPrimitive);
+
+                quad1GenPrimitive.ViewPoints[0] = middleInteriorVertex;
+                quad1GenPrimitive.ViewPoints[1] = lerpedV3;
+                quad1GenPrimitive.ViewPoints[2] = opposingInteriorVertex;
+                quad1GenPrimitive.ViewPoints[3] = lerpedV2;
+
+                if (isShaded) {
+                    Rgb888 lerpedGsc3 = ClipLerpGouraudShadingColor(render, exteriorGsc, middleInteriorGsc, t3);
+
+                    genPrimitive.GouraudShadingColors[0] = interiorGsc;
+                    genPrimitive.GouraudShadingColors[1] = lerpedGsc1;
+                    genPrimitive.GouraudShadingColors[2] = middleInteriorGsc;
+                    genPrimitive.GouraudShadingColors[3] = lerpedGsc3;
+
+                    quad1GenPrimitive.GouraudShadingColors[0] = middleInteriorGsc;
+                    quad1GenPrimitive.GouraudShadingColors[1] = lerpedGsc3;
+                    quad1GenPrimitive.GouraudShadingColors[2] = opposingInteriorGsc;
+                    quad1GenPrimitive.GouraudShadingColors[3] = lerpedGsc2;
+                } else {
+                    // In the case that the primitive is not shaded, we still
+                    // need to copy the first color
+                    GenPrimitive.CopyGouraudShadingColors(genPrimitive, quad1GenPrimitive);
+                }
+
+                if (isTextured) {
+                    GenPrimitive.CopyTextureAttribs(genPrimitive, quad1GenPrimitive);
+
+                    Texcoord lerpedTexcoord3 = ClipLerpTexcoord(render, exteriorTexcoord, middleInteriorTexcoord, t3);
+
+                    genPrimitive.Texcoords[0] = interiorTexcoord;
+                    genPrimitive.Texcoords[1] = lerpedTexcoord1;
+                    genPrimitive.Texcoords[2] = middleInteriorTexcoord;
+                    genPrimitive.Texcoords[3] = lerpedTexcoord3;
+
+                    quad1GenPrimitive.Texcoords[0] = middleInteriorTexcoord;
+                    quad1GenPrimitive.Texcoords[1] = lerpedTexcoord3;
+                    quad1GenPrimitive.Texcoords[2] = opposingInteriorTexcoord;
+                    quad1GenPrimitive.Texcoords[3] = lerpedTexcoord2;
+                }
+
+                render.ClippedGenPrimitives.Add(genPrimitive);
+                render.ClippedGenPrimitives.Add(quad1GenPrimitive);
+            } else { // Case 2: No intersection of the shared edge with the near plane
+                //         V
+                //        / \
+                //       /   \      T1
+                //      /     \
+                //     V-------V
+                //      \     /     T2: v1 v2 L2, T3: V2 L2 L1
+                // ------A---B------
+                //        \ /
+                //         V
+                //
+                // When there is one exterior point, we're left with a triangle
+                // and a quad. The quad is formed with the two lerped points A
+                // and B. Currently, we triangluate this quad
+
+                genPrimitive.ViewPoints[0] = interiorVertex;
+                genPrimitive.ViewPoints[1] = middleInteriorVertex;
+                genPrimitive.ViewPoints[2] = opposingInteriorVertex;
+
+                GenPrimitive quad1GenPrimitive = render.AcquireGenPrimitive();
+                GenPrimitive.Copy(genPrimitive, quad1GenPrimitive);
+
+                quad1GenPrimitive.ViewPoints[0] = interiorVertex;
+                quad1GenPrimitive.ViewPoints[1] = opposingInteriorVertex;
+                quad1GenPrimitive.ViewPoints[2] = lerpedV1;
+                quad1GenPrimitive.ViewPoints[3] = lerpedV2;
+
+                // Decompose here as we're decomposing the original primitive
+                // but not the new generated primitive
+                GenPrimitive.Decompose(genPrimitive);
+
+                if (isShaded) {
+                    genPrimitive.GouraudShadingColors[0] = interiorGsc;
+                    genPrimitive.GouraudShadingColors[1] = middleInteriorGsc;
+                    genPrimitive.GouraudShadingColors[2] = opposingInteriorGsc;
+
+                    quad1GenPrimitive.GouraudShadingColors[0] = interiorGsc;
+                    quad1GenPrimitive.GouraudShadingColors[1] = opposingInteriorGsc;
+                    quad1GenPrimitive.GouraudShadingColors[2] = lerpedGsc1;
+                    quad1GenPrimitive.GouraudShadingColors[3] = lerpedGsc2;
+                } else {
+                    // In the case that the primitive is not shaded, we still
+                    // need to copy the first color
+                    GenPrimitive.CopyGouraudShadingColors(genPrimitive, quad1GenPrimitive);
+                }
+
+                if (isTextured) {
+                    GenPrimitive.CopyTextureAttribs(genPrimitive, quad1GenPrimitive);
+
+                    genPrimitive.Texcoords[0] = interiorTexcoord;
+                    genPrimitive.Texcoords[1] = middleInteriorTexcoord;
+                    genPrimitive.Texcoords[2] = opposingInteriorTexcoord;
+
+                    quad1GenPrimitive.Texcoords[0] = interiorTexcoord;
+                    quad1GenPrimitive.Texcoords[1] = opposingInteriorTexcoord;
+                    quad1GenPrimitive.Texcoords[2] = lerpedTexcoord1;
+                    quad1GenPrimitive.Texcoords[3] = lerpedTexcoord2;
+                }
+
+                Vector3 faceNormal = MathHelper.CalculateScaledNormal(genPrimitive.ViewPoints[0],
+                                                                      genPrimitive.ViewPoints[1],
+                                                                      genPrimitive.ViewPoints[2]);
+
+                genPrimitive.FaceArea = MathHelper.CalculateFaceArea(faceNormal);
+
+                Vector3 quad1FaceNormal = MathHelper.CalculateScaledNormal(quad1GenPrimitive.ViewPoints[0],
+                                                                           quad1GenPrimitive.ViewPoints[1],
+                                                                           quad1GenPrimitive.ViewPoints[2]);
+
+                quad1GenPrimitive.FaceArea = MathHelper.CalculateFaceArea(quad1FaceNormal);
+                quad1GenPrimitive.FaceNormal = genPrimitive.FaceNormal;
+
+                render.ClippedGenPrimitives.Add(genPrimitive);
+                render.ClippedGenPrimitives.Add(quad1GenPrimitive);
+            }
         }
 
         private static void CalculateInteriorExteriorVertices(GenPrimitive genPrimitive, VertexIndices interiorVertices, VertexIndices exteriorVertices) {

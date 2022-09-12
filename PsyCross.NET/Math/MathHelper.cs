@@ -45,7 +45,31 @@ namespace PsyCross.Math {
             System.Math.Min(value1, System.Math.Min(value2, System.Math.Min(value3, value4)));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Max(float value1, float value2) =>
+            System.Math.Max(value1, value2);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Max(float value1, float value2, float value3) =>
+            System.Math.Max(value1, System.Math.Max(value2, value3));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Max(float value1, float value2, float value3, float value4) =>
+            System.Math.Max(value1, System.Math.Max(value2, System.Math.Max(value3, value4)));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 TriangleCenterPoint(Vector3 a, Vector3 b, Vector3 c) =>
             ((a + b + c) * 0.33333333f);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 CalculateScaledNormal(Vector3 a, Vector3 b, Vector3 c) =>
+            Vector3.Cross(c - a, b - a);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 CalculateNormal(Vector3 a, Vector3 b, Vector3 c) =>
+            Vector3.Normalize(CalculateScaledNormal(a, b, c));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float CalculateFaceArea(Vector3 scaledNormal) =>
+            (0.5f * scaledNormal.Length());
     }
 }

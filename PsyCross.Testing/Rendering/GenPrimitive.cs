@@ -40,7 +40,7 @@ namespace PsyCross.Testing.Rendering {
         public ushort TPageId { get; set; }
         public ushort ClutId { get; set; }
 
-        public static void Degenerate(GenPrimitive genPrimitive) {
+        public static void Decompose(GenPrimitive genPrimitive) {
             genPrimitive.Type = (PsyQ.TmdPrimitiveType)(genPrimitive.Type - PsyQ.TmdPrimitiveType.F4);
             genPrimitive.VertexCount = 3;
             genPrimitive.NormalCount = (genPrimitive.NormalCount >= 4) ? 3 : genPrimitive.NormalCount;
@@ -51,6 +51,7 @@ namespace PsyCross.Testing.Rendering {
         }
 
         public static void Discard(GenPrimitive genPrimitive, string message) {
+            // XXX: Debug
             Console.Write($"[1;31mDiscard[m");
             Console.WriteLine((string.IsNullOrEmpty(message)) ? string.Empty : $" [1;32m{message}[m");
 
@@ -77,9 +78,7 @@ namespace PsyCross.Testing.Rendering {
         public static void CopyVertices(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) =>
             fromGenPrimitive.Vertices.CopyTo(toGenPrimitive.Vertices);
 
-        public static void CopyNormals(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
-            toGenPrimitive.FaceNormal = fromGenPrimitive.FaceNormal;
-
+        public static void CopyVertexNormals(GenPrimitive fromGenPrimitive, GenPrimitive toGenPrimitive) {
             fromGenPrimitive.VertexNormals.CopyTo(toGenPrimitive.VertexNormals);
         }
 
@@ -101,8 +100,11 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.Flags = GenPrimitiveFlags.None;
         }
 
-        public static bool HasFlag(GenPrimitive genPrimitive, GenPrimitiveFlags flags) =>
-            ((genPrimitive.Flags & flags) != GenPrimitiveFlags.None);
+        public static bool HasFlag(GenPrimitive genPrimitive, GenPrimitiveFlags flagsMask) =>
+            ((genPrimitive.Flags & flagsMask) != GenPrimitiveFlags.None);
+
+        public static bool HasFlags(GenPrimitive genPrimitive, GenPrimitiveFlags flagsMask) =>
+            HasFlag(genPrimitive, flagsMask);
 
         // XXX: Debugging. Add a compilation conditional
         public static void ClearTags(GenPrimitive genPrimitive) {
@@ -110,12 +112,12 @@ namespace PsyCross.Testing.Rendering {
         }
 
         // XXX: Debugging. Add a compilation conditional
-        public static void SetTags(GenPrimitive genPrimitive, GenPrimitiveTags tags) {
-            genPrimitive.Tags |= tags;
+        public static void SetTags(GenPrimitive genPrimitive, GenPrimitiveTags tagsMask) {
+            genPrimitive.Tags |= tagsMask;
         }
 
         // XXX: Debugging. Add a compilation conditional
-        public static bool HasTag(GenPrimitive genPrimitive, GenPrimitiveTags tags) =>
-            ((genPrimitive.Tags & tags) != GenPrimitiveTags.None);
+        public static bool HasTag(GenPrimitive genPrimitive, GenPrimitiveTags tagsMask) =>
+            ((genPrimitive.Tags & tagsMask) != GenPrimitiveTags.None);
     }
 }

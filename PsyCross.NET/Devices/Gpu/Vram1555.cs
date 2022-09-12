@@ -3,11 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace PsyCross.Devices.GPU {
     public class Vram1555 {
-        public ushort[] Bits { get; }
-        public int Height { get; }
-        public int Width { get; }
-
-        protected GCHandle BitsHandle { get; private set; }
+        private GCHandle BitsHandle { get; }
 
         public Vram1555(int width, int height) {
             Height = height;
@@ -15,6 +11,10 @@ namespace PsyCross.Devices.GPU {
             Bits = new ushort[Width * Height];
             BitsHandle = GCHandle.Alloc(Bits, GCHandleType.Pinned);
         }
+
+        public ushort[] Bits { get; }
+        public int Height { get; }
+        public int Width { get; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetPixel(int x, int y, ushort color) {
