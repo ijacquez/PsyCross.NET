@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -33,16 +32,20 @@ namespace PsyCross.Math {
         public static float Lerp(float value1, float value2, float amount) =>
             (value1 + ((value2 - value1) * amount));
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Min(float value1, float value2) =>
             System.Math.Min(value1, value2);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Min(float value1, float value2, float value3) =>
             System.Math.Min(value1, System.Math.Min(value2, value3));
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Min(float value1, float value2, float value3, float value4) =>
             System.Math.Min(value1, System.Math.Min(value2, System.Math.Min(value3, value4)));
 
-        public static Vector3 CenterPoint(Vector3 a, Vector3 b, Vector3 c) =>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 TriangleCenterPoint(Vector3 a, Vector3 b, Vector3 c) =>
             ((a + b + c) * 0.33333333f);
     }
 }

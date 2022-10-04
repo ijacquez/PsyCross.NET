@@ -12,10 +12,15 @@ namespace PsyCross.Math {
             Y = y;
         }
 
+        public static Vector2Short Zero => new Vector2Short(0, 0);
+
+        public static Vector2Short One => new Vector2Short(1, 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector2Int(Vector2Short v) => new Vector2Int(v.X, v.Y);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Vector2Short(Vector2Int v) => new Vector2Short((short)v.X, (short)v.Y);
-
-        public static Vector2Short Zero => new Vector2Short(0, 0);
 
         public override string ToString() => $"<{X}, {Y}>";
     }
