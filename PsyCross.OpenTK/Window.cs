@@ -1,5 +1,4 @@
 using PsyCross.Devices.Input;
-using PsyCross.Math;
 using PsyCross.OpenTK.Types;
 using PsyCross.OpenTK.Utilities;
 using PsyCross.ResourceManagement;
@@ -7,7 +6,6 @@ using System.Collections.Generic;
 using System;
 
 namespace PsyCross.OpenTK {
-    using System.Runtime.InteropServices;
     using global::OpenTK.Graphics.OpenGL4;
     using global::OpenTK.Mathematics;
     using global::OpenTK.Windowing.Common;
@@ -25,6 +23,7 @@ namespace PsyCross.OpenTK {
 
         private int _vSyncCounter;
 
+        private bool _running    = true;
         private bool _viewVram   = false;
         private int _windowScale = 3;
 
@@ -173,9 +172,13 @@ namespace PsyCross.OpenTK {
         }
 
         private void OnUpdateFrame(FrameEventArgs e) {
-            // var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+            if (!_running) {
+                _gameWindow.Close();
+
+                return;
+            }
+
             Psx.OnUpdateFrame(e.Time);
-            // Console.WriteLine($"{stopWatch.ElapsedMilliseconds}ms");
 
             if (_viewVram) {
                 _gameWindow.Size = _nativeWindowSettings.Size;
@@ -200,6 +203,9 @@ namespace PsyCross.OpenTK {
             }
 
             switch (e.Key) {
+                case Keys.Escape:
+                    _running = false;
+                    break;
                 case Keys.Tab:
                     _viewVram ^= true;
                     break;
