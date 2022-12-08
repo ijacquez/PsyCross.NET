@@ -21,29 +21,18 @@ namespace PsyCross.Testing.Rendering {
             };
         }
 
+        private const float _Level1Z        = 2f;
+
+        private const float _Level2Z        = 1f;
+        private const float _Level2FaceArea = 0.125f;
+
         // XXX: Move this to SubdivisionRenderInit in order to access the near depth
-        private static float SubdivStart = 0.5f; // render.Camera.DepthNear;
-        private static float SubdivEnd = SubdivStart + 1f;
+        private static float _SubdivStart = 0.5f; // render.Camera.DepthNear;
+        private static float _SubdivEnd = _SubdivStart + 1f;
 
-        private static float SubdivDifferenceDenom = 1f / (SubdivEnd - SubdivStart);
-        private static float SubdivCoefficient = -(SubdivStart * SubdivEnd) * SubdivDifferenceDenom;
-        private static float SubdivOffset = SubdivEnd * SubdivDifferenceDenom;
-
-        private static int CalculateSubdivIntensity(GenPrimitive genPrimitive, float z) {
-            float intensity = 2f * System.Math.Clamp(((SubdivCoefficient / z) + SubdivOffset), 0f, 1f);
-
-            // if (z < 1f) {
-            if ((z < 1f) && (genPrimitive.FaceArea >= 0.125f)) {
-                return 2;
-            }
-
-            if (z < 2f) {
-            // if ((z < 2f) && (genPrimitive.FaceArea > 0.25f)) {
-                return 1;
-            }
-
-            return 0;
-        }
+        private static float _SubdivDifferenceDenom = 1f / (_SubdivEnd - _SubdivStart);
+        private static float _SubdivCoefficient = -(_SubdivStart * _SubdivEnd) * _SubdivDifferenceDenom;
+        private static float _SubdivOffset = _SubdivEnd * _SubdivDifferenceDenom;
 
         private static void SubdivisionRenderInit(Render render) {
         }
@@ -78,14 +67,6 @@ namespace PsyCross.Testing.Rendering {
                     genPrimitive.GouraudShadingColors[2] = spc.GouraudShadingColor;
                 }
 
-                // // XXX: Remove
-                // genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
-                // genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
-                // Rgb888 color = GetRandomColor();
-                // genPrimitive.GouraudShadingColors[0] = color;
-                // genPrimitive.GouraudShadingColors[1] = color;
-                // genPrimitive.GouraudShadingColors[2] = color;
-
                 if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
                     GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
 
@@ -111,26 +92,13 @@ namespace PsyCross.Testing.Rendering {
             }
         }
 
-        private static void SubdivideTriangleGenPrimitive(Render render, GenPrimitive genPrimitive)
-        {
-            // float centerViewPoint = (genPrimitive.ViewPoints[0].Z +
-            //                          genPrimitive.ViewPoints[1].Z +
-            //                          genPrimitive.ViewPoints[2].Z) / 3f;
-
+        private static void SubdivideTriangleGenPrimitive(Render render, GenPrimitive genPrimitive) {
             float minViewPoint = MathHelper.Min(genPrimitive.ViewPoints[0].Z,
                                                 genPrimitive.ViewPoints[1].Z,
                                                 genPrimitive.ViewPoints[2].Z);
 
-            // float maxViewPoint = MathHelper.Max(genPrimitive.ViewPoints[0].Z,
-            //                                     genPrimitive.ViewPoints[1].Z,
-            //                                     genPrimitive.ViewPoints[2].Z);
-
             int subdivLevel = CalculateSubdivIntensity(genPrimitive, minViewPoint);
 
-            // XXX: Remove. Testing. This just changes color to
-            // DebugColorPrims(render, genPrimitive, subdivLevel, isQuad: false);
-
-            // Actual subdivision code
             if (subdivLevel == 0) {
                 render.SubdividedGenPrimitives.Add(genPrimitive);
             } else {
@@ -145,59 +113,15 @@ namespace PsyCross.Testing.Rendering {
             }
         }
 
-        // XXX: Remove?
-        private static void DebugColorPrims(Render render, GenPrimitive genPrimitive, int subdivLevel, bool isQuad) {
-            if (subdivLevel == 0) {
-            } else if (subdivLevel == 1) {
-                genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
-                genPrimitive.GouraudShadingColors[0] = Rgb888.Blue;
-                genPrimitive.GouraudShadingColors[1] = Rgb888.Blue;
-                genPrimitive.GouraudShadingColors[2] = Rgb888.Blue;
-
-                if (isQuad) {
-                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
-                    genPrimitive.GouraudShadingColorBuffer[3] = Rgb888.Blue;
-                } else {
-                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
-                }
-            } else if (subdivLevel == 2) {
-                genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
-                genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
-                genPrimitive.GouraudShadingColors[0] = Rgb888.Yellow;
-                genPrimitive.GouraudShadingColors[1] = Rgb888.Yellow;
-                genPrimitive.GouraudShadingColors[2] = Rgb888.Yellow;
-                if (isQuad) {
-                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
-                    genPrimitive.GouraudShadingColorBuffer[3] = Rgb888.Yellow;
-                } else {
-                    genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
-                }
-            }
-            render.SubdividedGenPrimitives.Add(genPrimitive);
-        }
-
         private static void SubdivideQuadGenPrimitive(Render render, GenPrimitive genPrimitive) {
             render.SubdividedGenPrimitives.Add(genPrimitive);
-
-            // float centerViewPoint = (genPrimitive.ViewPoints[0].Z +
-            //                          genPrimitive.ViewPoints[1].Z +
-            //                          genPrimitive.ViewPoints[2].Z +
-            //                          genPrimitive.ViewPoints[3].Z) / 4f;
 
             float minViewPoint = MathHelper.Min(genPrimitive.ViewPoints[0].Z,
                                                 genPrimitive.ViewPoints[1].Z,
                                                 genPrimitive.ViewPoints[2].Z,
                                                 genPrimitive.ViewPoints[3].Z);
 
-            // float maxViewPoint = MathHelper.Max(genPrimitive.ViewPoints[0].Z,
-            //                                     genPrimitive.ViewPoints[1].Z,
-            //                                     genPrimitive.ViewPoints[2].Z,
-            //                                     genPrimitive.ViewPoints[3].Z);
-
             int subdivLevel = (int)CalculateSubdivIntensity(genPrimitive, minViewPoint);
-            // int subdivLevel = 1;
-
-            // DebugColorPrims(render, genPrimitive, subdivLevel, isQuad: true);
 
             if (subdivLevel == 0) {
                 render.SubdividedGenPrimitives.Add(genPrimitive);
@@ -239,15 +163,6 @@ namespace PsyCross.Testing.Rendering {
                     genPrimitive.GouraudShadingColors[3] = spd.GouraudShadingColor;
                 }
 
-                // // XXX: Remove
-                // genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
-                // genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
-                // Rgb888 color = GetRandomColor();
-                // genPrimitive.GouraudShadingColors[0] = color;
-                // genPrimitive.GouraudShadingColors[1] = color;
-                // genPrimitive.GouraudShadingColors[2] = color;
-                // genPrimitive.GouraudShadingColors[3] = color;
-
                 if (GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.Textured)) {
                     GenPrimitive.CopyTextureAttribs(baseGenPrimitive, genPrimitive);
 
@@ -279,61 +194,6 @@ namespace PsyCross.Testing.Rendering {
             }
         }
 
-        private static void TriangulateQuadOrder<T>(ReadOnlySpan<T> quadPoints, Span<T> tri1Points, Span<T> tri2Points) where T : struct {
-            tri1Points[0] = quadPoints[0];
-            tri1Points[1] = quadPoints[1];
-            tri1Points[2] = quadPoints[2];
-
-            tri2Points[0] = quadPoints[1];
-            tri2Points[1] = quadPoints[2];
-            tri2Points[2] = quadPoints[3];
-        }
-
-        private static bool TestSubdivLevel(GenPrimitive genPrimitive, int subdivLevel) {
-            if (subdivLevel == 0) {
-                return true;
-            }
-
-            // if ((subdivLevel == 1) && (genPrimitive.FaceArea < 1f)) {
-            //     return true;
-            // }
-
-            // if ((subdivLevel == 2) && (genPrimitive.FaceArea < 0.5f)) {
-            //     return true;
-            // }
-
-            return false;
-        }
-
-        private static SubdivTriple CalculateMidPoint(GenPrimitiveFlags genPrimitiveFlags, SubdivTriple a, SubdivTriple b, SubdivTriple c, SubdivTriple d) {
-            SubdivTriple triple = new SubdivTriple();
-
-            triple.ViewPoint = 0.25f * (a.ViewPoint + b.ViewPoint + c.ViewPoint + d.ViewPoint);
-
-
-            if (genPrimitiveFlags.HasFlag(GenPrimitiveFlags.Shaded)) {
-                Vector3 aColor = (Vector3)a.GouraudShadingColor;
-                Vector3 bColor = (Vector3)b.GouraudShadingColor;
-                Vector3 cColor = (Vector3)c.GouraudShadingColor;
-                Vector3 dColor = (Vector3)d.GouraudShadingColor;
-
-                triple.GouraudShadingColor = (Rgb888)(0.25f * (aColor + bColor + cColor + dColor));
-            } else {
-                triple.GouraudShadingColor = a.GouraudShadingColor;
-            }
-
-            if (genPrimitiveFlags.HasFlag(GenPrimitiveFlags.Textured)) {
-                Vector2 aTexcoord = (Vector2)a.Texcoord;
-                Vector2 bTexcoord = (Vector2)b.Texcoord;
-                Vector2 cTexcoord = (Vector2)c.Texcoord;
-                Vector2 dTexcoord = (Vector2)d.Texcoord;;
-
-                triple.Texcoord = (Texcoord)(0.25f * (aTexcoord + bTexcoord + cTexcoord + dTexcoord));
-            }
-
-            return triple;
-        }
-
         private static SubdivTriple CalculateMidPoint(GenPrimitiveFlags genPrimitiveFlags, SubdivTriple a, SubdivTriple b) {
             SubdivTriple triple = new SubdivTriple();
 
@@ -356,6 +216,20 @@ namespace PsyCross.Testing.Rendering {
             }
 
             return triple;
+        }
+
+        private static int CalculateSubdivIntensity(GenPrimitive genPrimitive, float z) {
+            float intensity = 2f * System.Math.Clamp(((_SubdivCoefficient / z) + _SubdivOffset), 0f, 1f);
+
+            if ((z < _Level2Z) && (genPrimitive.FaceArea > _Level2FaceArea)) {
+                return 2;
+            }
+
+            if (z < _Level1Z) {
+                return 1;
+            }
+
+            return 0;
         }
     }
 }
