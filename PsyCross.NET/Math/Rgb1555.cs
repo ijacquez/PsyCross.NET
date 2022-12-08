@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PsyCross.Math {
@@ -35,6 +36,11 @@ namespace PsyCross.Math {
             get => (Value & 0x8000) != 0x8000;
             set => Value = (ushort)((Value & 0x7FFF) | ((value) ? 0x8000 : 0x0000));
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator Rgb888(Rgb1555 v) => new Rgb888((byte)(v.R * 8U),
+                                                                        (byte)(v.G * 8U),
+                                                                        (byte)(v.B * 8U));
 
         public override string ToString() =>
             $"#{R:X02}{G:X02}{B:X02}";

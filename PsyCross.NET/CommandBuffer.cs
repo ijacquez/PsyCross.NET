@@ -6,6 +6,8 @@ namespace PsyCross {
         private const int _WordSize = sizeof(UInt32);
 
         private readonly uint[] _commandBuffer;
+        private readonly GCHandle _commandBufferHandle;
+
         private int _commandPointer;
         private int _commandCount;
 
@@ -14,6 +16,7 @@ namespace PsyCross {
 
         public CommandBuffer(int wordCount) {
             _commandBuffer = new uint[wordCount];
+            _commandBufferHandle = GCHandle.Alloc(_commandBuffer, GCHandleType.Pinned);
         }
 
         public ReadOnlySpan<uint> Bits => _commandBuffer.AsSpan();
@@ -58,6 +61,7 @@ namespace PsyCross {
         public Span<PsyQ.PolyGt4> GetPolyGt4(CommandHandle handle) => GetCommand<PsyQ.PolyGt4>(handle);
 
         public static Span<T> GetCommand<T>(CommandHandle handle) where T : struct, PsyQ.ICommand {
+            // XXX: Wrap this around debug
             if (handle.Type != typeof(T)) {
                 throw new InvalidCastException($"Type mismatch. Expected {handle.Type}, got {typeof(T)}.");
             }
@@ -77,6 +81,7 @@ namespace PsyCross {
             _commandPointer += wordCount;
             _commandCount++;
 
+            // XXX: Wrap this around debug
             if (_commandPointer >= _commandBuffer.Length) {
                 throw new OutOfMemoryException("CommandBuffer: Out of memory.");
             }

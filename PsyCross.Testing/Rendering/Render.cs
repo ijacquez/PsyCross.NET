@@ -17,10 +17,10 @@ namespace PsyCross.Testing.Rendering {
         public PrimitiveSort PrimitiveSort { get; set; }
 
         public IList<GenPrimitive> ClippedGenPrimitives { get; } =
-            new List<GenPrimitive>(2);
+            new List<GenPrimitive>(128);
 
         public IList<GenPrimitive> SubdividedGenPrimitives { get; } =
-            new List<GenPrimitive>(2 * 16);
+            new List<GenPrimitive>(128);
 
         public GenPrimitive AcquireGenPrimitive() =>
             _genPrimitiveAllocator.AllocatePrimitive();

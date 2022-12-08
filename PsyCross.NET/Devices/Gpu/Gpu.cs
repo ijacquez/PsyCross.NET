@@ -88,6 +88,8 @@ namespace ProjectPSX.Devices {
             [FieldOffset(3)] public byte Msb;
         }
 
+        private static readonly uint[] _Color1555to8888Lut = new uint[ushort.MaxValue + 1];
+
         private Color _color0;
         private Color _color1;
         private Color _color2;
@@ -151,9 +153,12 @@ namespace ProjectPSX.Devices {
         private int _horizontalTiming = 3413;
         private int _verticalTiming   = 263;
 
-        public Gpu() {
+        static Gpu() {
+            InitColorTable();
             InitDitheringTable();
+        }
 
+        public Gpu() {
             _mode = Mode.Command;
             GP1_00_ResetGpu();
         }
@@ -305,17 +310,10 @@ namespace ProjectPSX.Devices {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DrawVramPixel(ushort pixelValue) {
-            if (_checkMaskBeforeDraw) {
-                uint bg = Vram.GetPixelRgb888(_vramTransfer.X, _vramTransfer.Y);
-
-                if ((bg >> 24) == 0) {
-                    Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, Color1555to8888(pixelValue));
-                    Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, pixelValue);
-                }
-            } else {
-                Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, Color1555to8888(pixelValue));
-                Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, pixelValue);
+        private void DrawVramPixel(ushort color1555) {
+            if (!_checkMaskBeforeDraw || ((Vram.GetPixelRgb888(_vramTransfer.X, _vramTransfer.Y) >> 24) == 0)) {
+                Vram.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, _Color1555to8888Lut[color1555]);
+                Vram1555.SetPixel(_vramTransfer.X & 0x3FF, _vramTransfer.Y & 0x1FF, color1555);
             }
 
             _vramTransfer.X++;
@@ -1189,6 +1187,18 @@ namespace ProjectPSX.Devices {
             return texpage;
         }
 
+        public static void InitColorTable() {
+            for (uint m = 0; m < 2; m++) {
+                for (uint r = 0; r < 32; r++) {
+                    for (uint g = 0; g < 32; g++) {
+                        for (uint b = 0; b < 32; b++) {
+                            _Color1555to8888Lut[(m << 15) | (b << 10) | (g << 5) | r] = (m << 24) | (r << (16 + 3)) | (g << (8 + 3)) | (b << 3);
+                        }
+                    }
+                }
+            }
+        }
+
         private static void InitDitheringTable() {
             for (int y = 0; y < 4; y++) {
                 for (int x = 0; x < 4; x++) {
@@ -1289,17 +1299,6 @@ namespace ProjectPSX.Devices {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static short Signed11bit(uint n) {
             return (short)(((int)n << 21) >> 21);
-        }
-
-        // XXX: This needs to go away once a BGR bitmap is achieved
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint Color1555to8888(ushort colorValue) {
-            byte m = (byte)(colorValue >> 15);
-            byte r = (byte)((colorValue & 0x1F) << 3);
-            byte g = (byte)(((colorValue >> 5) & 0x1F) << 3);
-            byte b = (byte)(((colorValue >> 10) & 0x1F) << 3);
-
-            return (uint)((m << 24) | (r << 16) | (g << 8) | b);
         }
 
         // This is only needed for the Direct GP0 commands as the command number

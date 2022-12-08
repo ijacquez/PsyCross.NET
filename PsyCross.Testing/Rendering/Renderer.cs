@@ -11,9 +11,14 @@ namespace PsyCross.Testing.Rendering {
         }
 
         public static void DrawTmdObject(Render render, PsyQ.TmdObject tmdObject) {
+            ClipRenderInit(render);
+            SubdivisionRenderInit(render);
+
             for (int packetIndex = 0; packetIndex < tmdObject.Packets.Length; packetIndex++) {
                 PsyQ.TmdPacket tmdPacket = tmdObject.Packets[packetIndex];
 
+                // XXX: Maybe using IDispose and wrap around "Using"? Too much?
+                //      Overkill? Maybe rename?
                 Render.Reset(render);
 
                 GenPrimitive genPrimitive = render.AcquireGenPrimitive();
@@ -22,7 +27,9 @@ namespace PsyCross.Testing.Rendering {
 
                 TransformToView(render, genPrimitive);
 
-                genPrimitive.FaceNormal = CalculateScaledFaceNormal(genPrimitive.ViewPoints);
+                genPrimitive.FaceNormal = MathHelper.CalculateScaledNormal(genPrimitive.ViewPoints[0],
+                                                                           genPrimitive.ViewPoints[1],
+                                                                           genPrimitive.ViewPoints[2]);
 
                 // Perform backface culling unless it's "double sided"
                 if (!GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.DoubleSided)) {
@@ -32,7 +39,7 @@ namespace PsyCross.Testing.Rendering {
                     }
                 }
 
-                GenerateClipFlags(render, genPrimitive);
+                CalculateClipFlags(render, genPrimitive);
 
                 // Cull primitive if it's outside of any of the six planes
                 if (TestOutsideFrustum(genPrimitive)) {
@@ -41,17 +48,6 @@ namespace PsyCross.Testing.Rendering {
                 }
 
                 CollectRemainingPrimitiveData(render, tmdObject, tmdPacket, genPrimitive);
-
-                // // XXX: Remove
-                // if (genPrimitive.VertexCount == 3) {
-                //     genPrimitive.Type = PsyQ.TmdPrimitiveType.G3;
-                // } else {
-                //     genPrimitive.Type = PsyQ.TmdPrimitiveType.G4;
-                // }
-                // genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
-                // genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex + 1);
-                // genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex + 2);
-                // genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex + 3);
 
                 genPrimitive.FaceArea = 0.5f * genPrimitive.FaceNormal.Length();
                 genPrimitive.FaceNormal = Vector3.Normalize(genPrimitive.FaceNormal);
@@ -64,6 +60,18 @@ namespace PsyCross.Testing.Rendering {
                     // TransformToWorld(render, genPrimitive);
                     // CalculateLighting(render, genPrimitive);
                 }
+
+                // XXX: Remove debugging
+                // genPrimitive.Type = (genPrimitive.VertexCount == 3) ? PsyQ.TmdPrimitiveType.G3 : PsyQ.TmdPrimitiveType.G4;
+                // genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
+                // genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
+                // genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex + 1);
+                // genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex + 2);
+                // genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex + 3);
+                // genPrimitive.GouraudShadingColorBuffer[0] = Rgb888.Red;
+                // genPrimitive.GouraudShadingColorBuffer[1] = Rgb888.Green;
+                // genPrimitive.GouraudShadingColorBuffer[2] = Rgb888.Blue;
+                // genPrimitive.GouraudShadingColorBuffer[3] = Rgb888.Yellow;
 
                 ClipNearPlane(render, genPrimitive);
 
@@ -81,6 +89,7 @@ namespace PsyCross.Testing.Rendering {
                     CullZeroAreaPrimitives(subdividedGenPrimitive);
 
                     if (GenPrimitive.HasFlag(subdividedGenPrimitive, GenPrimitiveFlags.Discarded)) {
+                        // Console.WriteLine("[1;31mCulling area=0[m");
                         continue;
                     }
 
@@ -110,10 +119,10 @@ namespace PsyCross.Testing.Rendering {
         private static void CollectPrimitiveVerticesData(Render render, PsyQ.TmdObject tmdObject, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
             genPrimitive.VertexCount = tmdPacket.Primitive.VertexCount;
 
-            genPrimitive.PolygonVertexBuffer[0] = tmdObject.Vertices[tmdPacket.Primitive.IndexV0];
-            genPrimitive.PolygonVertexBuffer[1] = tmdObject.Vertices[tmdPacket.Primitive.IndexV1];
-            genPrimitive.PolygonVertexBuffer[2] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV2, 0)];
-            genPrimitive.PolygonVertexBuffer[3] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV3, 0)];
+            genPrimitive.VertexBuffer[0] = tmdObject.Vertices[tmdPacket.Primitive.IndexV0];
+            genPrimitive.VertexBuffer[1] = tmdObject.Vertices[tmdPacket.Primitive.IndexV1];
+            genPrimitive.VertexBuffer[2] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV2, 0)];
+            genPrimitive.VertexBuffer[3] = tmdObject.Vertices[System.Math.Max(tmdPacket.Primitive.IndexV3, 0)];
         }
 
         private static void CollectRemainingPrimitiveData(Render render, PsyQ.TmdObject tmdObject, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
@@ -121,10 +130,10 @@ namespace PsyCross.Testing.Rendering {
             genPrimitive.Type = tmdPacket.Primitive.Type;
 
             if (tmdPacket.Primitive.NormalCount > 0) {
-                genPrimitive.PolygonNormalBuffer[0] = tmdObject.Normals[tmdPacket.Primitive.IndexN0];
-                genPrimitive.PolygonNormalBuffer[1] = (tmdPacket.Primitive.IndexN1 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN1] : genPrimitive.PolygonNormals[0];
-                genPrimitive.PolygonNormalBuffer[2] = (tmdPacket.Primitive.IndexN2 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN2] : genPrimitive.PolygonNormals[0];
-                genPrimitive.PolygonNormalBuffer[3] = (tmdPacket.Primitive.IndexN3 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN3] : genPrimitive.PolygonNormals[0];
+                genPrimitive.VertexNormalBuffer[0] = tmdObject.Normals[tmdPacket.Primitive.IndexN0];
+                genPrimitive.VertexNormalBuffer[1] = (tmdPacket.Primitive.IndexN1 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN1] : genPrimitive.VertexNormals[0];
+                genPrimitive.VertexNormalBuffer[2] = (tmdPacket.Primitive.IndexN2 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN2] : genPrimitive.VertexNormals[0];
+                genPrimitive.VertexNormalBuffer[3] = (tmdPacket.Primitive.IndexN3 >= 0) ? tmdObject.Normals[tmdPacket.Primitive.IndexN3] : genPrimitive.VertexNormals[0];
             }
 
             if ((tmdPacket.PrimitiveHeader.Mode & PsyQ.TmdPrimitiveMode.Tme) == PsyQ.TmdPrimitiveMode.Tme) {
@@ -213,19 +222,9 @@ namespace PsyCross.Testing.Rendering {
                 if ((sx < -1024) || (sx > 1023) || (sy < -1024) || (sy > 1023)) {
                     return true;
                 }
-
-                // genPrimitive.ScreenPoints[i].X = System.Math.Clamp(genPrimitive.ScreenPoints[i].X, -1024, 1023);
-                // genPrimitive.ScreenPoints[i].Y = System.Math.Clamp(genPrimitive.ScreenPoints[i].Y, -1024, 1023);
             }
 
             return false;
-        }
-
-        private static Vector3 CalculateScaledFaceNormal(ReadOnlySpan<Vector3> points) {
-            Vector3 a = points[2] - points[0];
-            Vector3 b = points[1] - points[0];
-
-            return Vector3.Cross(a, b);
         }
 
         private static void TransformToWorld(Render render, GenPrimitive genPrimitive) {

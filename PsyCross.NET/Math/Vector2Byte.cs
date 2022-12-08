@@ -12,6 +12,13 @@ namespace PsyCross.Math {
             Y = y;
         }
 
+        public static Vector2Byte Zero => new Vector2Byte(0, 0);
+
+        public static Vector2Byte One => new Vector2Byte(1, 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector2Int(Vector2Byte v) => new Vector2Int(v.X, v.Y);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Vector2Byte(Vector2Int v) => new Vector2Byte((byte)v.X, (byte)v.Y);
 

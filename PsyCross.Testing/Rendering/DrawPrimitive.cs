@@ -4,6 +4,7 @@ namespace PsyCross.Testing.Rendering {
     public static partial class Renderer {
         private static CommandHandle DrawPrimitive(Render render, GenPrimitive genPrimitive) {
             // Console.WriteLine($"DrawPrimitive {genPrimitive.Type}");
+
             switch (genPrimitive.Type) {
                 // With lighting
                 case PsyQ.TmdPrimitiveType.F3:
