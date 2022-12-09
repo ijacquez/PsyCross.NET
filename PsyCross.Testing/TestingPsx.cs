@@ -109,27 +109,8 @@ namespace PsyCross.Testing {
             _model.Position = new Vector3(0f, 0f, 0f);
 
             // Good starting position
-            // _camera.Position = new Vector3(75.36116f, 66.19299f, 75.67318f);
-            // _camera.Pitch = 0f;
-            // _camera.Yaw = 180f;
-
-            // Testing corrupted polys
-            // _camera.Position = new Vector3(16.764767f, 6.2768593f, 3.1472807f);
-            // _camera.Pitch = 0f;
-            // _camera.Yaw = -81.47999f;
-
-            // Keep this. Missing polygon flags...
-            // _camera.Position = new Vector3(7.6395535f, 6.6300645f, 0.95493937f);
-            // _camera.Pitch = 6.66668f;
-            // _camera.Yaw = -988.87683f;
-
-            // Testing clipping
-            // _camera.Position = new Vector3(10.88471f, 6.750839f, 7.9371347f);
-            // _camera.Pitch = 6.754928f;
-            // _camera.Yaw = -1038.4946f;
-
             _camera.Position = new Vector3(11.855872f, 6.8188434f, 7.7060313f);
-            _camera.Pitch = 6.7549276f;
+            _camera.Pitch = 0f;
             _camera.Yaw = -1086.6791f;
 
             _light1 = LightingManager.AllocatePointLight();
@@ -297,7 +278,7 @@ namespace PsyCross.Testing {
                 for (int xx = 0; xx < 20; xx++) {
                     NewMethod(yy, xx, yOff, xOff, _layer1);
                     // XXX: Keep layer 2 removed
-                    // NewMethod(yy, xx, yOff, xOff, _layer2);
+                    NewMethod(yy, xx, yOff, xOff, _layer2);
                 }
             }
 
