@@ -1,5 +1,5 @@
-using System.Runtime.InteropServices;
 using PsyCross.Math;
+using System.Runtime.InteropServices;
 
 namespace PsyCross {
     public static partial class PsyQ {

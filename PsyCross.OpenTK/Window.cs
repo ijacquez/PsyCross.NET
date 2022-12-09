@@ -2,8 +2,8 @@ using PsyCross.Devices.Input;
 using PsyCross.OpenTK.Types;
 using PsyCross.OpenTK.Utilities;
 using PsyCross.ResourceManagement;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 namespace PsyCross.OpenTK {
     using global::OpenTK.Graphics.OpenGL4;

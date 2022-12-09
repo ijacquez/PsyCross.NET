@@ -1,6 +1,6 @@
+using PsyCross.Testing.Rendering.Internal;
 using System.Collections.Generic;
 using System.Numerics;
-using PsyCross.Testing.Rendering.Internal;
 
 namespace PsyCross.Testing.Rendering {
     public class Render {

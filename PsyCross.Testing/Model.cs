@@ -1,7 +1,7 @@
+using PsyCross.Testing.Rendering;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using PsyCross.Testing.Rendering;
 
 namespace PsyCross.Testing {
     public class Model {

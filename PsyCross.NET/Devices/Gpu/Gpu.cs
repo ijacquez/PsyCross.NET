@@ -1,8 +1,8 @@
 using PsyCross.Devices.GPU;
+using PsyCross.Math;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System;
-using PsyCross.Math;
 
 namespace ProjectPSX.Devices {
     public class Gpu {

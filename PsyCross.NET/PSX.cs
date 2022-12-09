@@ -1,6 +1,6 @@
-using System;
 using ProjectPSX.Devices;
 using PsyCross.Devices.Input;
+using System;
 
 namespace PsyCross {
     public static class Psx {

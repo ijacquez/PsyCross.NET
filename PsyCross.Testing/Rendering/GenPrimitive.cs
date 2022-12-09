@@ -1,6 +1,6 @@
+using PsyCross.Math;
 using System;
 using System.Numerics;
-using PsyCross.Math;
 
 namespace PsyCross.Testing.Rendering {
     public class GenPrimitive {
