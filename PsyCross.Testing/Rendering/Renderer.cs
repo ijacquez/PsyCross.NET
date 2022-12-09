@@ -1,5 +1,4 @@
 using PsyCross.Math;
-using System;
 using System.Numerics;
 
 namespace PsyCross.Testing.Rendering {
@@ -34,7 +33,6 @@ namespace PsyCross.Testing.Rendering {
                 // Perform backface culling unless it's "double sided"
                 if (!GenPrimitive.HasFlag(genPrimitive, GenPrimitiveFlags.DoubleSided)) {
                     if (TestBackFaceCull(genPrimitive)) {
-                        // Console.WriteLine("---------------- Backface Cull ----------------");
                         continue;
                     }
                 }
@@ -43,7 +41,6 @@ namespace PsyCross.Testing.Rendering {
 
                 // Cull primitive if it's outside of any of the six planes
                 if (TestOutsideFrustum(genPrimitive)) {
-                    // Console.WriteLine($"---------------- Cull ---------------- {genPrimitive.ClipFlags[0]} & {genPrimitive.ClipFlags[1]} & {genPrimitive.ClipFlags[2]} -> {genPrimitive.ViewPoints[0]}; {genPrimitive.ViewPoints[1]}; {genPrimitive.ViewPoints[2]}");
                     continue;
                 }
 
@@ -61,18 +58,6 @@ namespace PsyCross.Testing.Rendering {
                     // CalculateLighting(render, genPrimitive);
                 }
 
-                // XXX: Remove debugging
-                // genPrimitive.Type = (genPrimitive.VertexCount == 3) ? PsyQ.TmdPrimitiveType.G3 : PsyQ.TmdPrimitiveType.G4;
-                // genPrimitive.Flags |= GenPrimitiveFlags.Shaded;
-                // genPrimitive.GouraudShadingColorBuffer[0] = GetColor(packetIndex);
-                // genPrimitive.GouraudShadingColorBuffer[1] = GetColor(packetIndex + 1);
-                // genPrimitive.GouraudShadingColorBuffer[2] = GetColor(packetIndex + 2);
-                // genPrimitive.GouraudShadingColorBuffer[3] = GetColor(packetIndex + 3);
-                // genPrimitive.GouraudShadingColorBuffer[0] = Rgb888.Red;
-                // genPrimitive.GouraudShadingColorBuffer[1] = Rgb888.Green;
-                // genPrimitive.GouraudShadingColorBuffer[2] = Rgb888.Blue;
-                // genPrimitive.GouraudShadingColorBuffer[3] = Rgb888.Yellow;
-
                 ClipNearPlane(render, genPrimitive);
 
                 if (render.ClippedGenPrimitives.Count == 0) {
@@ -89,12 +74,10 @@ namespace PsyCross.Testing.Rendering {
                     CullZeroAreaPrimitives(subdividedGenPrimitive);
 
                     if (GenPrimitive.HasFlag(subdividedGenPrimitive, GenPrimitiveFlags.Discarded)) {
-                        // Console.WriteLine("[1;31mCulling area=0[m");
                         continue;
                     }
 
                     if (TestScreenPointOverflow(subdividedGenPrimitive)) {
-                        // Console.WriteLine("[1;31mOverflow[m");
                         continue;
                     }
 
@@ -108,13 +91,6 @@ namespace PsyCross.Testing.Rendering {
             // XXX: Move the sort point code out and take in only the Z value
             render.PrimitiveSort.Add(genPrimitive.ViewPoints, PrimitiveSortPoint.Center, commandHandle);
         }
-
-        // XXX: Remove (or move to a DebugHelper)
-        private static Random _GetRandomColorRandom = new Random();
-        private static Rgb888[] _HugeTable = new Rgb888[4096];
-        static Renderer() { for (int i = 0; i < _HugeTable.Length; i++) { _HugeTable[i] = new Rgb888((byte)(_GetRandomColorRandom.NextDouble() * 255), (byte)(_GetRandomColorRandom.NextDouble() * 255), (byte)(_GetRandomColorRandom.NextDouble() * 255)); } }
-        private static Rgb888 GetRandomColor() => _HugeTable[System.Math.Abs(_GetRandomColorRandom.Next()) % 4095];
-        private static Rgb888 GetColor(int index) => _HugeTable[System.Math.Abs(index) % 4095];
 
         private static void CollectPrimitiveVerticesData(Render render, PsyQ.TmdObject tmdObject, PsyQ.TmdPacket tmdPacket, GenPrimitive genPrimitive) {
             genPrimitive.VertexCount = tmdPacket.Primitive.VertexCount;
