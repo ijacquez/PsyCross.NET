@@ -5,7 +5,6 @@ using System.Numerics;
 namespace PsyCross.Testing.Rendering {
     public class GenPrimitive {
         public GenPrimitiveFlags Flags { get; set; }
-        public GenPrimitiveTags Tags { get; set; }
         public PsyQ.TmdPrimitiveType Type { get; set; }
         public int VertexCount { get; set; } = 3;
         public int NormalCount { get; set; }
@@ -105,19 +104,5 @@ namespace PsyCross.Testing.Rendering {
 
         public static bool HasFlags(GenPrimitive genPrimitive, GenPrimitiveFlags flagsMask) =>
             HasFlag(genPrimitive, flagsMask);
-
-        // XXX: Debugging. Add a compilation conditional
-        public static void ClearTags(GenPrimitive genPrimitive) {
-            genPrimitive.Tags = GenPrimitiveTags.None;
-        }
-
-        // XXX: Debugging. Add a compilation conditional
-        public static void SetTags(GenPrimitive genPrimitive, GenPrimitiveTags tagsMask) {
-            genPrimitive.Tags |= tagsMask;
-        }
-
-        // XXX: Debugging. Add a compilation conditional
-        public static bool HasTag(GenPrimitive genPrimitive, GenPrimitiveTags tagsMask) =>
-            ((genPrimitive.Tags & tagsMask) != GenPrimitiveTags.None);
     }
 }

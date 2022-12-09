@@ -23,7 +23,6 @@ namespace PsyCross.Testing.Rendering.Internal {
             }
 
             GenPrimitive.ClearFlags(genPrimitive);
-            GenPrimitive.ClearTags(genPrimitive);
 
             return genPrimitive;
         }
